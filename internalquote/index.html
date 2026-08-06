@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Waterline — Internal Quote Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #134E5E;
+    --deep-dark: #0C3944;
+    --pine: #2F5D50;
+    --glacier: #8CC7D6;
+    --glacier-tint: rgba(140,199,214,0.18);
+    --stone: #E8ECEF;
+    --stone-2: #DCE3E6;
+    --white: #FFFFFF;
+    --ink: #16232B;
+    --muted: #6A7480;
+    --ok: #2F5D50;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--stone); color: var(--ink);
+    font-family: 'Work Sans', sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  .voice { font-family: 'Fraunces', serif; }
+  header {
+    background: var(--deep); color: #fff; padding: 22px 28px;
+  }
+  header .brand { display: flex; align-items: baseline; gap: 10px; }
+  header .brand .name { font-family: 'Fraunces', serif; font-size: 22px; }
+  header .brand .tag { font-size: 12px; color: var(--glacier); letter-spacing: 0.06em; }
+  header .note { font-size: 12px; color: #B9D6DC; margin-top: 6px; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; }
+  @media (max-width: 880px) { .wrap { grid-template-columns: 1fr; } }
+
+  .card {
+    background: #fff; border: 1px solid var(--stone-2); border-radius: 14px;
+    padding: 22px 24px; margin-bottom: 18px;
+  }
+  .card h2 {
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px; color: var(--deep);
+    margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--stone-2);
+  }
+  .field-label { font-size: 12.5px; font-weight: 600; color: var(--pine); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn-opt {
+    flex: 1; min-width: 100px; text-align: center; padding: 10px 8px; border-radius: 10px;
+    border: 1.5px solid var(--stone-2); cursor: pointer; font-size: 13.5px; font-weight: 500;
+    background: #fff; color: var(--ink); user-select: none; transition: all .1s;
+  }
+  .btn-opt.active { background: var(--deep); border-color: var(--deep); color: #fff; }
+  .btn-opt .sub { display: block; font-size: 11px; opacity: 0.75; margin-top: 2px; font-weight: 400; }
+
+  .row { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 4px; }
+  .num-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .num-field label { font-size: 12.5px; color: var(--muted); }
+  .num-field input[type="number"], .num-field input[type="text"] {
+    font-family: 'Work Sans', sans-serif; font-size: 15px; padding: 10px 12px;
+    border: 1.5px solid var(--stone-2); border-radius: 8px; background: var(--white); color: var(--ink); width: 100%;
+  }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+  .addon-row {
+    display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--stone-2);
+  }
+  .addon-row:first-child { border-top: none; }
+  .addon-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--deep); flex: none; }
+  .addon-row .a-label { flex: 1; font-size: 14px; }
+  .addon-row .a-label b { color: var(--deep); }
+  .addon-row .a-note { font-size: 11.5px; color: var(--muted); display: block; }
+  .addon-row .a-price { font-family: 'Fraunces', serif; font-weight: 500; color: var(--deep); font-size: 14.5px; white-space: nowrap; }
+  .addon-row .a-price input { width: 68px; font-size: 13.5px; padding: 5px 6px; border: 1px solid var(--stone-2); border-radius: 6px; text-align: right; }
+  .addon-row.disabled { opacity: 0.55; }
+  .free-chip {
+    display: inline-block; background: var(--glacier-tint); color: var(--pine); font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px; margin-left: 6px;
+  }
+
+  /* SUMMARY */
+  .summary { position: sticky; top: 20px; }
+  .summary-card { background: var(--deep); color: #fff; border-radius: 14px; padding: 24px; }
+  .summary-card h2 { color: #fff; border-bottom-color: rgba(255,255,255,0.18); }
+  .s-line { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; color: #D7E7EC; }
+  .s-line b { color: #fff; font-weight: 500; }
+  .s-div { border-top: 1px solid rgba(255,255,255,0.18); margin: 8px 0; }
+  .s-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; }
+  .s-total .label { font-size: 13px; color: var(--glacier); text-transform: uppercase; letter-spacing: 0.06em; }
+  .s-total .amt { font-family: 'Fraunces', serif; font-size: 34px; font-weight: 500; }
+  .upgrade-box {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.25);
+    font-size: 12.5px; color: #C7DEE5; line-height: 1.5;
+  }
+  .upgrade-box b { color: #fff; }
+  .copy-btn {
+    margin-top: 16px; width: 100%; background: var(--glacier); color: var(--deep-dark); border: none;
+    font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 14px; padding: 12px; border-radius: 30px; cursor: pointer;
+  }
+  .copy-btn:active { opacity: 0.85; }
+  .copy-status { font-size: 11.5px; color: var(--glacier); text-align: center; margin-top: 8px; min-height: 14px; }
+
+  .warn { background: #FCEFEA; border: 1px solid #F0C9BA; color: #8A3E22; font-size: 12.5px; padding: 10px 12px; border-radius: 8px; margin-top: 10px; display: none; }
+  .warn.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="name">Waterline</span><span class="tag">INTERNAL QUOTE TOOL</span></div>
+</header>
+
+<div class="wrap">
+  <div class="main">
+
+    <div class="card">
+      <h2>Customer &amp; boat</h2>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="num-field"><label>Customer name</label><input type="text" id="custName" placeholder="—"></div>
+        <div class="num-field"><label>Boat / make</label><input type="text" id="boatName" placeholder="—"></div>
+      </div>
+      <div class="row">
+        <div class="num-field"><label>Date</label><input type="text" id="quoteDate" placeholder="—"></div>
+        <div class="num-field"><label>Staff</label><input type="text" id="staffName" placeholder="—"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Package</h2>
+      <div class="btn-group" id="pkgGroup">
+        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750</span></div>
+        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $3,000 / $2,700</span></div>
+        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $3,700 / $3,400</span></div>
+      </div>
+
+      <p class="field-label">Boat category</p>
+      <div class="btn-group" id="catGroup">
+        <div class="btn-opt active" data-val="SI">Ski / Inboard</div>
+        <div class="btn-opt" data-val="Pontoon">Pontoon</div>
+      </div>
+
+      <div id="driveWrap">
+        <p class="field-label">Drivetrain</p>
+        <div class="btn-group" id="driveGroup">
+          <div class="btn-opt active" data-val="Outboard">Outboard<span class="sub">×1.00</span></div>
+          <div class="btn-opt" data-val="IO">I/O<span class="sub">×1.12</span></div>
+          <div class="btn-opt" data-val="Inboard">Inboard / V-Drive<span class="sub">×1.30</span></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="num-field">
+          <label>Boat length (ft)</label>
+          <input type="number" id="lengthInput" value="24" min="8" max="60">
+        </div>
+      </div>
+      <p class="hint" id="lengthHint"></p>
+      <div class="warn" id="customQuoteWarn">33'+ — recommend a custom quote rather than relying on the multiplier table.</div>
+    </div>
+
+    <div class="card">
+      <h2>Add-ons</h2>
+
+      <div class="addon-row" id="row-detailing">
+        <input type="checkbox" id="add-detailing">
+        <div class="a-label"><b>Detailing</b><span class="a-note" id="note-detailing">Add-on for Anchor &amp; Harbor</span></div>
+        <div class="a-price">$450</div>
+      </div>
+
+      <div class="addon-row" id="row-wrap">
+        <input type="checkbox" id="add-wrap">
+        <div class="a-label"><b>Shrink wrapping</b><span class="a-note" id="note-wrap">Add-on for Anchor &amp; Harbor</span></div>
+        <div class="a-price">$400</div>
+      </div>
+
+      <div class="addon-row">
+        <input type="checkbox" id="add-liftcover">
+        <div class="a-label"><b>Lift Cover removal and install</b><span class="a-note">Available on any package</span></div>
+        <div class="a-price">$150</div>
+      </div>
+
+      <div class="addon-row">
+        <input type="checkbox" id="add-trailer">
+        <div class="a-label"><b>Trailer bearing &amp; tire check</b><span class="a-note">Range $75–150 — set exact amount</span></div>
+        <div class="a-price">$<input type="number" id="trailerAmt" value="75" min="75" max="150"></div>
+      </div>
+
+      <div class="addon-row">
+        <input type="checkbox" id="add-battery">
+        <div class="a-label"><b>Battery tender service</b><span class="a-note">$25–50 / battery — set count &amp; rate</span></div>
+        <div class="a-price">
+          <input type="number" id="batteryCount" value="1" min="0" max="12" style="width:44px;"> ×
+          $<input type="number" id="batteryRate" value="25" min="25" max="50">
+        </div>
+      </div>
+
+      <div class="addon-row disabled">
+        <input type="checkbox" id="add-vent" disabled>
+        <div class="a-label"><b>Vent Kit + Moisture and Pest Deterrent</b><span class="a-note" id="note-vent">Automatic with any shrink-wrapped boat — no charge</span></div>
+        <div class="a-price">Free</div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="num-field">
+          <label>Battery storage direction (note only, not priced)</label>
+          <input type="text" id="batteryDirection" placeholder="e.g. customer takes battery home">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <h2>Quote summary</h2>
+      <div class="s-line"><span>Base price</span><b id="s-base">—</b></div>
+      <div class="s-line"><span>Length multiplier</span><b id="s-lenmult">—</b></div>
+      <div class="s-line"><span>Drivetrain multiplier</span><b id="s-drivemult">—</b></div>
+      <div class="s-div"></div>
+      <div class="s-line"><span>Package subtotal</span><b id="s-pkgsub">—</b></div>
+      <div class="s-line"><span>Add-ons subtotal</span><b id="s-addsub">—</b></div>
+      <div class="s-total"><span class="label">Total quote</span><span class="amt" id="s-total">$0</span></div>
+
+      <div class="upgrade-box" id="upgradeBox"></div>
+
+      <button class="copy-btn" id="copyBtn">Copy quote summary</button>
+      <p class="copy-status" id="copyStatus"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE = {
+    Anchor:   { SI: 900,  Pontoon: 750  },
+    Harbor:   { SI: 3000, Pontoon: 2700 },
+    Flagship: { SI: 3700, Pontoon: 3400 },
+  };
+  const TIER_ORDER = ["Anchor", "Harbor", "Flagship"];
+
+  function lengthMultiplier(ft) {
+    if (ft <= 20) return { mult: 1.00, band: "Up to 20'" };
+    if (ft <= 24) return { mult: 1.12, band: "21'–24'" };
+    if (ft <= 28) return { mult: 1.28, band: "25'–28'" };
+    if (ft <= 32) return { mult: 1.48, band: "29'–32'" };
+    return { mult: 1.75, band: "33'+ (custom quote)" };
+  }
+  const DRIVE_MULT = { Outboard: 1.00, IO: 1.12, Inboard: 1.30 };
+  const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+  let state = { pkg: "Harbor", cat: "SI", drive: "Outboard" };
+
+  function wireGroup(id, key) {
+    const group = document.getElementById(id);
+    group.querySelectorAll(".btn-opt").forEach((el) => {
+      el.addEventListener("click", () => {
+        group.querySelectorAll(".btn-opt").forEach((o) => o.classList.remove("active"));
+        el.classList.add("active");
+        state[key] = el.dataset.val;
+        onChange();
+      });
+    });
+  }
+  wireGroup("pkgGroup", "pkg");
+  wireGroup("catGroup", "cat");
+  wireGroup("driveGroup", "drive");
+
+  const ids = ["lengthInput","trailerAmt","batteryCount","batteryRate","add-detailing","add-wrap","add-liftcover","add-trailer","add-battery"];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener("input", onChange);
+    el.addEventListener("change", onChange);
+  });
+
+  function computePackagePrice() {
+    const base = BASE[state.pkg][state.cat];
+    const lm = lengthMultiplier(parseFloat(document.getElementById("lengthInput").value || 0));
+    const dm = state.cat === "Pontoon" ? 1.00 : DRIVE_MULT[state.drive];
+    const raw = base * lm.mult * dm;
+    const rounded = Math.round(raw / 25) * 25;
+    return { base, lm, dm, raw, rounded };
+  }
+
+  function onChange() {
+    document.getElementById("driveWrap").style.display = state.cat === "Pontoon" ? "none" : "block";
+
+    const flagship = state.pkg === "Flagship";
+    ["detailing", "wrap"].forEach((k) => {
+      const cb = document.getElementById("add-" + k);
+      const row = document.getElementById("row-" + k);
+      const note = document.getElementById("note-" + k);
+      if (flagship) {
+        cb.checked = true; cb.disabled = true; row.classList.add("disabled");
+        note.textContent = "Included free in Flagship";
+      } else {
+        cb.disabled = false; row.classList.remove("disabled");
+        note.textContent = "Add-on for Anchor & Harbor";
+      }
+    });
+    document.getElementById("note-vent").textContent = document.getElementById("add-wrap").checked
+      ? "Included automatically — no charge" : "Only applies once shrink wrapping is included";
+
+    const { base, lm, dm, rounded } = computePackagePrice();
+    const ft = parseFloat(document.getElementById("lengthInput").value || 0);
+    document.getElementById("customQuoteWarn").classList.toggle("show", ft >= 33);
+    document.getElementById("lengthHint").textContent = "Length band: " + lm.band;
+
+    let addons = 0;
+    const lines = [];
+    if (document.getElementById("add-detailing").checked && !flagship) { addons += 450; lines.push(["Detailing", 450]); }
+    if (flagship) lines.push(["Detailing (included in Flagship)", 0]);
+    if (document.getElementById("add-wrap").checked && !flagship) { addons += 400; lines.push(["Shrink wrapping", 400]); }
+    if (flagship) lines.push(["Shrink wrapping (included in Flagship)", 0]);
+    if (document.getElementById("add-liftcover").checked) { addons += 150; lines.push(["Lift Cover removal and install", 150]); }
+    if (document.getElementById("add-trailer").checked) {
+      const amt = parseFloat(document.getElementById("trailerAmt").value || 0);
+      addons += amt; lines.push(["Trailer bearing & tire check", amt]);
+    }
+    if (document.getElementById("add-battery").checked) {
+      const count = parseFloat(document.getElementById("batteryCount").value || 0);
+      const rate = parseFloat(document.getElementById("batteryRate").value || 0);
+      const amt = count * rate;
+      addons += amt; lines.push(["Battery tender service (" + count + " × $" + rate + ")", amt]);
+    }
+
+    document.getElementById("s-base").textContent = money(base) + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + ")";
+    document.getElementById("s-lenmult").textContent = "×" + lm.mult.toFixed(2) + " (" + lm.band + ")";
+    document.getElementById("s-drivemult").textContent = state.cat === "Pontoon" ? "×1.00 (pontoon)" : "×" + dm.toFixed(2) + " (" + state.drive + ")";
+    document.getElementById("s-pkgsub").textContent = money(rounded);
+    document.getElementById("s-addsub").textContent = money(addons);
+    document.getElementById("s-total").textContent = money(rounded + addons);
+
+    const idx = TIER_ORDER.indexOf(state.pkg);
+    let upgradeHtml = "";
+    if (idx < TIER_ORDER.length - 1) {
+      const nextTier = TIER_ORDER[idx + 1];
+      const nextBase = BASE[nextTier][state.cat];
+      const nextRaw = nextBase * lm.mult * dm;
+      const nextRounded = Math.round(nextRaw / 25) * 25;
+      const delta = nextRounded - rounded;
+      upgradeHtml = "<b>Upgrade to " + nextTier + ":</b> +" + money(delta) + " more (same boat, same add-ons not carried over automatically).";
+    }
+    document.getElementById("upgradeBox").innerHTML = upgradeHtml;
+
+    window._quoteLines = lines;
+    window._quoteMeta = { base, lm, dm, rounded, addons, total: rounded + addons };
+  }
+
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const cust = document.getElementById("custName").value || "—";
+    const boat = document.getElementById("boatName").value || "—";
+    const date = document.getElementById("quoteDate").value || "—";
+    const staff = document.getElementById("staffName").value || "—";
+    const battDir = document.getElementById("batteryDirection").value || "—";
+    const m = window._quoteMeta;
+    const lines = window._quoteLines.filter((l) => l[1] > 0);
+
+    let txt = "WATERLINE LAKE SERVICES — QUOTE\n";
+    txt += "Customer: " + cust + "   Boat: " + boat + "\n";
+    txt += "Date: " + date + "   Staff: " + staff + "\n\n";
+    txt += "Package: " + state.pkg + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + (state.cat !== "Pontoon" ? ", " + state.drive : "") + "), " + document.getElementById("lengthInput").value + "ft\n";
+    txt += "Base " + money(m.base) + " × " + m.lm.mult.toFixed(2) + " (length) × " + m.dm.toFixed(2) + " (drivetrain) = " + money(m.rounded) + "\n\n";
+    if (lines.length) {
+      txt += "Add-ons:\n";
+      lines.forEach((l) => { txt += "  " + l[0] + " — " + money(l[1]) + "\n"; });
+      txt += "\n";
+    }
+    if (battDir !== "—") txt += "Battery storage: " + battDir + "\n\n";
+    txt += "TOTAL QUOTE: " + money(m.total) + "\n";
+
+    navigator.clipboard.writeText(txt).then(() => {
+      document.getElementById("copyStatus").textContent = "Copied to clipboard.";
+      setTimeout(() => { document.getElementById("copyStatus").textContent = ""; }, 2500);
+    }).catch(() => {
+      document.getElementById("copyStatus").textContent = "Couldn't copy — select and copy manually.";
+    });
+  });
+
+  onChange();
+</script>
+
+</body>
+</html>
