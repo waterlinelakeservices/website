@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /internalquote/
+
+Sitemap: https://waterlinelakeservices.com/sitemap.xml
