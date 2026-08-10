@@ -5,12 +5,70 @@
 <title>Waterline Lake Services — Boat Storage &amp; Winterization</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Season to season boat winterization and storage for the Grandview Lake, Harrison Lake and Cordry-Sweetwater communities. Request a quote today.">
+<link rel="canonical" href="https://waterlinelakeservices.com/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Open Graph / social preview -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://waterlinelakeservices.com/">
+<meta property="og:title" content="Waterline Lake Services — Boat Storage & Winterization">
+<meta property="og:description" content="Season to season boat winterization and storage for the Grandview Lake, Harrison Lake and Cordry-Sweetwater communities. Request a quote today.">
+<meta property="og:image" content="https://waterlinelakeservices.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Waterline Lake Services — Boat Storage & Winterization">
+<meta name="twitter:description" content="Season to season boat winterization and storage for the Grandview Lake, Harrison Lake and Cordry-Sweetwater communities.">
+<meta name="twitter:image" content="https://waterlinelakeservices.com/apple-touch-icon.png">
+
+<meta name="google-site-verification" content="b6m0Ysx3qnRdAwZX0EAfan-giOrCN6QBVTWL0NWsn-E" />
+
+<!-- Google tag (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NNT1ZX6DQ4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NNT1ZX6DQ4');
+</script>
+
+<!-- LocalBusiness structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "Waterline Lake Services",
+  "legalName": "Waterline Lake Services LLC",
+  "url": "https://waterlinelakeservices.com/",
+  "image": "https://waterlinelakeservices.com/apple-touch-icon.png",
+  "telephone": "+13172588269",
+  "email": "service@waterlinelakeservices.com",
+  "priceRange": "$750-$3700",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Columbus",
+    "addressRegion": "IN",
+    "addressCountry": "US"
+  },
+  "areaServed": [
+    { "@type": "Place", "name": "Grandview Lake, Indiana" },
+    { "@type": "Place", "name": "Harrison Lake, Indiana" },
+    { "@type": "Place", "name": "Cordry-Sweetwater Lakes, Indiana" },
+    { "@type": "Place", "name": "Columbus, Indiana" }
+  ],
+  "description": "Boat winterization, covered seasonal storage, pickup & delivery, shrink wrapping, and detailing for the Grandview Lake, Harrison Lake and Cordry-Sweetwater lake communities in southern Indiana.",
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Boat Care Packages",
+    "itemListElement": [
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Anchor — winterization only, at customer's own lift" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Harbor — winterization plus covered storage, pickup & delivery" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Flagship — full concierge package with shrink wrap and detailing" } }
+    ]
+  }
+}
+</script>
+
 <style>
   :root {
     --deep: #134E5E;
@@ -556,21 +614,33 @@
   }
 
   function sendSubmission(data) {
-    statusEl.className = 'form-status';
-    statusEl.textContent = 'Sending...';
+    // Show the confirmation immediately and reset the form right away —
+    // don't make the visitor wait on the network round trip. The request
+    // below uses `keepalive` so the browser finishes delivering it even if
+    // they close the tab or navigate away the instant they see "Thanks."
+    statusEl.className = 'form-status ok';
+    statusEl.textContent = 'Thanks — we\'ll be in touch within a day or two.';
+    document.getElementById('inquiry-form').reset();
+
+    if (typeof gtag === 'function') {
+      gtag('event', 'generate_lead', {
+        package_interest: data.packageInterest,
+        how_heard: data.howHeard || 'not specified'
+      });
+    }
 
     fetch(SUBMIT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      keepalive: true
     })
     .then(function (res) {
       if (!res.ok) { throw new Error('Request failed'); }
-      statusEl.className = 'form-status ok';
-      statusEl.textContent = 'Thanks — we\'ll be in touch within a day or two.';
-      document.getElementById('inquiry-form').reset();
     })
     .catch(function () {
+      // Only visible if they're still on the page — otherwise `keepalive`
+      // has already carried the request through in the background.
       showFallback(data);
     });
   }
