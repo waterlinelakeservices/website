@@ -243,6 +243,32 @@
     h1.hero-title { font-size: 34px; }
     .form-card { padding: 26px 20px; }
   }
+
+  /* HOW-HEARD PROMPT */
+  .hh-overlay {
+    position: fixed; inset: 0; background: rgba(12,57,68,0.55);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; z-index: 999;
+  }
+  .hh-overlay.open { display: flex; }
+  .hh-card {
+    background: #fff; border-radius: 18px; max-width: 440px; width: 100%;
+    padding: 32px 28px; text-align: center; border-top: 3px solid var(--glacier);
+  }
+  .hh-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 21px; color: var(--deep); margin: 0 0 8px; }
+  .hh-sub { font-size: 13.5px; color: var(--muted); margin: 0 0 20px; }
+  .hh-options { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .hh-pill {
+    border: 1px solid var(--stone-2); background: var(--wash); color: var(--deep);
+    font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 9px 15px; border-radius: 30px; cursor: pointer;
+  }
+  .hh-pill:hover { border-color: var(--glacier); background: var(--glacier-tint); }
+  .hh-pill:focus-visible { outline: 2px solid var(--glacier); outline-offset: 2px; }
+  .hh-skip {
+    border: none; background: none; color: var(--muted); font-size: 12.5px;
+    cursor: pointer; text-decoration: underline; font-family: 'Work Sans', sans-serif;
+  }
 </style>
 </head>
 <body>
@@ -464,6 +490,23 @@
   </div>
 </section>
 
+<div class="hh-overlay" id="hh-overlay" role="dialog" aria-modal="true" aria-labelledby="hh-title">
+  <div class="hh-card">
+    <p class="hh-title" id="hh-title">One quick thing —</p>
+    <p class="hh-sub">How'd you hear about Waterline?</p>
+    <div class="hh-options" id="hh-options">
+      <button type="button" class="hh-pill" data-value="Referral / neighbor">Referral / neighbor</button>
+      <button type="button" class="hh-pill" data-value="Google search">Google search</button>
+      <button type="button" class="hh-pill" data-value="Facebook / Instagram">Facebook / Instagram</button>
+      <button type="button" class="hh-pill" data-value="Postcard / mailer">Postcard / mailer</button>
+      <button type="button" class="hh-pill" data-value="Saw your truck / dock">Saw your truck / dock</button>
+      <button type="button" class="hh-pill" data-value="Grandview Lot Owners Association">Grandview LOA</button>
+      <button type="button" class="hh-pill" data-value="Other">Other</button>
+    </div>
+    <button type="button" class="hh-skip" id="hh-skip">Skip this</button>
+  </div>
+</div>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-col">
@@ -489,61 +532,87 @@
     if (sel) { sel.value = name; }
   }
 
-  // ---- GOOGLE SHEETS FORM ENDPOINT ----
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbyESKvur6qcfCiRbyOht-mZ_AOYjP2PAd8FKzMM41Y635-9b4TqZh_eFMz3TZhJ6uNN/exec';
+  // ---- SUBMISSION ENDPOINT ----
+  // Handled by netlify/functions/submit-quote.js, which logs each request
+  // (including how they heard about us) into the Waterline Marketing Airtable base.
+  var SUBMIT_URL = '/api/submit-quote';
   var CONTACT_EMAIL = 'service@waterlinelakeservices.com';
-  // --------------------------------------
+  // ------------------------------
+
+  var pendingData = null;
+  var hhOverlay = document.getElementById('hh-overlay');
+  var statusEl = document.getElementById('form-status');
+
+  function showFallback(data) {
+    var subject = encodeURIComponent('Quote request - ' + data.name);
+    var body = encodeURIComponent(
+      'Name: ' + data.name + '\n' + 'Email: ' + data.email + '\n' + 'Phone: ' + data.phone +
+      '\n' + 'Boat type: ' + data.boatType + '\n' + 'Boat length: ' + data.boatLength +
+      '\n' + 'Package: ' + data.packageInterest + '\n' + 'Message: ' + data.message +
+      '\n' + 'How heard about us: ' + (data.howHeard || 'Not specified')
+    );
+    statusEl.className = 'form-status err';
+    statusEl.innerHTML = 'Something went wrong sending that — <a href="mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body + '">click here to send this as an email instead</a>.';
+  }
+
+  function sendSubmission(data) {
+    statusEl.className = 'form-status';
+    statusEl.textContent = 'Sending...';
+
+    fetch(SUBMIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(function (res) {
+      if (!res.ok) { throw new Error('Request failed'); }
+      statusEl.className = 'form-status ok';
+      statusEl.textContent = 'Thanks — we\'ll be in touch within a day or two.';
+      document.getElementById('inquiry-form').reset();
+    })
+    .catch(function () {
+      showFallback(data);
+    });
+  }
+
+  function closeHowHeard() {
+    hhOverlay.classList.remove('open');
+  }
 
   document.getElementById('inquiry-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    var statusEl = document.getElementById('form-status');
-    var data = {
+    pendingData = {
       name: document.getElementById('name').value,
       email: document.getElementById('email').value,
       phone: document.getElementById('phone').value,
       boatType: document.getElementById('boatType').value,
       boatLength: document.getElementById('boatLength').value,
       packageInterest: document.getElementById('packageInterest').value,
-      message: document.getElementById('message').value
+      message: document.getElementById('message').value,
+      howHeard: ''
     };
+    hhOverlay.classList.add('open');
+  });
 
-    function showFallback() {
-      var subject = encodeURIComponent('Quote request - ' + data.name);
-      var body = encodeURIComponent(
-        'Name: ' + data.name + '\n' + 'Email: ' + data.email + '\n' + 'Phone: ' + data.phone +
-        '\n' + 'Boat type: ' + data.boatType + '\n' + 'Boat length: ' + data.boatLength +
-        '\n' + 'Package: ' + data.packageInterest + '\n' + 'Message: ' + data.message
-      );
-      statusEl.className = 'form-status err';
-      statusEl.innerHTML = 'Something went wrong sending that — <a href="mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body + '">click here to send this as an email instead</a>.';
+  document.getElementById('hh-options').addEventListener('click', function (e) {
+    var btn = e.target.closest('.hh-pill');
+    if (!btn || !pendingData) { return; }
+    pendingData.howHeard = btn.getAttribute('data-value');
+    closeHowHeard();
+    sendSubmission(pendingData);
+  });
+
+  document.getElementById('hh-skip').addEventListener('click', function () {
+    if (!pendingData) { return; }
+    closeHowHeard();
+    sendSubmission(pendingData);
+  });
+
+  hhOverlay.addEventListener('click', function (e) {
+    if (e.target === hhOverlay && pendingData) {
+      closeHowHeard();
+      sendSubmission(pendingData);
     }
-
-    statusEl.className = 'form-status';
-    statusEl.textContent = 'Sending...';
-
-    fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        boatType: data.boatType,
-        boatLength: data.boatLength,
-        packageInterest: data.packageInterest,
-        message: data.message,
-        source: 'Landing Page'
-      })
-    })
-    .then(function () {
-      statusEl.className = 'form-status ok';
-      statusEl.textContent = 'Thanks — we\'ll be in touch within a day or two.';
-      document.getElementById('inquiry-form').reset();
-    })
-    .catch(function () {
-      showFallback();
-    });
   });
 </script>
 
