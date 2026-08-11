@@ -9,6 +9,11 @@
   to = "/.netlify/functions/submit-quote"
   status = 200
 
+[[redirects]]
+  from = "/api/save-internal-quote"
+  to = "/.netlify/functions/save-internal-quote"
+  status = 200
+
 [[headers]]
   for = "/internalquote/*"
   [headers.values]
