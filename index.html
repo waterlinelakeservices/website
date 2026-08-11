@@ -327,6 +327,20 @@
     border: none; background: none; color: var(--muted); font-size: 12.5px;
     cursor: pointer; text-decoration: underline; font-family: 'Work Sans', sans-serif;
   }
+
+  /* THANK-YOU / CONFIRMATION POPUP */
+  .ty-icon {
+    width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%;
+    background: var(--glacier-tint); display: flex; align-items: center; justify-content: center;
+  }
+  .ty-close {
+    display: inline-block; margin-top: 4px;
+    background: var(--deep); color: #fff; border: none;
+    font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 13.5px;
+    padding: 10px 26px; border-radius: 30px; cursor: pointer;
+  }
+  .ty-close:hover { background: var(--deep-dark); }
+  .hh-sub a { color: var(--deep); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -512,6 +526,12 @@
         </div>
       </div>
       <div class="form-row">
+        <div class="form-field full">
+          <label for="address">Address <span style="font-weight:400; color: var(--muted);">(where we'd pick up / store the boat)</span></label>
+          <input type="text" id="address" name="address" placeholder="Street, city">
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-field">
           <label for="boatType">Boat type</label>
           <select id="boatType" name="boatType">
@@ -565,6 +585,15 @@
   </div>
 </div>
 
+<div class="hh-overlay" id="ty-overlay" role="dialog" aria-modal="true" aria-labelledby="ty-title">
+  <div class="hh-card">
+    <div class="ty-icon" id="ty-icon"></div>
+    <p class="hh-title" id="ty-title">Thanks!</p>
+    <p class="hh-sub" id="ty-message">We'll be in touch within a day or two.</p>
+    <button type="button" class="ty-close" id="ty-close">Got it</button>
+  </div>
+</div>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-col">
@@ -599,18 +628,43 @@
 
   var pendingData = null;
   var hhOverlay = document.getElementById('hh-overlay');
-  var statusEl = document.getElementById('form-status');
+  var tyOverlay = document.getElementById('ty-overlay');
+  var tyTitle = document.getElementById('ty-title');
+  var tyMessage = document.getElementById('ty-message');
+  var tyIcon = document.getElementById('ty-icon');
+
+  var TY_ICON_OK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#134E5E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var TY_ICON_ERR = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#A3392E" stroke-width="2"/><path d="M12 8v5M12 16h.01" stroke="#A3392E" stroke-width="2.5" stroke-linecap="round"/></svg>';
+
+  function showThankYou(title, messageHtml, isError) {
+    tyTitle.textContent = title;
+    tyMessage.innerHTML = messageHtml;
+    tyIcon.innerHTML = isError ? TY_ICON_ERR : TY_ICON_OK;
+    tyOverlay.classList.add('open');
+  }
+
+  document.getElementById('ty-close').addEventListener('click', function () {
+    tyOverlay.classList.remove('open');
+  });
+  tyOverlay.addEventListener('click', function (e) {
+    if (e.target === tyOverlay) { tyOverlay.classList.remove('open'); }
+  });
 
   function showFallback(data) {
     var subject = encodeURIComponent('Quote request - ' + data.name);
     var body = encodeURIComponent(
       'Name: ' + data.name + '\n' + 'Email: ' + data.email + '\n' + 'Phone: ' + data.phone +
+      '\n' + 'Address: ' + (data.address || 'Not specified') +
       '\n' + 'Boat type: ' + data.boatType + '\n' + 'Boat length: ' + data.boatLength +
       '\n' + 'Package: ' + data.packageInterest + '\n' + 'Message: ' + data.message +
       '\n' + 'How heard about us: ' + (data.howHeard || 'Not specified')
     );
-    statusEl.className = 'form-status err';
-    statusEl.innerHTML = 'Something went wrong sending that — <a href="mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body + '">click here to send this as an email instead</a>.';
+    var mailtoLink = 'mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body;
+    showThankYou(
+      "That didn't quite go through",
+      'Something went wrong sending that automatically — <a href="' + mailtoLink + '">click here to send it as an email instead</a>.',
+      true
+    );
   }
 
   function sendSubmission(data) {
@@ -618,8 +672,7 @@
     // don't make the visitor wait on the network round trip. The request
     // below uses `keepalive` so the browser finishes delivering it even if
     // they close the tab or navigate away the instant they see "Thanks."
-    statusEl.className = 'form-status ok';
-    statusEl.textContent = 'Thanks — we\'ll be in touch within a day or two.';
+    showThankYou('Thanks!', "We'll be in touch within a day or two.", false);
     document.getElementById('inquiry-form').reset();
 
     if (typeof gtag === 'function') {
@@ -655,6 +708,7 @@
       name: document.getElementById('name').value,
       email: document.getElementById('email').value,
       phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
       boatType: document.getElementById('boatType').value,
       boatLength: document.getElementById('boatLength').value,
       packageInterest: document.getElementById('packageInterest').value,
