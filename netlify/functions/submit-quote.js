@@ -34,6 +34,7 @@ exports.handler = async function (event) {
     Name: payload.name || '',
     Phone: payload.phone || '',
     Email: payload.email || '',
+    Address: payload.address || undefined,
     'Boat Type': BOAT_TYPE_MAP[payload.boatType] || payload.boatType || undefined,
     'Boat Length (ft)': payload.boatLength ? Number(payload.boatLength) : undefined,
     Package: payload.packageInterest || undefined,
@@ -41,6 +42,7 @@ exports.handler = async function (event) {
     'How Heard About Us': payload.howHeard || undefined,
     'Submitted At': new Date().toISOString(),
     Status: 'New',
+    'Quote Source': 'Website form',
   };
 
   // Airtable rejects explicit `undefined` values — strip them.
