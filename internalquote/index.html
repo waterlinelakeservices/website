@@ -63,7 +63,7 @@
   .row { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 4px; }
   .num-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .num-field label { font-size: 12.5px; color: var(--muted); }
-  .num-field input[type="number"], .num-field input[type="text"] {
+  .num-field input[type="number"], .num-field input[type="text"], .num-field input[type="date"] {
     font-family: 'Work Sans', sans-serif; font-size: 15px; padding: 10px 12px;
     border: 1.5px solid var(--stone-2); border-radius: 8px; background: var(--white); color: var(--ink); width: 100%;
   }
@@ -139,18 +139,21 @@
       <div class="row" style="margin-bottom:14px;">
         <div class="num-field"><label>Address</label><input type="text" id="custAddress" placeholder="Street, city"></div>
       </div>
-      <div class="row">
+      <div class="row" style="margin-bottom:14px;">
         <div class="num-field"><label>Date</label><input type="text" id="quoteDate" placeholder="—"></div>
         <div class="num-field"><label>Staff</label><input type="text" id="staffName" placeholder="—"></div>
+      </div>
+      <div class="row">
+        <div class="num-field"><label>Desired pickup date</label><input type="date" id="pickupDate"></div>
       </div>
     </div>
 
     <div class="card">
       <h2>Package</h2>
       <div class="btn-group" id="pkgGroup">
-        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750</span></div>
-        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $3,000 / $2,700</span></div>
-        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $3,700 / $3,400</span></div>
+        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750 — flat rate, any length</span></div>
+        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $2,500 / $2,000</span></div>
+        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $4,000 / $3,500</span></div>
       </div>
 
       <p class="field-label">Boat category</p>
@@ -162,9 +165,9 @@
       <div id="driveWrap">
         <p class="field-label">Drivetrain</p>
         <div class="btn-group" id="driveGroup">
-          <div class="btn-opt active" data-val="Outboard">Outboard<span class="sub">×1.00</span></div>
-          <div class="btn-opt" data-val="IO">I/O<span class="sub">×1.12</span></div>
-          <div class="btn-opt" data-val="Inboard">Inboard / V-Drive<span class="sub">×1.30</span></div>
+          <div class="btn-opt active" data-val="Outboard">Outboard</div>
+          <div class="btn-opt" data-val="IO">I/O</div>
+          <div class="btn-opt" data-val="Inboard">Inboard / V-Drive</div>
         </div>
       </div>
 
@@ -175,7 +178,7 @@
         </div>
       </div>
       <p class="hint" id="lengthHint"></p>
-      <div class="warn" id="customQuoteWarn">33'+ — recommend a custom quote rather than relying on the multiplier table.</div>
+      <div class="warn" id="customQuoteWarn">33'+ — recommend a custom quote rather than relying on the pricing table.</div>
     </div>
 
     <div class="card">
@@ -234,8 +237,8 @@
     <div class="summary-card">
       <h2>Quote summary</h2>
       <div class="s-line"><span>Base price</span><b id="s-base">—</b></div>
-      <div class="s-line"><span>Length multiplier</span><b id="s-lenmult">—</b></div>
-      <div class="s-line"><span>Drivetrain multiplier</span><b id="s-drivemult">—</b></div>
+      <div class="s-line"><span>Length category</span><b id="s-lenmult">—</b></div>
+      <div class="s-line"><span>Drivetrain</span><b id="s-drivemult">—</b></div>
       <div class="s-div"></div>
       <div class="s-line"><span>Package subtotal</span><b id="s-pkgsub">—</b></div>
       <div class="s-line"><span>Add-ons subtotal</span><b id="s-addsub">—</b></div>
@@ -252,21 +255,53 @@
 </div>
 
 <script>
+  // ---- PRICING MODEL ----
+  // Base "from" prices, length categories, and drivetrain categories per the
+  // Waterline Lake Services Pricing Model (updated). Anchor is a mobile,
+  // service-only package performed at the customer's own lift/garage — it
+  // carries no per-foot length charge, since Waterline isn't providing the
+  // storage space. Harbor and Flagship store the boat, so length still
+  // affects price there. Multiplier numbers are intentionally not shown to
+  // customers (on the PDF) — just the plain-language size/drivetrain
+  // category — to avoid "what's the 1.12 for?" questions; staff still see
+  // the category driving the price here too, for consistency.
   const BASE = {
     Anchor:   { SI: 900,  Pontoon: 750  },
-    Harbor:   { SI: 3000, Pontoon: 2700 },
-    Flagship: { SI: 3700, Pontoon: 3400 },
+    Harbor:   { SI: 2500, Pontoon: 2000 },
+    Flagship: { SI: 4000, Pontoon: 3500 },
   };
   const TIER_ORDER = ["Anchor", "Harbor", "Flagship"];
+  const DRIVE_LABEL = { Outboard: "Outboard", IO: "I/O (Sterndrive)", Inboard: "Inboard / V-Drive" };
+  const PACKAGE_SERVICES = {
+    Anchor: [
+      "Engine winterization, including impeller replacement",
+      "Fuel & battery prep",
+      "On-site service call at your own lift or property"
+    ],
+    Harbor: [
+      "Everything in Anchor",
+      "Covered, secured storage for the season",
+      "Pickup & delivery included in the spring"
+    ],
+    Flagship: [
+      "Everything in Harbor",
+      "Shrink wrapping",
+      "Full detail before spring delivery"
+    ]
+  };
 
-  function lengthMultiplier(ft) {
-    if (ft <= 20) return { mult: 1.00, band: "Up to 20'" };
-    if (ft <= 24) return { mult: 1.12, band: "21'–24'" };
-    if (ft <= 28) return { mult: 1.28, band: "25'–28'" };
-    if (ft <= 32) return { mult: 1.48, band: "29'–32'" };
-    return { mult: 1.75, band: "33'+ (custom quote)" };
+  function lengthMultiplier(ft, pkg) {
+    // Anchor: flat rate regardless of length — no storage footprint to size for.
+    if (pkg === "Anchor") {
+      return { mult: 1.00, band: "Flat rate — customer's own storage", flat: true };
+    }
+    if (ft <= 20) return { mult: 0.90, band: "Up to 20'" };
+    if (ft <= 24) return { mult: 1.00, band: "21'–24'" };
+    if (ft <= 28) return { mult: 1.12, band: "25'–28'" };
+    if (ft <= 32) return { mult: 1.20, band: "29'–32'" };
+    return { mult: 1.50, band: "33'+ (custom quote)" };
   }
-  const DRIVE_MULT = { Outboard: 1.00, IO: 1.12, Inboard: 1.30 };
+  const DRIVE_MULT = { Outboard: 0.90, IO: 1.00, Inboard: 1.12 };
   const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
   let state = { pkg: "Harbor", cat: "SI", drive: "Outboard" };
@@ -295,7 +330,7 @@
 
   function computePackagePrice() {
     const base = BASE[state.pkg][state.cat];
-    const lm = lengthMultiplier(parseFloat(document.getElementById("lengthInput").value || 0));
+    const lm = lengthMultiplier(parseFloat(document.getElementById("lengthInput").value || 0), state.pkg);
     const dm = state.cat === "Pontoon" ? 1.00 : DRIVE_MULT[state.drive];
     const raw = base * lm.mult * dm;
     const rounded = Math.round(raw / 25) * 25;
@@ -323,8 +358,10 @@
 
     const { base, lm, dm, rounded } = computePackagePrice();
     const ft = parseFloat(document.getElementById("lengthInput").value || 0);
-    document.getElementById("customQuoteWarn").classList.toggle("show", ft >= 33);
-    document.getElementById("lengthHint").textContent = "Length band: " + lm.band;
+    document.getElementById("customQuoteWarn").classList.toggle("show", ft >= 33 && state.pkg !== "Anchor");
+    document.getElementById("lengthHint").textContent = lm.flat
+      ? "Flat rate — no per-foot charge (serviced at customer's own storage)"
+      : "Length category: " + lm.band;
 
     let addons = 0;
     const lines = [];
@@ -345,8 +382,8 @@
     }
 
     document.getElementById("s-base").textContent = money(base) + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + ")";
-    document.getElementById("s-lenmult").textContent = "×" + lm.mult.toFixed(2) + " (" + lm.band + ")";
-    document.getElementById("s-drivemult").textContent = state.cat === "Pontoon" ? "×1.00 (pontoon)" : "×" + dm.toFixed(2) + " (" + state.drive + ")";
+    document.getElementById("s-lenmult").textContent = lm.flat ? "Flat rate (own storage)" : lm.band;
+    document.getElementById("s-drivemult").textContent = state.cat === "Pontoon" ? "Pontoon" : DRIVE_LABEL[state.drive];
     document.getElementById("s-pkgsub").textContent = money(rounded);
     document.getElementById("s-addsub").textContent = money(addons);
     document.getElementById("s-total").textContent = money(rounded + addons);
@@ -355,8 +392,9 @@
     let upgradeHtml = "";
     if (idx < TIER_ORDER.length - 1) {
       const nextTier = TIER_ORDER[idx + 1];
+      const nextLm = lengthMultiplier(ft, nextTier);
       const nextBase = BASE[nextTier][state.cat];
-      const nextRaw = nextBase * lm.mult * dm;
+      const nextRaw = nextBase * nextLm.mult * dm;
       const nextRounded = Math.round(nextRaw / 25) * 25;
       const delta = nextRounded - rounded;
       upgradeHtml = "<b>Upgrade to " + nextTier + ":</b> +" + money(delta) + " more (same boat, same add-ons not carried over automatically).";
@@ -373,16 +411,19 @@
     const date = document.getElementById("quoteDate").value || "—";
     const staff = document.getElementById("staffName").value || "—";
     const address = document.getElementById("custAddress").value || "—";
+    const pickup = document.getElementById("pickupDate").value || "—";
     const battDir = document.getElementById("batteryDirection").value || "—";
     const m = window._quoteMeta;
     const lines = window._quoteLines.filter((l) => l[1] > 0);
+    const driveLabel = state.cat === "Pontoon" ? "" : ", " + DRIVE_LABEL[state.drive];
 
     let txt = "WATERLINE LAKE SERVICES — QUOTE\n";
     txt += "Customer: " + cust + "   Boat: " + boat + "\n";
     txt += "Address: " + address + "\n";
-    txt += "Date: " + date + "   Staff: " + staff + "\n\n";
-    txt += "Package: " + state.pkg + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + (state.cat !== "Pontoon" ? ", " + state.drive : "") + "), " + document.getElementById("lengthInput").value + "ft\n";
-    txt += "Base " + money(m.base) + " × " + m.lm.mult.toFixed(2) + " (length) × " + m.dm.toFixed(2) + " (drivetrain) = " + money(m.rounded) + "\n\n";
+    txt += "Date: " + date + "   Staff: " + staff + "\n";
+    txt += "Desired pickup date: " + pickup + "\n\n";
+    txt += "Package: " + state.pkg + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + driveLabel + "), " + document.getElementById("lengthInput").value + "ft\n";
+    txt += "Base " + money(m.base) + (m.lm.flat ? " (flat rate, own storage)" : " — " + m.lm.band) + " = " + money(m.rounded) + "\n\n";
     if (lines.length) {
       txt += "Add-ons:\n";
       lines.forEach((l) => { txt += "  " + l[0] + " — " + money(l[1]) + "\n"; });
@@ -412,16 +453,25 @@
     const address = document.getElementById("custAddress").value || "—";
     const date = document.getElementById("quoteDate").value || new Date().toLocaleDateString("en-US");
     const staff = document.getElementById("staffName").value || "—";
+    const pickup = document.getElementById("pickupDate").value || "";
     const battDir = document.getElementById("batteryDirection").value || "";
     const m = window._quoteMeta;
     const lines = window._quoteLines.filter((l) => l[1] > 0);
 
     const doc = new jspdf.jsPDF({ unit: "pt", format: "letter" });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const DEEP = [19, 78, 94];
     const GLACIER = [140, 199, 214];
     const INK = [22, 35, 43];
     const MUTED = [106, 116, 128];
+
+    function ensureSpace(needed) {
+      if (y + needed > pageHeight - 50) {
+        doc.addPage();
+        y = 50;
+      }
+    }
 
     doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
     doc.rect(0, 0, pageWidth, 86, "F");
@@ -435,7 +485,7 @@
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(215, 231, 236);
-    doc.text("Boat winterization, storage & detailing — Grandview, Harrison & Cordry-Sweetwater Lakes", 40, 58);
+    doc.text("Boat Winterization, Storage, Detailing & Lake Services – Indiana Lake Communities", 40, 58);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -458,7 +508,8 @@
     doc.text("Boat: " + boat, 40, y); y += 15;
     doc.text("Address: " + address, 40, y); y += 15;
     doc.text("Phone: " + phone, 40, y); y += 15;
-    doc.text("Email: " + email, 40, y);
+    doc.text("Email: " + email, 40, y); y += 15;
+    doc.text("Desired pickup: " + (pickup || "TBD"), 40, y);
 
     let y2 = 118;
     doc.setFont("helvetica", "bold");
@@ -485,7 +536,7 @@
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const catLabel = (state.cat === "Pontoon" ? "Pontoon" : "Ski / Inboard — " + state.drive);
+    const catLabel = (state.cat === "Pontoon" ? "Pontoon" : "Ski / Inboard — " + DRIVE_LABEL[state.drive]);
     doc.text(catLabel + ", " + document.getElementById("lengthInput").value + " ft", 40, y);
     y += 26;
 
@@ -498,9 +549,18 @@
       y += 18;
     }
 
+    // Pricing breakdown shows plain-language categories, not raw multiplier
+    // numbers — customers were asking "what's the 1.12 for?"; the category
+    // (boat size / drivetrain) is self-explanatory on its own.
     row("Base price (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + ")", money(m.base));
-    row("Length multiplier (" + m.lm.band + ")", "×" + m.lm.mult.toFixed(2));
-    row("Drivetrain multiplier", state.cat === "Pontoon" ? "×1.00" : "×" + m.dm.toFixed(2));
+    if (!m.lm.flat) {
+      row("Length category (" + m.lm.band + ")", " ");
+    } else {
+      row("Length", "Flat rate — own storage");
+    }
+    if (state.cat !== "Pontoon") {
+      row("Drivetrain", DRIVE_LABEL[state.drive]);
+    }
     doc.setDrawColor(230, 234, 236);
     doc.line(40, y, pageWidth - 40, y);
     y += 4;
@@ -523,6 +583,7 @@
       y += 18;
     }
 
+    ensureSpace(46 + 30);
     y += 8;
     doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
     doc.rect(40, y, pageWidth - 80, 46, "F");
@@ -532,15 +593,47 @@
     doc.text("TOTAL QUOTE", 56, y + 29);
     doc.setFontSize(20);
     doc.text(money(m.total), pageWidth - 56, y + 30, { align: "right" });
-    y += 46 + 30;
+    y += 46 + 26;
 
+    // What's included, pulled from the package the customer chose.
+    const services = PACKAGE_SERVICES[state.pkg] || [];
+    if (services.length) {
+      ensureSpace(20 + services.length * 15);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
+      doc.text("What's included in " + state.pkg, 40, y);
+      y += 17;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(INK[0], INK[1], INK[2]);
+      services.forEach((s) => {
+        doc.text("•  " + s, 46, y, { maxWidth: pageWidth - 90 });
+        y += 15;
+      });
+      y += 10;
+    }
+
+    ensureSpace(60);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
     doc.text(
-      "This quote is valid for 14 days from the date above. No mileage surcharge across the Grandview Lake, Harrison Lake and Cordry-Sweetwater communities.",
+      "This quote is valid for 14 days from the date above. No mileage surcharge across the Indiana lake communities we serve.",
       40, y, { maxWidth: pageWidth - 80 }
     );
+    y += 40;
+
+    // Signature of acceptance.
+    ensureSpace(60);
+    doc.setDrawColor(180, 190, 195);
+    doc.line(40, y, 260, y);
+    doc.line(300, y, pageWidth - 40, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    doc.text("Customer signature (acceptance of quote)", 40, y + 13);
+    doc.text("Date", 300, y + 13);
 
     const fname = "Waterline-Quote-" + cust.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") + ".pdf";
     doc.save(fname || "Waterline-Quote.pdf");
@@ -569,6 +662,7 @@
       boatCategory: state.cat,
       boatLength: document.getElementById("lengthInput").value,
       package: state.pkg,
+      pickupDate: document.getElementById("pickupDate").value,
       total: m.total,
       quoteText: buildQuoteText(),
     };
@@ -591,6 +685,34 @@
         saveStatus.textContent = "PDF downloaded, but the CRM save failed — add this one in Airtable manually.";
       });
   });
+
+  // ---- PREFILL FROM A LINK (e.g. a link shared from an inquiry notification) ----
+  // Supports query params: name, phone, email, address, length, boatType
+  // ("Pontoon" or anything else treated as Ski/Inboard), package
+  // ("Anchor"/"Harbor"/"Flagship").
+  (function prefillFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const textMap = { name: "custName", phone: "custPhone", email: "custEmail", address: "custAddress", length: "lengthInput" };
+    Object.keys(textMap).forEach((key) => {
+      const val = params.get(key);
+      if (val) { document.getElementById(textMap[key]).value = val; }
+    });
+    const boatType = params.get("boatType");
+    if (boatType) {
+      const cat = boatType.indexOf("Pontoon") !== -1 ? "Pontoon" : "SI";
+      state.cat = cat;
+      document.querySelectorAll("#catGroup .btn-opt").forEach((el) => {
+        el.classList.toggle("active", el.dataset.val === cat);
+      });
+    }
+    const pkg = params.get("package");
+    if (pkg && BASE[pkg]) {
+      state.pkg = pkg;
+      document.querySelectorAll("#pkgGroup .btn-opt").forEach((el) => {
+        el.classList.toggle("active", el.dataset.val === pkg);
+      });
+    }
+  })();
 
   onChange();
 </script>
