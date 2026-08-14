@@ -40,6 +40,7 @@ exports.handler = async function (event) {
     'Boat Length (ft)': payload.boatLength ? Number(payload.boatLength) : undefined,
     Package: payload.package || undefined,
     Comments: payload.quoteText || '',
+    'Desired Pickup Date': payload.pickupDate || undefined,
     'Submitted At': new Date().toISOString(),
     Status: 'Quoted',
     'Quote Source': 'Internal quote tool',
