@@ -85,6 +85,9 @@
     padding: 2px 8px; border-radius: 20px; margin-left: 6px;
   }
 
+  .override-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .override-check input { width: 18px; height: 18px; accent-color: var(--deep); flex: none; }
+
   /* SUMMARY */
   .summary { position: sticky; top: 20px; }
   .summary-card { background: var(--deep); color: #fff; border-radius: 14px; padding: 24px; }
@@ -151,15 +154,16 @@
     <div class="card">
       <h2>Package</h2>
       <div class="btn-group" id="pkgGroup">
-        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750 — flat rate, any length</span></div>
-        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $2,500 / $2,000</span></div>
-        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $4,000 / $3,500</span></div>
+        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750 / $350 — flat rate, any length</span></div>
+        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $2,800 / $2,000 / $650</span></div>
+        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $3,500 / $3,100 / $1,100</span></div>
       </div>
 
-      <p class="field-label">Boat category</p>
+      <p class="field-label">Boat / PWC category</p>
       <div class="btn-group" id="catGroup">
         <div class="btn-opt active" data-val="SI">Ski / Inboard</div>
         <div class="btn-opt" data-val="Pontoon">Pontoon</div>
+        <div class="btn-opt" data-val="PWC">Jet Ski / PWC</div>
       </div>
 
       <div id="driveWrap">
@@ -171,9 +175,18 @@
         </div>
       </div>
 
+      <div id="styleWrap" style="display:none;">
+        <p class="field-label">Hull / riding style</p>
+        <div class="btn-group" id="styleGroup">
+          <div class="btn-opt active" data-val="Standup">Stand-up</div>
+          <div class="btn-opt" data-val="SitRec">Sit-down (Recreation)</div>
+          <div class="btn-opt" data-val="SitPerf">Sit-down (Perf./Tow-Sport)</div>
+        </div>
+      </div>
+
       <div class="row">
         <div class="num-field">
-          <label>Boat length (ft)</label>
+          <label id="lengthLabel">Boat length (ft)</label>
           <input type="number" id="lengthInput" value="24" min="8" max="60">
         </div>
       </div>
@@ -217,6 +230,12 @@
         </div>
       </div>
 
+      <div class="addon-row" id="row-impeller">
+        <input type="checkbox" id="add-impeller">
+        <div class="a-label"><b>Impeller replacement (Outboard / I-O)</b><span class="a-note" id="note-impeller">Recommended every 2–3 years — requires lower unit removal. Inboards get a new impeller yearly as part of standard winterization, so no add-on needed there.</span></div>
+        <div class="a-price">$150</div>
+      </div>
+
       <div class="addon-row disabled">
         <input type="checkbox" id="add-vent" disabled>
         <div class="a-label"><b>Vent Kit + Moisture and Pest Deterrent</b><span class="a-note" id="note-vent">Automatic with any shrink-wrapped boat — no charge</span></div>
@@ -231,6 +250,29 @@
       </div>
     </div>
 
+    <div class="card">
+      <h2>Adjustments</h2>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="num-field">
+          <label>Discount ($ off total)</label>
+          <input type="number" id="discountAmt" value="0" min="0" step="25">
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:10px;">
+        <label class="override-check">
+          <input type="checkbox" id="overrideToggle">
+          Override total price (skip the math — set an exact quote)
+        </label>
+      </div>
+      <div class="row" id="overrideRow" style="display:none;">
+        <div class="num-field">
+          <label>Override total ($)</label>
+          <input type="number" id="overrideAmt" value="0" min="0" step="25">
+        </div>
+      </div>
+      <p class="hint" id="adjustHint"></p>
+    </div>
+
   </div>
 
   <div class="summary">
@@ -238,10 +280,11 @@
       <h2>Quote summary</h2>
       <div class="s-line"><span>Base price</span><b id="s-base">—</b></div>
       <div class="s-line"><span>Length category</span><b id="s-lenmult">—</b></div>
-      <div class="s-line"><span>Drivetrain</span><b id="s-drivemult">—</b></div>
+      <div class="s-line"><span>Drivetrain / style</span><b id="s-drivemult">—</b></div>
       <div class="s-div"></div>
       <div class="s-line"><span>Package subtotal</span><b id="s-pkgsub">—</b></div>
       <div class="s-line"><span>Add-ons subtotal</span><b id="s-addsub">—</b></div>
+      <div class="s-line"><span>Discount</span><b id="s-discount">—</b></div>
       <div class="s-total"><span class="label">Total quote</span><span class="amt" id="s-total">$0</span></div>
 
       <div class="upgrade-box" id="upgradeBox"></div>
@@ -256,22 +299,27 @@
 
 <script>
   // ---- PRICING MODEL ----
-  // Base "from" prices, length categories, and drivetrain categories per the
-  // Waterline Lake Services Pricing Model (updated). Anchor is a mobile,
-  // service-only package performed at the customer's own lift/garage — it
-  // carries no per-foot length charge, since Waterline isn't providing the
-  // storage space. Harbor and Flagship store the boat, so length still
-  // affects price there. Multiplier numbers are intentionally not shown to
-  // customers (on the PDF) — just the plain-language size/drivetrain
-  // category — to avoid "what's the 1.12 for?" questions; staff still see
-  // the category driving the price here too, for consistency.
+  // Per the updated Waterline Lake Services Pricing Model (Aug '26 revision):
+  // Harbor Ski/Inboard raised, Flagship lowered on both categories (Flagship
+  // was pricing above Harbor + add-ons, which didn't make sense), and a new
+  // Jet Ski / PWC category added. Anchor stays flat-rate regardless of
+  // length for ALL categories (boats and PWCs alike) since it's mobile
+  // service at the customer's own storage — Waterline isn't pricing a
+  // storage footprint, so there's nothing to charge more for on a longer
+  // unit. (Note: the source spreadsheet's Full Rate Card computes Anchor+PWC
+  // WITH a length multiplier — we're deliberately keeping Anchor flat across
+  // the board for consistency with the boat-pricing decision made earlier.
+  // Flag this if that's not what you intended.)
   const BASE = {
-    Anchor:   { SI: 900,  Pontoon: 750  },
-    Harbor:   { SI: 2500, Pontoon: 2000 },
-    Flagship: { SI: 4000, Pontoon: 3500 },
+    Anchor:   { SI: 900,  Pontoon: 750,  PWC: 350  },
+    Harbor:   { SI: 2800, Pontoon: 2000, PWC: 650  },
+    Flagship: { SI: 3500, Pontoon: 3100, PWC: 1100 },
   };
   const TIER_ORDER = ["Anchor", "Harbor", "Flagship"];
   const DRIVE_LABEL = { Outboard: "Outboard", IO: "I/O (Sterndrive)", Inboard: "Inboard / V-Drive" };
+  const STYLE_LABEL = { Standup: "Stand-up", SitRec: "Sit-down (Recreation)", SitPerf: "Sit-down (Performance/Tow-Sport)" };
+  const DRIVE_MULT = { Outboard: 0.90, IO: 1.10, Inboard: 1.10 };
+  const STYLE_MULT = { Standup: 0.90, SitRec: 1.00, SitPerf: 1.10 };
   const PACKAGE_SERVICES = {
     Anchor: [
       "Engine winterization, including impeller replacement",
@@ -290,7 +338,7 @@
     ]
   };
 
-  function lengthMultiplier(ft, pkg) {
+  function boatLengthMultiplier(ft, pkg) {
     // Anchor: flat rate regardless of length — no storage footprint to size for.
     if (pkg === "Anchor") {
       return { mult: 1.00, band: "Flat rate — customer's own storage", flat: true };
@@ -301,10 +349,42 @@
     if (ft <= 32) return { mult: 1.20, band: "29'–32'" };
     return { mult: 1.50, band: "33'+ (custom quote)" };
   }
-  const DRIVE_MULT = { Outboard: 0.90, IO: 1.00, Inboard: 1.12 };
+
+  function pwcLengthMultiplier(ft, pkg) {
+    // Same flat-rate-at-Anchor logic as boats — see note above.
+    if (pkg === "Anchor") {
+      return { mult: 1.00, band: "Flat rate — customer's own storage", flat: true };
+    }
+    if (ft <= 10) return { mult: 0.90, band: "Up to 10' (e.g. Spark)" };
+    if (ft <= 12) return { mult: 1.00, band: "11'–12' (e.g. GTI/GTR)" };
+    return { mult: 1.12, band: "13'+ (performance/tow-sport)" };
+  }
+
+  function getLengthMultiplier(ft, pkg, cat) {
+    return cat === "PWC" ? pwcLengthMultiplier(ft, pkg) : boatLengthMultiplier(ft, pkg);
+  }
+
+  function getSecondaryMultiplier(cat, drive, style) {
+    if (cat === "Pontoon") return 1.00;
+    if (cat === "PWC") return STYLE_MULT[style];
+    return DRIVE_MULT[drive];
+  }
+
+  function catDisplayName(cat) {
+    if (cat === "Pontoon") return "Pontoon";
+    if (cat === "PWC") return "Jet Ski / PWC";
+    return "Ski/Inboard";
+  }
+
+  function driveOrStyleLabel(cat, drive, style) {
+    if (cat === "Pontoon") return "Pontoon";
+    if (cat === "PWC") return STYLE_LABEL[style];
+    return DRIVE_LABEL[drive];
+  }
+
   const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
-  let state = { pkg: "Harbor", cat: "SI", drive: "Outboard" };
+  let state = { pkg: "Harbor", cat: "SI", drive: "Outboard", style: "Standup" };
 
   function wireGroup(id, key) {
     const group = document.getElementById(id);
@@ -320,8 +400,13 @@
   wireGroup("pkgGroup", "pkg");
   wireGroup("catGroup", "cat");
   wireGroup("driveGroup", "drive");
+  wireGroup("styleGroup", "style");
 
-  const ids = ["lengthInput","trailerAmt","batteryCount","batteryRate","add-detailing","add-wrap","add-liftcover","add-trailer","add-battery"];
+  const ids = [
+    "lengthInput", "trailerAmt", "batteryCount", "batteryRate",
+    "add-detailing", "add-wrap", "add-liftcover", "add-trailer", "add-battery", "add-impeller",
+    "discountAmt", "overrideAmt", "overrideToggle"
+  ];
   ids.forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener("input", onChange);
@@ -330,15 +415,26 @@
 
   function computePackagePrice() {
     const base = BASE[state.pkg][state.cat];
-    const lm = lengthMultiplier(parseFloat(document.getElementById("lengthInput").value || 0), state.pkg);
-    const dm = state.cat === "Pontoon" ? 1.00 : DRIVE_MULT[state.drive];
+    const ft = parseFloat(document.getElementById("lengthInput").value || 0);
+    const lm = getLengthMultiplier(ft, state.pkg, state.cat);
+    const dm = getSecondaryMultiplier(state.cat, state.drive, state.style);
     const raw = base * lm.mult * dm;
     const rounded = Math.round(raw / 25) * 25;
     return { base, lm, dm, raw, rounded };
   }
 
   function onChange() {
-    document.getElementById("driveWrap").style.display = state.cat === "Pontoon" ? "none" : "block";
+    document.getElementById("driveWrap").style.display = state.cat === "SI" ? "block" : "none";
+    document.getElementById("styleWrap").style.display = state.cat === "PWC" ? "block" : "none";
+
+    const lengthEl = document.getElementById("lengthInput");
+    if (state.cat === "PWC") {
+      lengthEl.min = 6; lengthEl.max = 20;
+      document.getElementById("lengthLabel").textContent = "PWC length (ft)";
+    } else {
+      lengthEl.min = 8; lengthEl.max = 60;
+      document.getElementById("lengthLabel").textContent = "Boat length (ft)";
+    }
 
     const flagship = state.pkg === "Flagship";
     ["detailing", "wrap"].forEach((k) => {
@@ -356,9 +452,24 @@
     document.getElementById("note-vent").textContent = document.getElementById("add-wrap").checked
       ? "Included automatically — no charge" : "Only applies once shrink wrapping is included";
 
+    // Impeller replacement add-on only makes sense for Outboard/I-O drivetrains
+    // (Inboards get one every year as part of standard winterization already;
+    // Pontoons are commonly outboard-powered too, so it's offered there as well).
+    const showImpeller = state.cat === "Pontoon" || (state.cat === "SI" && state.drive !== "Inboard");
+    const impellerRow = document.getElementById("row-impeller");
+    const impellerCb = document.getElementById("add-impeller");
+    if (showImpeller) {
+      impellerRow.classList.remove("disabled");
+      impellerCb.disabled = false;
+    } else {
+      impellerCb.checked = false;
+      impellerCb.disabled = true;
+      impellerRow.classList.add("disabled");
+    }
+
     const { base, lm, dm, rounded } = computePackagePrice();
     const ft = parseFloat(document.getElementById("lengthInput").value || 0);
-    document.getElementById("customQuoteWarn").classList.toggle("show", ft >= 33 && state.pkg !== "Anchor");
+    document.getElementById("customQuoteWarn").classList.toggle("show", state.cat !== "PWC" && ft >= 33 && state.pkg !== "Anchor");
     document.getElementById("lengthHint").textContent = lm.flat
       ? "Flat rate — no per-foot charge (serviced at customer's own storage)"
       : "Length category: " + lm.band;
@@ -380,19 +491,41 @@
       const amt = count * rate;
       addons += amt; lines.push(["Battery tender service (" + count + " × $" + rate + ")", amt]);
     }
+    if (document.getElementById("add-impeller").checked && showImpeller) {
+      addons += 150; lines.push(["Impeller replacement (Outboard/I-O)", 150]);
+    }
 
-    document.getElementById("s-base").textContent = money(base) + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + ")";
+    // Discount / manual override.
+    const overrideOn = document.getElementById("overrideToggle").checked;
+    const discount = parseFloat(document.getElementById("discountAmt").value || 0);
+    const overrideAmt = parseFloat(document.getElementById("overrideAmt").value || 0);
+    document.getElementById("overrideRow").style.display = overrideOn ? "flex" : "none";
+    document.getElementById("discountAmt").disabled = overrideOn;
+
+    const subtotal = rounded + addons;
+    let total;
+    if (overrideOn) {
+      total = overrideAmt;
+      document.getElementById("s-discount").textContent = "Override active";
+      document.getElementById("adjustHint").textContent = "Manual override — the pricing math above is ignored for the final total.";
+    } else {
+      total = Math.max(0, subtotal - discount);
+      document.getElementById("s-discount").textContent = discount > 0 ? "-" + money(discount) : "—";
+      document.getElementById("adjustHint").textContent = "";
+    }
+
+    document.getElementById("s-base").textContent = money(base) + " (" + catDisplayName(state.cat) + ")";
     document.getElementById("s-lenmult").textContent = lm.flat ? "Flat rate (own storage)" : lm.band;
-    document.getElementById("s-drivemult").textContent = state.cat === "Pontoon" ? "Pontoon" : DRIVE_LABEL[state.drive];
+    document.getElementById("s-drivemult").textContent = driveOrStyleLabel(state.cat, state.drive, state.style);
     document.getElementById("s-pkgsub").textContent = money(rounded);
     document.getElementById("s-addsub").textContent = money(addons);
-    document.getElementById("s-total").textContent = money(rounded + addons);
+    document.getElementById("s-total").textContent = money(total);
 
     const idx = TIER_ORDER.indexOf(state.pkg);
     let upgradeHtml = "";
-    if (idx < TIER_ORDER.length - 1) {
+    if (idx < TIER_ORDER.length - 1 && !overrideOn) {
       const nextTier = TIER_ORDER[idx + 1];
-      const nextLm = lengthMultiplier(ft, nextTier);
+      const nextLm = getLengthMultiplier(ft, nextTier, state.cat);
       const nextBase = BASE[nextTier][state.cat];
       const nextRaw = nextBase * nextLm.mult * dm;
       const nextRounded = Math.round(nextRaw / 25) * 25;
@@ -402,7 +535,7 @@
     document.getElementById("upgradeBox").innerHTML = upgradeHtml;
 
     window._quoteLines = lines;
-    window._quoteMeta = { base, lm, dm, rounded, addons, total: rounded + addons };
+    window._quoteMeta = { base, lm, dm, rounded, addons, subtotal, discount, overrideOn, overrideAmt, total };
   }
 
   function buildQuoteText() {
@@ -415,14 +548,14 @@
     const battDir = document.getElementById("batteryDirection").value || "—";
     const m = window._quoteMeta;
     const lines = window._quoteLines.filter((l) => l[1] > 0);
-    const driveLabel = state.cat === "Pontoon" ? "" : ", " + DRIVE_LABEL[state.drive];
+    const secondaryLabel = state.cat === "Pontoon" ? "" : ", " + driveOrStyleLabel(state.cat, state.drive, state.style);
 
     let txt = "WATERLINE LAKE SERVICES — QUOTE\n";
-    txt += "Customer: " + cust + "   Boat: " + boat + "\n";
+    txt += "Customer: " + cust + "   Boat/PWC: " + boat + "\n";
     txt += "Address: " + address + "\n";
     txt += "Date: " + date + "   Staff: " + staff + "\n";
     txt += "Desired pickup date: " + pickup + "\n\n";
-    txt += "Package: " + state.pkg + " (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + driveLabel + "), " + document.getElementById("lengthInput").value + "ft\n";
+    txt += "Package: " + state.pkg + " (" + catDisplayName(state.cat) + secondaryLabel + "), " + document.getElementById("lengthInput").value + "ft\n";
     txt += "Base " + money(m.base) + (m.lm.flat ? " (flat rate, own storage)" : " — " + m.lm.band) + " = " + money(m.rounded) + "\n\n";
     if (lines.length) {
       txt += "Add-ons:\n";
@@ -430,6 +563,12 @@
       txt += "\n";
     }
     if (battDir !== "—") txt += "Battery storage: " + battDir + "\n\n";
+    if (m.overrideOn) {
+      txt += "MANUAL OVERRIDE — computed subtotal was " + money(m.subtotal) + "\n";
+    } else if (m.discount > 0) {
+      txt += "Subtotal before discount: " + money(m.subtotal) + "\n";
+      txt += "Discount: -" + money(m.discount) + "\n";
+    }
     txt += "TOTAL QUOTE: " + money(m.total) + "\n";
     return txt;
   }
@@ -505,7 +644,7 @@
     doc.setFontSize(10.5);
     y += 17;
     doc.text(cust, 40, y); y += 15;
-    doc.text("Boat: " + boat, 40, y); y += 15;
+    doc.text("Boat/PWC: " + boat, 40, y); y += 15;
     doc.text("Address: " + address, 40, y); y += 15;
     doc.text("Phone: " + phone, 40, y); y += 15;
     doc.text("Email: " + email, 40, y); y += 15;
@@ -536,7 +675,9 @@
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const catLabel = (state.cat === "Pontoon" ? "Pontoon" : "Ski / Inboard — " + DRIVE_LABEL[state.drive]);
+    const catLabel = state.cat === "Pontoon" ? "Pontoon"
+      : state.cat === "PWC" ? "Jet Ski / PWC — " + STYLE_LABEL[state.style]
+      : "Ski / Inboard — " + DRIVE_LABEL[state.drive];
     doc.text(catLabel + ", " + document.getElementById("lengthInput").value + " ft", 40, y);
     y += 26;
 
@@ -551,14 +692,16 @@
 
     // Pricing breakdown shows plain-language categories, not raw multiplier
     // numbers — customers were asking "what's the 1.12 for?"; the category
-    // (boat size / drivetrain) is self-explanatory on its own.
-    row("Base price (" + (state.cat === "Pontoon" ? "Pontoon" : "Ski/Inboard") + ")", money(m.base));
+    // (boat size / drivetrain / riding style) is self-explanatory on its own.
+    row("Base price (" + catDisplayName(state.cat) + ")", money(m.base));
     if (!m.lm.flat) {
       row("Length category (" + m.lm.band + ")", " ");
     } else {
       row("Length", "Flat rate — own storage");
     }
-    if (state.cat !== "Pontoon") {
+    if (state.cat === "PWC") {
+      row("Hull / riding style", STYLE_LABEL[state.style]);
+    } else if (state.cat !== "Pontoon") {
       row("Drivetrain", DRIVE_LABEL[state.drive]);
     }
     doc.setDrawColor(230, 234, 236);
@@ -583,6 +726,13 @@
       y += 18;
     }
 
+    if (!m.overrideOn && m.discount > 0) {
+      doc.setDrawColor(230, 234, 236);
+      doc.line(40, y, pageWidth - 40, y);
+      y += 4;
+      row("Discount", "-" + money(m.discount));
+    }
+
     ensureSpace(46 + 30);
     y += 8;
     doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
@@ -593,7 +743,16 @@
     doc.text("TOTAL QUOTE", 56, y + 29);
     doc.setFontSize(20);
     doc.text(money(m.total), pageWidth - 56, y + 30, { align: "right" });
-    y += 46 + 26;
+    y += 46 + 20;
+
+    if (m.overrideOn) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text("This total was set manually by staff (standard pricing would have been " + money(m.subtotal) + ").", 40, y);
+      y += 18;
+    }
+    y += 8;
 
     // What's included, pulled from the package the customer chose.
     const services = PACKAGE_SERVICES[state.pkg] || [];
@@ -663,6 +822,8 @@
       boatLength: document.getElementById("lengthInput").value,
       package: state.pkg,
       pickupDate: document.getElementById("pickupDate").value,
+      discount: m.discount,
+      overrideOn: m.overrideOn,
       total: m.total,
       quoteText: buildQuoteText(),
     };
@@ -688,8 +849,8 @@
 
   // ---- PREFILL FROM A LINK (e.g. a link shared from an inquiry notification) ----
   // Supports query params: name, phone, email, address, length, boatType
-  // ("Pontoon" or anything else treated as Ski/Inboard), package
-  // ("Anchor"/"Harbor"/"Flagship").
+  // ("Pontoon", "Jet Ski"/"PWC", or anything else treated as Ski/Inboard),
+  // package ("Anchor"/"Harbor"/"Flagship").
   (function prefillFromQuery() {
     const params = new URLSearchParams(window.location.search);
     const textMap = { name: "custName", phone: "custPhone", email: "custEmail", address: "custAddress", length: "lengthInput" };
@@ -699,7 +860,9 @@
     });
     const boatType = params.get("boatType");
     if (boatType) {
-      const cat = boatType.indexOf("Pontoon") !== -1 ? "Pontoon" : "SI";
+      let cat = "SI";
+      if (boatType.indexOf("Pontoon") !== -1) cat = "Pontoon";
+      else if (boatType.indexOf("Jet Ski") !== -1 || boatType.indexOf("PWC") !== -1) cat = "PWC";
       state.cat = cat;
       document.querySelectorAll("#catGroup .btn-opt").forEach((el) => {
         el.classList.toggle("active", el.dataset.val === cat);
