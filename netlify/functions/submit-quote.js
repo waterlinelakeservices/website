@@ -9,6 +9,7 @@ const AIRTABLE_TABLE_ID = 'tblm3InsiBnTS1bqg';
 const BOAT_TYPE_MAP = {
   'Ski / inboard': 'Ski / Inboard',
   Pontoon: 'Pontoon',
+  'Jet Ski / PWC': 'Jet Ski / PWC',
   Other: 'Other',
 };
 
