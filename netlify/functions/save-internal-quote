@@ -11,6 +11,7 @@ const AIRTABLE_TABLE_ID = 'tblm3InsiBnTS1bqg';
 const BOAT_TYPE_MAP = {
   SI: 'Ski / Inboard',
   Pontoon: 'Pontoon',
+  PWC: 'Jet Ski / PWC',
 };
 
 exports.handler = async function (event) {
