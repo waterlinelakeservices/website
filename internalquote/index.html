@@ -209,9 +209,9 @@
         <div class="a-price">$400</div>
       </div>
 
-      <div class="addon-row">
+      <div class="addon-row" id="row-liftcover">
         <input type="checkbox" id="add-liftcover">
-        <div class="a-label"><b>Lift Cover removal and install</b><span class="a-note">Available on any package</span></div>
+        <div class="a-label"><b>Lift Cover removal and install</b><span class="a-note" id="note-liftcover">Available on any package</span></div>
         <div class="a-price">$150</div>
       </div>
 
@@ -293,6 +293,13 @@
       <button class="copy-btn save-btn" id="saveBtn">Save to CRM &amp; download PDF</button>
       <p class="copy-status" id="copyStatus"></p>
       <p class="copy-status" id="saveStatus"></p>
+      <div id="quoteLinkBox" style="display:none; margin-top:10px; padding:10px 12px; background:rgba(255,255,255,0.08); border-radius:8px;">
+        <p style="font-size:11.5px; color:#C7DEE5; margin:0 0 6px;">Live quote link — send this to the customer so they can review &amp; accept online:</p>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="quoteLinkInput" readonly style="flex:1; font-size:11.5px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.95); color:#16232B;">
+          <button type="button" id="copyLinkBtn" style="font-size:11.5px; padding:6px 10px; border-radius:6px; border:none; background:var(--glacier); color:var(--deep-dark); cursor:pointer; font-weight:600;">Copy</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -334,6 +341,7 @@
     Flagship: [
       "Everything in Harbor",
       "Shrink wrapping",
+      "Lift cover removal and install",
       "Full detail before spring delivery"
     ]
   };
@@ -437,7 +445,12 @@
     }
 
     const flagship = state.pkg === "Flagship";
-    ["detailing", "wrap"].forEach((k) => {
+    const DEFAULT_NOTE = {
+      detailing: "Add-on for Anchor & Harbor",
+      wrap: "Add-on for Anchor & Harbor",
+      liftcover: "Available on any package",
+    };
+    ["detailing", "wrap", "liftcover"].forEach((k) => {
       const cb = document.getElementById("add-" + k);
       const row = document.getElementById("row-" + k);
       const note = document.getElementById("note-" + k);
@@ -446,7 +459,7 @@
         note.textContent = "Included free in Flagship";
       } else {
         cb.disabled = false; row.classList.remove("disabled");
-        note.textContent = "Add-on for Anchor & Harbor";
+        note.textContent = DEFAULT_NOTE[k];
       }
     });
     document.getElementById("note-vent").textContent = document.getElementById("add-wrap").checked
@@ -480,7 +493,8 @@
     if (flagship) lines.push(["Detailing (included in Flagship)", 0]);
     if (document.getElementById("add-wrap").checked && !flagship) { addons += 400; lines.push(["Shrink wrapping", 400]); }
     if (flagship) lines.push(["Shrink wrapping (included in Flagship)", 0]);
-    if (document.getElementById("add-liftcover").checked) { addons += 150; lines.push(["Lift Cover removal and install", 150]); }
+    if (document.getElementById("add-liftcover").checked && !flagship) { addons += 150; lines.push(["Lift Cover removal and install", 150]); }
+    if (flagship) lines.push(["Lift Cover removal and install (included in Flagship)", 0]);
     if (document.getElementById("add-trailer").checked) {
       const amt = parseFloat(document.getElementById("trailerAmt").value || 0);
       addons += amt; lines.push(["Trailer bearing & tire check", amt]);
@@ -584,7 +598,7 @@
   });
 
   // ---- BRANDED PDF EXPORT ----
-  function buildQuotePdf() {
+  function buildQuotePdf(quoteLink) {
     const cust = document.getElementById("custName").value || "Customer";
     const boat = document.getElementById("boatName").value || "—";
     const phone = document.getElementById("custPhone").value || "—";
@@ -781,7 +795,19 @@
       "This quote is valid for 14 days from the date above. No mileage surcharge across the Indiana lake communities we serve.",
       40, y, { maxWidth: pageWidth - 80 }
     );
-    y += 40;
+    y += 22;
+
+    if (quoteLink) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
+      doc.text("Prefer to accept online? ", 40, y);
+      const labelWidth = doc.getTextWidth("Prefer to accept online? ");
+      doc.setFont("helvetica", "normal");
+      doc.textWithLink(quoteLink, 40 + labelWidth, y, { url: quoteLink });
+      y += 18;
+    }
+    y += 18;
 
     // Signature of acceptance.
     ensureSpace(60);
@@ -808,20 +834,28 @@
       return;
     }
 
-    // Generate the PDF immediately — staff get their file no matter what
-    // happens with the CRM write below.
-    buildQuotePdf();
-
     const m = window._quoteMeta;
+    const showImpeller = state.cat === "Pontoon" || (state.cat === "SI" && state.drive !== "Inboard");
+    const addOns = [];
+    if (document.getElementById("add-detailing").checked) addOns.push("Detailing");
+    if (document.getElementById("add-wrap").checked) addOns.push("Shrink Wrapping");
+    if (document.getElementById("add-liftcover").checked) addOns.push("Lift Cover Install");
+    if (document.getElementById("add-trailer").checked) addOns.push("Trailer Bearing & Tire Check");
+    if (document.getElementById("add-battery").checked) addOns.push("Battery Tender Service");
+    if (document.getElementById("add-impeller").checked && showImpeller) addOns.push("Impeller Replacement");
+
     const payload = {
       customerName: cust,
       phone: document.getElementById("custPhone").value,
       email: document.getElementById("custEmail").value,
       address: document.getElementById("custAddress").value,
       boatCategory: state.cat,
+      boatName: document.getElementById("boatName").value,
       boatLength: document.getElementById("lengthInput").value,
+      driveOrStyle: driveOrStyleLabel(state.cat, state.drive, state.style),
       package: state.pkg,
       pickupDate: document.getElementById("pickupDate").value,
+      addOns: addOns,
       discount: m.discount,
       overrideOn: m.overrideOn,
       total: m.total,
@@ -830,6 +864,7 @@
 
     saveStatus.style.color = "var(--glacier)";
     saveStatus.textContent = "Saving to CRM…";
+    document.getElementById("quoteLinkBox").style.display = "none";
 
     fetch("/api/save-internal-quote", {
       method: "POST",
@@ -838,13 +873,32 @@
     })
       .then((res) => {
         if (!res.ok) { throw new Error("Request failed"); }
+        return res.json();
+      })
+      .then((data) => {
+        // Build the PDF only once we know the quote link, so it can include
+        // a clickable "accept online" line pointing at the live quote page.
+        buildQuotePdf(data.quoteLink);
         saveStatus.style.color = "var(--glacier)";
         saveStatus.textContent = "Saved to CRM ✓ — PDF downloaded.";
+        if (data.quoteLink) {
+          document.getElementById("quoteLinkInput").value = data.quoteLink;
+          document.getElementById("quoteLinkBox").style.display = "block";
+        }
       })
       .catch(() => {
+        // Still get the staff a PDF even if the CRM write failed — just
+        // without a live link, since no quote record exists to point at.
+        buildQuotePdf(null);
         saveStatus.style.color = "#F0B4A6";
         saveStatus.textContent = "PDF downloaded, but the CRM save failed — add this one in Airtable manually.";
       });
+  });
+
+  document.getElementById("copyLinkBtn").addEventListener("click", () => {
+    const input = document.getElementById("quoteLinkInput");
+    input.select();
+    navigator.clipboard.writeText(input.value).catch(() => {});
   });
 
   // ---- PREFILL FROM A LINK (e.g. a link shared from an inquiry notification) ----
