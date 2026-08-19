@@ -1,9 +1,11 @@
-// Receives quote-request submissions from the homepage form and logs them
-// into the "Quote Requests" table of the Waterline Marketing Airtable base.
+// Receives quote-request submissions from the homepage form and writes them
+// into the relational Customers -> Boats -> Quotes structure in the
+// Waterline Marketing Airtable base (see _airtable.js for the shared
+// find-or-create logic — this keeps a repeat visitor tied to one Customer
+// record instead of creating a duplicate contact every time they submit).
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
-const AIRTABLE_BASE_ID = 'appHvdREpgOcGf2k2';
-const AIRTABLE_TABLE_ID = 'tblm3InsiBnTS1bqg';
+const { QUOTE_FIELDS, findOrCreateCustomer, createBoat, createQuote } = require('./_airtable');
 
 // Normalize form values to exactly match the Airtable select-field options.
 const BOAT_TYPE_MAP = {
@@ -11,6 +13,15 @@ const BOAT_TYPE_MAP = {
   Pontoon: 'Pontoon',
   'Jet Ski / PWC': 'Jet Ski / PWC',
   Other: 'Other',
+};
+
+// Normalize the public form's add-on checkbox values to the Airtable options.
+const ADDON_MAP = {
+  Detailing: 'Detailing',
+  'Shrink wrapping': 'Shrink Wrapping',
+  'Lift cover removal and install': 'Lift Cover Install',
+  'Trailer bearing & tire check': 'Trailer Bearing & Tire Check',
+  'Battery tender service': 'Battery Tender Service',
 };
 
 exports.handler = async function (event) {
@@ -31,49 +42,46 @@ exports.handler = async function (event) {
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Server not configured' }) };
   }
 
-  const fields = {
-    Name: payload.name || '',
-    Phone: payload.phone || '',
-    Email: payload.email || '',
-    Address: payload.address || undefined,
-    'Boat Type': BOAT_TYPE_MAP[payload.boatType] || payload.boatType || undefined,
-    'Boat Length (ft)': payload.boatLength ? Number(payload.boatLength) : undefined,
-    Package: payload.packageInterest || undefined,
-    Comments: payload.message || '',
-    'How Heard About Us': payload.howHeard || undefined,
-    'Submitted At': new Date().toISOString(),
-    Status: 'New',
-    'Quote Source': 'Website form',
-  };
-
-  // Airtable rejects explicit `undefined` values — strip them.
-  Object.keys(fields).forEach((key) => {
-    if (fields[key] === undefined) delete fields[key];
-  });
-
   try {
-    const response = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ records: [{ fields }], typecast: true }),
-      }
-    );
+    const boatType = BOAT_TYPE_MAP[payload.boatType] || payload.boatType || undefined;
+    const addOns = Array.isArray(payload.addOns)
+      ? payload.addOns.map((a) => ADDON_MAP[a] || a).filter(Boolean)
+      : undefined;
 
-    const data = await response.json();
+    const customerId = await findOrCreateCustomer(token, {
+      name: payload.name,
+      phone: payload.phone,
+      email: payload.email,
+      address: payload.address,
+      howHeard: payload.howHeard,
+    });
 
-    if (!response.ok) {
-      console.error('Airtable error', data);
-      return { statusCode: 502, body: JSON.stringify({ ok: false, error: 'Could not save submission' }) };
-    }
+    const boatId = await createBoat(token, customerId, {
+      type: boatType,
+      length: payload.boatLength ? Number(payload.boatLength) : undefined,
+    });
 
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    const quote = await createQuote(token, {
+      [QUOTE_FIELDS.name]: payload.name || '',
+      [QUOTE_FIELDS.phone]: payload.phone || '',
+      [QUOTE_FIELDS.email]: payload.email || '',
+      [QUOTE_FIELDS.address]: payload.address || undefined,
+      [QUOTE_FIELDS.boatType]: boatType,
+      [QUOTE_FIELDS.boatLength]: payload.boatLength ? Number(payload.boatLength) : undefined,
+      [QUOTE_FIELDS.package]: payload.packageInterest || undefined,
+      [QUOTE_FIELDS.comments]: payload.message || '',
+      [QUOTE_FIELDS.howHeard]: payload.howHeard || undefined,
+      [QUOTE_FIELDS.submittedAt]: new Date().toISOString(),
+      [QUOTE_FIELDS.status]: 'New',
+      [QUOTE_FIELDS.quoteSource]: 'Website form',
+      [QUOTE_FIELDS.customer]: [customerId],
+      [QUOTE_FIELDS.boat]: [boatId],
+      [QUOTE_FIELDS.addOns]: addOns && addOns.length ? addOns : undefined,
+    });
+
+    return { statusCode: 200, body: JSON.stringify({ ok: true, recordId: quote.id }) };
   } catch (err) {
     console.error('submit-quote function error', err);
-    return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Unexpected error' }) };
+    return { statusCode: 502, body: JSON.stringify({ ok: false, error: 'Could not save submission' }) };
   }
 };
