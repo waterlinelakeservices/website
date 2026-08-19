@@ -1,7 +1,7 @@
 // Shared Airtable helpers for the Waterline Marketing base.
-// Used by submit-quote.js, save-internal-quote.js, and accept-quote.js so the
-// Customers -> Boats -> Quotes relational structure is built the same way
-// everywhere a record gets written.
+// Used by submit-quote.js, save-internal-quote.js, accept-quote.js, and
+// get-quote-request.js so the Customers -> Boats -> Quotes relational
+// structure is built the same way everywhere a record gets written.
 //
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
@@ -170,6 +170,20 @@ async function createQuote(token, fieldsById) {
   return created.records[0];
 }
 
+// Updates an existing Quote record in place (used when the internal quote
+// tool is finishing out a request that already came in through the website
+// form — see get-quote-request.js / save-internal-quote.js). Only touches
+// the Quote's own fields; never touches the linked Customer or Boat records,
+// so there's no risk of a staff typo overwriting a customer's saved info.
+async function updateQuote(token, quoteId, fieldsById) {
+  const fields = stripUndefined(fieldsById);
+  const updated = await airtableRequest(token, `/${TABLES.quotes}/${quoteId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields, typecast: true }),
+  });
+  return updated;
+}
+
 module.exports = {
   TABLES,
   CUSTOMER_FIELDS,
@@ -179,4 +193,5 @@ module.exports = {
   findOrCreateCustomer,
   createBoat,
   createQuote,
+  updateQuote,
 };
