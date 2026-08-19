@@ -230,6 +230,13 @@
   .pkg.featured .price-row .amt { color: #FFFFFF; }
   .price-note { font-size: 11px; color: #8A9099; margin: 10px 0 18px; line-height: 1.5; }
   .pkg.featured .price-note { color: #9BB8C0; }
+  .pkg-addons-label { font-size: 10.5px; font-weight: 600; color: var(--pine); text-transform: uppercase; letter-spacing: 0.03em; margin: 12px 0 5px; }
+  .pkg.featured .pkg-addons-label { color: #9BB8C0; }
+  .pkg-addons { list-style: none; padding: 0; margin: 0 0 14px; font-size: 11.5px; color: #7A8590; line-height: 1.65; }
+  .pkg-addons li { padding: 1px 0; }
+  .pkg-addons li::before { content: "+ "; color: var(--pine); font-weight: 700; }
+  .pkg.featured .pkg-addons { color: #9BB8C0; }
+  .pkg.featured .pkg-addons li::before { color: var(--glacier); }
   .savings-chip {
     display: inline-block; background: var(--glacier); color: var(--deep-dark);
     font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em;
@@ -285,6 +292,10 @@
   .form-status.ok { color: var(--pine); }
   .form-status.err { color: #A3392E; }
   .form-status a { color: var(--deep); font-weight: 500; }
+  .addon-checks { display: flex; flex-direction: column; gap: 9px; }
+  .addon-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); font-weight: 400; cursor: pointer; }
+  .addon-check input { width: 16px; height: 16px; accent-color: var(--deep); flex: none; }
+  .addon-check span { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; padding-left: 10px; }
 
   /* FOOTER */
   footer { background: var(--deep-dark); color: var(--stone); padding: 44px 32px; position: relative; border-top: 3px solid var(--glacier); }
@@ -384,11 +395,11 @@
       </div>
       <div class="trust-item">
         <div class="t-icon"><svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 20L21 8L36 20" stroke="#8CC7D6" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M10 17V33H32V17" stroke="#8CC7D6" stroke-width="1.5" stroke-linejoin="round"/><path d="M17 33V24H25V33" stroke="#8CC7D6" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-        <p class="t-num">Covered storage</p><p class="t-label">Secure &amp; out of the weather</p>
+        <p class="t-num">Covered storage</p><p class="t-label">Secure & out of the weather</p>
       </div>
       <div class="trust-item">
         <div class="t-icon"><svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="21" r="14" stroke="#8CC7D6" stroke-width="1.5"/><path d="M21 12L24 18L30 21L24 24L21 30L18 24L12 21L18 18L21 12Z" stroke="#8CC7D6" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-        <p class="t-num">Local &amp; generational</p><p class="t-label">Lake lovers, in the right hands</p>
+        <p class="t-num">Local & generational</p><p class="t-label">Lake lovers, in the right hands</p>
       </div>
       <div class="trust-item">
         <div class="t-icon"><svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="21" r="14" stroke="#8CC7D6" stroke-width="1.5"/><path d="M21 13V21L26 25" stroke="#8CC7D6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -423,7 +434,15 @@
         <div class="price-row"><span class="type-label">Pontoon</span><span class="amt">from $750 / winter</span></div>
         <div class="price-row"><span class="type-label">Jet ski / PWC</span><span class="amt">from $350 / winter</span></div>
       </div>
-      <p class="price-note">Flat rate regardless of boat length — serviced at your own lift, no storage footprint to price for. Add-ons: detailing from $450 &middot; shrink wrap from $400 &middot; lift cover install $150</p>
+      <p class="price-note">Flat rate regardless of boat length — serviced at your own lift, no storage footprint to price for.</p>
+      <p class="pkg-addons-label">Available add-ons</p>
+      <ul class="pkg-addons">
+        <li>Detailing — from $450</li>
+        <li>Shrink wrapping — from $400</li>
+        <li>Lift cover removal &amp; install — $150</li>
+        <li>Trailer bearing &amp; tire check — $75&ndash;150</li>
+        <li>Battery tender service — $25&ndash;50/battery</li>
+      </ul>
       <a href="#quote" class="pkg-choose" onclick="setPackage('Anchor')">Choose Anchor</a>
     </div>
 
@@ -443,7 +462,14 @@
         <div class="price-row"><span class="type-label">Pontoon</span><span class="amt">from $2,000 / winter</span></div>
         <div class="price-row"><span class="type-label">Jet ski / PWC</span><span class="amt">from $650 / winter</span></div>
       </div>
-      <p class="price-note">Add-ons: detailing from $450 &middot; shrink wrap from $400 &middot; lift cover install $150</p>
+      <p class="pkg-addons-label">Available add-ons</p>
+      <ul class="pkg-addons">
+        <li>Detailing — from $450</li>
+        <li>Shrink wrapping — from $400</li>
+        <li>Lift cover removal &amp; install — $150</li>
+        <li>Trailer bearing &amp; tire check — $75&ndash;150</li>
+        <li>Battery tender service — $25&ndash;50/battery</li>
+      </ul>
       <a href="#quote" class="pkg-choose" onclick="setPackage('Harbor')">Choose Harbor</a>
     </div>
 
@@ -457,6 +483,7 @@
       <ul class="pkg-includes">
         <li>Everything in Harbor</li>
         <li>Shrink wrapping</li>
+        <li>Lift cover removal and install</li>
         <li>Full detail before spring delivery</li>
       </ul>
       <div class="pkg-price">
@@ -465,12 +492,17 @@
         <div class="price-row"><span class="type-label">Jet ski / PWC</span><span class="amt">from $1,100 / winter</span></div>
       </div>
       <span class="savings-chip">Bundle &amp; save ~$150</span>
-      <p class="price-note">Benefits over Harbor + shrink wrap + detailing separately &middot; priced by boat length &amp; drivetrain</p>
+      <p class="price-note">Benefits over Harbor + shrink wrap + detailing + lift cover separately &middot; priced by boat length &amp; drivetrain</p>
+      <p class="pkg-addons-label">Also available</p>
+      <ul class="pkg-addons">
+        <li>Trailer bearing &amp; tire check — $75&ndash;150</li>
+        <li>Battery tender service — $25&ndash;50/battery</li>
+      </ul>
       <a href="#quote" class="pkg-choose" onclick="setPackage('Flagship')">Choose Flagship</a>
     </div>
 
   </div>
-  <p class="addons-note">Harbor and Flagship packages: stored under roof, secured, on your trailer, and out of direct weather. Also available: trailer bearing &amp; tire check ($75&ndash;150), battery tender service ($25&ndash;50/battery). Every shrink-wrapped boat gets a vent kit, moisture absorption and treated with pest deterrent packets at no extra charge.</p>
+  <p class="addons-note">Harbor and Flagship packages: stored under roof, secured, on your trailer, and out of direct weather. Every shrink-wrapped boat gets a vent kit, moisture absorption and treated with pest deterrent packets at no extra charge.</p>
 </section>
 
 <section style="background: var(--stone);">
@@ -558,6 +590,18 @@
             <option>Harbor</option>
             <option>Flagship</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field full">
+          <label>Interested in any add-ons? (optional — Flagship already includes detailing, shrink wrap &amp; lift cover)</label>
+          <div class="addon-checks">
+            <label class="addon-check"><input type="checkbox" name="addOns" value="Detailing"> Detailing <span>from $450</span></label>
+            <label class="addon-check"><input type="checkbox" name="addOns" value="Shrink wrapping"> Shrink wrapping <span>from $400</span></label>
+            <label class="addon-check"><input type="checkbox" name="addOns" value="Lift cover removal and install"> Lift cover removal &amp; install <span>$150</span></label>
+            <label class="addon-check"><input type="checkbox" name="addOns" value="Trailer bearing & tire check"> Trailer bearing &amp; tire check <span>$75&ndash;150</span></label>
+            <label class="addon-check"><input type="checkbox" name="addOns" value="Battery tender service"> Battery tender service <span>$25&ndash;50/battery</span></label>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -660,7 +704,9 @@
       'Name: ' + data.name + '\n' + 'Email: ' + data.email + '\n' + 'Phone: ' + data.phone +
       '\n' + 'Address: ' + (data.address || 'Not specified') +
       '\n' + 'Boat type: ' + data.boatType + '\n' + 'Boat length: ' + data.boatLength +
-      '\n' + 'Package: ' + data.packageInterest + '\n' + 'Message: ' + data.message +
+      '\n' + 'Package: ' + data.packageInterest +
+      '\n' + 'Add-ons requested: ' + ((data.addOns && data.addOns.length) ? data.addOns.join(', ') : 'None') +
+      '\n' + 'Message: ' + data.message +
       '\n' + 'How heard about us: ' + (data.howHeard || 'Not specified')
     );
     var mailtoLink = 'mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body;
@@ -716,6 +762,7 @@
       boatType: document.getElementById('boatType').value,
       boatLength: document.getElementById('boatLength').value,
       packageInterest: document.getElementById('packageInterest').value,
+      addOns: Array.prototype.map.call(document.querySelectorAll('input[name="addOns"]:checked'), function (el) { return el.value; }),
       message: document.getElementById('message').value,
       howHeard: ''
     };
