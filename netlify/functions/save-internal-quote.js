@@ -1,16 +1,22 @@
 // Receives finalized quotes from the staff-only internal quote tool
 // (/internalquote) and writes them into the relational Customers -> Boats ->
-// Quotes structure in the Waterline Marketing Airtable base:
-//   - Finds the Customer by email/phone and updates their info, or creates a
-//     new Customer if this is their first time in the system. This is what
-//     keeps a customer with multiple boats/quotes tied to one Customer
-//     record instead of spawning a duplicate contact every time.
-//   - Creates a new Boat row linked to that Customer.
-//   - Creates a new Quote row linked to both, tagged Status: "Quoted" and
-//     Quote Source: "Internal quote tool".
+// Quotes structure in the Waterline Marketing Airtable base.
+//
+// Two paths, depending on whether this quote started life as a website
+// inquiry (payload.existingQuoteId set by get-quote-request.js / the
+// "requestId" link on a Quote record):
+//   - Linked to an existing request: update that SAME Quote record in place
+//     (Status -> Quoted, pricing, add-ons, etc.) and leave the Customer and
+//     Boat records it's already linked to completely untouched. This is what
+//     ties the internal tool back to the original request without any risk
+//     of a staff typo overwriting that customer's or boat's saved info.
+//   - No linked request (a walk-in / phone quote): find-or-create the
+//     Customer by email/phone (so a repeat customer stays tied to one
+//     Customer record instead of getting duplicated), create a new Boat row,
+//     and create a new Quote row linked to both — the original behavior.
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
-const { QUOTE_FIELDS, findOrCreateCustomer, createBoat, createQuote } = require('./_airtable');
+const { QUOTE_FIELDS, findOrCreateCustomer, createBoat, createQuote, updateQuote } = require('./_airtable');
 
 // Normalize the internal tool's boat-category codes to the Airtable options.
 const BOAT_TYPE_MAP = {
@@ -39,6 +45,33 @@ exports.handler = async function (event) {
 
   try {
     const boatType = BOAT_TYPE_MAP[payload.boatCategory];
+    const existingQuoteId = payload.existingQuoteId;
+    const isLinkedToRequest = existingQuoteId && /^rec[A-Za-z0-9]{14}$/.test(existingQuoteId);
+
+    if (isLinkedToRequest) {
+      // Update the original website-inquiry Quote record in place. No
+      // Customer or Boat fields are touched here on purpose.
+      await updateQuote(token, existingQuoteId, {
+        [QUOTE_FIELDS.package]: payload.package || undefined,
+        [QUOTE_FIELDS.comments]: payload.quoteText || '',
+        [QUOTE_FIELDS.pickupDate]: payload.pickupDate || undefined,
+        [QUOTE_FIELDS.status]: 'Quoted',
+        [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
+        [QUOTE_FIELDS.quotedTotal]: payload.total ? Number(payload.total) : undefined,
+        [QUOTE_FIELDS.addOns]: Array.isArray(payload.addOns) && payload.addOns.length ? payload.addOns : undefined,
+        [QUOTE_FIELDS.discount]: payload.discount ? Number(payload.discount) : undefined,
+        [QUOTE_FIELDS.override]: !!payload.overrideOn,
+      });
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ok: true,
+          recordId: existingQuoteId,
+          quoteLink: 'https://waterlinelakeservices.com/quote?id=' + existingQuoteId,
+        }),
+      };
+    }
 
     const customerId = await findOrCreateCustomer(token, {
       name: payload.customerName,
