@@ -24,6 +24,11 @@
   to = "/.netlify/functions/quote-page"
   status = 200
 
+[[redirects]]
+  from = "/api/get-quote-request"
+  to = "/.netlify/functions/get-quote-request"
+  status = 200
+
 [[headers]]
   for = "/internalquote/*"
   [headers.values]
@@ -32,4 +37,3 @@
 [[headers]]
   for = "/quote"
   [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
