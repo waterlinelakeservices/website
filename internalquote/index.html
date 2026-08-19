@@ -131,6 +131,7 @@
 
     <div class="card">
       <h2>Customer &amp; boat</h2>
+      <div id="loadedBanner" style="display:none; margin:-4px 0 16px; padding:9px 12px; border-radius:8px; font-size:12.5px; background:var(--glacier-tint); color:var(--pine); font-weight:500;"></div>
       <div class="row" style="margin-bottom:14px;">
         <div class="num-field"><label>Customer name</label><input type="text" id="custName" placeholder="—"></div>
         <div class="num-field"><label>Boat / make</label><input type="text" id="boatName" placeholder="—"></div>
@@ -860,6 +861,7 @@
       overrideOn: m.overrideOn,
       total: m.total,
       quoteText: buildQuoteText(),
+      existingQuoteId: window._existingQuoteId || null,
     };
 
     saveStatus.style.color = "var(--glacier)";
@@ -905,30 +907,100 @@
   // Supports query params: name, phone, email, address, length, boatType
   // ("Pontoon", "Jet Ski"/"PWC", or anything else treated as Ski/Inboard),
   // package ("Anchor"/"Harbor"/"Flagship").
-  (function prefillFromQuery() {
-    const params = new URLSearchParams(window.location.search);
-    const textMap = { name: "custName", phone: "custPhone", email: "custEmail", address: "custAddress", length: "lengthInput" };
-    Object.keys(textMap).forEach((key) => {
-      const val = params.get(key);
-      if (val) { document.getElementById(textMap[key]).value = val; }
+  function applyBoatTypeToCategory(boatType) {
+    let cat = "SI";
+    if (boatType.indexOf("Pontoon") !== -1) cat = "Pontoon";
+    else if (boatType.indexOf("Jet Ski") !== -1 || boatType.indexOf("PWC") !== -1) cat = "PWC";
+    state.cat = cat;
+    document.querySelectorAll("#catGroup .btn-opt").forEach((el) => {
+      el.classList.toggle("active", el.dataset.val === cat);
     });
-    const boatType = params.get("boatType");
-    if (boatType) {
-      let cat = "SI";
-      if (boatType.indexOf("Pontoon") !== -1) cat = "Pontoon";
-      else if (boatType.indexOf("Jet Ski") !== -1 || boatType.indexOf("PWC") !== -1) cat = "PWC";
-      state.cat = cat;
-      document.querySelectorAll("#catGroup .btn-opt").forEach((el) => {
-        el.classList.toggle("active", el.dataset.val === cat);
-      });
-    }
-    const pkg = params.get("package");
+  }
+  function applyPackage(pkg) {
     if (pkg && BASE[pkg]) {
       state.pkg = pkg;
       document.querySelectorAll("#pkgGroup .btn-opt").forEach((el) => {
         el.classList.toggle("active", el.dataset.val === pkg);
       });
     }
+  }
+  // Maps the Add-ons values as stored in Airtable back to this tool's
+  // checkbox ids, so a website inquiry's requested add-ons come in
+  // pre-checked. Only touches checkboxes that aren't currently disabled
+  // (e.g. skips Detailing/Shrink wrap/Lift cover when Flagship already
+  // forces them on).
+  const ADDON_CHECKBOX_ID = {
+    "Detailing": "add-detailing",
+    "Shrink Wrapping": "add-wrap",
+    "Lift Cover Install": "add-liftcover",
+    "Trailer Bearing & Tire Check": "add-trailer",
+    "Battery Tender Service": "add-battery",
+    "Impeller Replacement": "add-impeller",
+  };
+  function applyAddOns(addOns) {
+    (addOns || []).forEach((name) => {
+      const id = ADDON_CHECKBOX_ID[name];
+      const el = id && document.getElementById(id);
+      if (el && !el.disabled) el.checked = true;
+    });
+  }
+  function showLoadedBanner(text, isError) {
+    const el = document.getElementById("loadedBanner");
+    el.textContent = text;
+    el.style.background = isError ? "#FCEFEA" : "";
+    el.style.color = isError ? "#8A3E22" : "";
+    el.style.display = "block";
+  }
+
+  (function prefillFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+
+    // If this link came from a Quote record's "Internal Tool Link" (i.e. a
+    // website inquiry Ben is turning into a formal quote), load everything
+    // fresh from Airtable instead of trusting hand-built URL params — this
+    // is what keeps the eventual save tied to the SAME Customer and Boat
+    // records the website form already created, with no chance of a typo
+    // creating a duplicate contact.
+    const requestId = params.get("requestId");
+    if (requestId) {
+      showLoadedBanner("Loading the original request…");
+      fetch("/api/get-quote-request?id=" + encodeURIComponent(requestId))
+        .then((res) => {
+          if (!res.ok) { throw new Error("Request failed"); }
+          return res.json();
+        })
+        .then((data) => {
+          if (!data.ok) { throw new Error("Not found"); }
+          window._existingQuoteId = data.quoteId;
+          if (data.name) document.getElementById("custName").value = data.name;
+          if (data.phone) document.getElementById("custPhone").value = data.phone;
+          if (data.email) document.getElementById("custEmail").value = data.email;
+          if (data.address) document.getElementById("custAddress").value = data.address;
+          if (data.boatLength) document.getElementById("lengthInput").value = data.boatLength;
+          if (data.pickupDate) document.getElementById("pickupDate").value = data.pickupDate;
+          if (data.boatType) applyBoatTypeToCategory(data.boatType);
+          if (data.package) applyPackage(data.package);
+          onChange(); // rebuild add-on disabled states for the now-current package/category first
+          applyAddOns(data.addOns);
+          onChange();
+          showLoadedBanner(
+            "Loaded from " + (data.name || "a") + "'s website inquiry — saving will update this same request, not create a new one."
+          );
+        })
+        .catch(() => {
+          showLoadedBanner("Couldn't load that request automatically — double-check the name/phone/email below, or fill in from scratch.", true);
+        });
+      return; // requestId takes priority over the simpler param-based prefill below
+    }
+
+    const textMap = { name: "custName", phone: "custPhone", email: "custEmail", address: "custAddress", length: "lengthInput" };
+    Object.keys(textMap).forEach((key) => {
+      const val = params.get(key);
+      if (val) { document.getElementById(textMap[key]).value = val; }
+    });
+    const boatType = params.get("boatType");
+    if (boatType) applyBoatTypeToCategory(boatType);
+    applyPackage(params.get("package"));
   })();
 
   onChange();
