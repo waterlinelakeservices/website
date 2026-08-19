@@ -14,7 +14,22 @@
   to = "/.netlify/functions/save-internal-quote"
   status = 200
 
+[[redirects]]
+  from = "/api/accept-quote"
+  to = "/.netlify/functions/accept-quote"
+  status = 200
+
+[[redirects]]
+  from = "/quote"
+  to = "/.netlify/functions/quote-page"
+  status = 200
+
 [[headers]]
   for = "/internalquote/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/quote"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
