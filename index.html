@@ -297,6 +297,21 @@
   .addon-check input { width: 16px; height: 16px; accent-color: var(--deep); flex: none; }
   .addon-check span { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; padding-left: 10px; }
 
+  .boat-block { border: 1px solid var(--stone-2); border-radius: 12px; padding: 18px 18px 6px; margin-bottom: 16px; background: var(--wash); }
+  .boat-block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .boat-block-head span { font-weight: 600; font-size: 13.5px; color: var(--deep); }
+  .remove-boat-block-btn {
+    background: transparent; border: 1px solid var(--stone-2); color: var(--muted); font-size: 12px;
+    padding: 5px 12px; border-radius: 20px; cursor: pointer; font-family: 'Work Sans', sans-serif;
+  }
+  .remove-boat-block-btn:hover { border-color: #D98366; color: #B4472C; }
+  .add-boat-block-btn {
+    width: 100%; background: #fff; border: 1.5px dashed var(--glacier); color: var(--deep);
+    font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 13.5px; padding: 11px; border-radius: 10px;
+    cursor: pointer; margin-bottom: 16px;
+  }
+  .add-boat-block-btn:hover { background: var(--glacier-tint); }
+
   /* FOOTER */
   footer { background: var(--deep-dark); color: var(--stone); padding: 44px 32px; position: relative; border-top: 3px solid var(--glacier); }
   .footer-inner {
@@ -488,7 +503,7 @@
       </ul>
       <div class="pkg-price">
         <div class="price-row"><span class="type-label">Ski / inboard</span><span class="amt">from $3,500 / winter</span></div>
-        <div class="price-row"><span class="type-label">Pontoon</span><span class="amt">from $3,100 / winter</span></div>
+        <div class="price-row"><span class="type-label">Pontoon</span><span class="amt">from $2,700 / winter</span></div>
         <div class="price-row"><span class="type-label">Jet ski / PWC</span><span class="amt">from $1,100 / winter</span></div>
       </div>
       <span class="savings-chip">Bundle &amp; save ~$150</span>
@@ -567,43 +582,12 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-field">
-          <label for="boatType">Boat type</label>
-          <select id="boatType" name="boatType">
-            <option>Ski / inboard</option>
-            <option>Pontoon</option>
-            <option>Jet Ski / PWC</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label for="boatLength">Boat length (ft)</label>
-          <input type="number" id="boatLength" name="boatLength" min="10" max="60">
-        </div>
-      </div>
-      <div class="form-row">
         <div class="form-field full">
-          <label for="packageInterest">Package</label>
-          <select id="packageInterest" name="packageInterest">
-            <option>Not sure yet</option>
-            <option>Anchor</option>
-            <option>Harbor</option>
-            <option>Flagship</option>
-          </select>
+          <label>Boat(s) you'd like a quote for</label>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-field full">
-          <label>Interested in any add-ons? (optional — Flagship already includes detailing, shrink wrap &amp; lift cover)</label>
-          <div class="addon-checks">
-            <label class="addon-check"><input type="checkbox" name="addOns" value="Detailing"> Detailing <span>from $450</span></label>
-            <label class="addon-check"><input type="checkbox" name="addOns" value="Shrink wrapping"> Shrink wrapping <span>from $400</span></label>
-            <label class="addon-check"><input type="checkbox" name="addOns" value="Lift cover removal and install"> Lift cover removal &amp; install <span>$150</span></label>
-            <label class="addon-check"><input type="checkbox" name="addOns" value="Trailer bearing & tire check"> Trailer bearing &amp; tire check <span>$75&ndash;150</span></label>
-            <label class="addon-check"><input type="checkbox" name="addOns" value="Battery tender service"> Battery tender service <span>$25&ndash;50/battery</span></label>
-          </div>
-        </div>
-      </div>
+      <div id="boatBlocksContainer"></div>
+      <button type="button" class="add-boat-block-btn" id="addBoatBlockBtn">+ Add another boat</button>
       <div class="form-row">
         <div class="form-field full">
           <label for="message">Anything else we should know?</label>
@@ -662,9 +646,115 @@
 </footer>
 
 <script>
+  // ---- REPEATABLE BOAT BLOCKS ----
+  // A quote request can cover more than one boat — each gets its own type,
+  // length, package and add-ons, all submitted together under one customer
+  // contact so a multi-boat household only has to fill this out once.
+  var boatBlocks = [];
+  var boatBlockSeq = 0;
+
+  function boatBlockHtml() {
+    return '' +
+      '<div class="boat-block-head"><span data-role="blockNum">Boat 1</span>' +
+        '<button type="button" class="remove-boat-block-btn" data-role="removeBtn">Remove</button></div>' +
+      '<div class="form-row">' +
+        '<div class="form-field">' +
+          '<label>Boat type</label>' +
+          '<select data-field="boatType">' +
+            '<option>Ski / inboard</option>' +
+            '<option>Pontoon</option>' +
+            '<option>Jet Ski / PWC</option>' +
+            '<option>Other</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-field">' +
+          '<label>Boat length (ft)</label>' +
+          '<input type="number" data-field="boatLength" min="10" max="60">' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<div class="form-field full">' +
+          '<label>Package</label>' +
+          '<select data-field="packageInterest">' +
+            '<option>Not sure yet</option>' +
+            '<option>Anchor</option>' +
+            '<option>Harbor</option>' +
+            '<option>Flagship</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<div class="form-field full">' +
+          '<label>Interested in any add-ons for this boat? (optional — Flagship already includes detailing, shrink wrap &amp; lift cover)</label>' +
+          '<div class="addon-checks">' +
+            '<label class="addon-check"><input type="checkbox" data-field="addOns" value="Detailing"> Detailing <span>from $450</span></label>' +
+            '<label class="addon-check"><input type="checkbox" data-field="addOns" value="Shrink wrapping"> Shrink wrapping <span>from $400</span></label>' +
+            '<label class="addon-check"><input type="checkbox" data-field="addOns" value="Lift cover removal and install"> Lift cover removal &amp; install <span>$150</span></label>' +
+            '<label class="addon-check"><input type="checkbox" data-field="addOns" value="Trailer bearing & tire check"> Trailer bearing &amp; tire check <span>$75&ndash;150</span></label>' +
+            '<label class="addon-check"><input type="checkbox" data-field="addOns" value="Battery tender service"> Battery tender service <span>$25&ndash;50/battery</span></label>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function createBoatBlock(container) {
+    boatBlockSeq += 1;
+    var el = document.createElement('div');
+    el.className = 'boat-block';
+    el.innerHTML = boatBlockHtml();
+    container.appendChild(el);
+    boatBlocks.push(el);
+    el.querySelector('[data-role="removeBtn"]').addEventListener('click', function () {
+      removeBoatBlock(el);
+    });
+    renumberBoatBlocks();
+    return el;
+  }
+
+  function removeBoatBlock(el) {
+    if (boatBlocks.length <= 1) { return; }
+    var idx = boatBlocks.indexOf(el);
+    if (idx === -1) { return; }
+    el.remove();
+    boatBlocks.splice(idx, 1);
+    renumberBoatBlocks();
+  }
+
+  function renumberBoatBlocks() {
+    boatBlocks.forEach(function (el, i) {
+      el.querySelector('[data-role="blockNum"]').textContent = 'Boat ' + (i + 1);
+    });
+  }
+
+  var boatBlocksContainer = document.getElementById('boatBlocksContainer');
+  createBoatBlock(boatBlocksContainer);
+
+  document.getElementById('addBoatBlockBtn').addEventListener('click', function () {
+    createBoatBlock(boatBlocksContainer);
+  });
+
+  function collectBoatsFromBlocks() {
+    return boatBlocks.map(function (el) {
+      return {
+        boatType: el.querySelector('[data-field="boatType"]').value,
+        boatLength: el.querySelector('[data-field="boatLength"]').value,
+        packageInterest: el.querySelector('[data-field="packageInterest"]').value,
+        addOns: Array.prototype.map.call(
+          el.querySelectorAll('[data-field="addOns"]:checked'),
+          function (cb) { return cb.value; }
+        ),
+      };
+    });
+  }
+
+  // "Choose Anchor/Harbor/Flagship" buttons on the package cards set the
+  // package on the first boat block (adding more boats afterward is still
+  // just a click away via "+ Add another boat").
   function setPackage(name) {
-    var sel = document.getElementById('packageInterest');
-    if (sel) { sel.value = name; }
+    if (boatBlocks.length) {
+      var sel = boatBlocks[0].querySelector('[data-field="packageInterest"]');
+      if (sel) { sel.value = name; }
+    }
   }
 
   // ---- SUBMISSION ENDPOINT ----
@@ -700,13 +790,15 @@
 
   function showFallback(data) {
     var subject = encodeURIComponent('Quote request - ' + data.name);
+    var boatLines = (data.boats || []).map(function (b, i) {
+      return 'Boat ' + (i + 1) + ': ' + b.boatType + ', ' + (b.boatLength || '—') + 'ft, package: ' + b.packageInterest +
+        ', add-ons: ' + ((b.addOns && b.addOns.length) ? b.addOns.join(', ') : 'None');
+    }).join('\n');
     var body = encodeURIComponent(
       'Name: ' + data.name + '\n' + 'Email: ' + data.email + '\n' + 'Phone: ' + data.phone +
       '\n' + 'Address: ' + (data.address || 'Not specified') +
-      '\n' + 'Boat type: ' + data.boatType + '\n' + 'Boat length: ' + data.boatLength +
-      '\n' + 'Package: ' + data.packageInterest +
-      '\n' + 'Add-ons requested: ' + ((data.addOns && data.addOns.length) ? data.addOns.join(', ') : 'None') +
-      '\n' + 'Message: ' + data.message +
+      '\n\n' + boatLines +
+      '\n\n' + 'Message: ' + data.message +
       '\n' + 'How heard about us: ' + (data.howHeard || 'Not specified')
     );
     var mailtoLink = 'mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body;
@@ -727,7 +819,8 @@
 
     if (typeof gtag === 'function') {
       gtag('event', 'generate_lead', {
-        package_interest: data.packageInterest,
+        package_interest: (data.boats && data.boats[0] && data.boats[0].packageInterest) || 'not specified',
+        boat_count: (data.boats && data.boats.length) || 0,
         how_heard: data.howHeard || 'not specified'
       });
     }
@@ -759,10 +852,7 @@
       email: document.getElementById('email').value,
       phone: document.getElementById('phone').value,
       address: document.getElementById('address').value,
-      boatType: document.getElementById('boatType').value,
-      boatLength: document.getElementById('boatLength').value,
-      packageInterest: document.getElementById('packageInterest').value,
-      addOns: Array.prototype.map.call(document.querySelectorAll('input[name="addOns"]:checked'), function (el) { return el.value; }),
+      boats: collectBoatsFromBlocks(),
       message: document.getElementById('message').value,
       howHeard: ''
     };
