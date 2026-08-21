@@ -1,7 +1,7 @@
 // Shared Airtable helpers for the Waterline Marketing base.
-// Used by submit-quote.js, save-internal-quote.js, accept-quote.js, and
-// get-quote-request.js so the Customers -> Boats -> Quotes relational
-// structure is built the same way everywhere a record gets written.
+// Used by submit-quote.js, save-internal-quote.js, and accept-quote.js so the
+// Customers -> Boats -> Quotes relational structure is built the same way
+// everywhere a record gets written.
 //
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
@@ -22,6 +22,11 @@ const CUSTOMER_FIELDS = {
   address: 'fldjKCMHICPwupgft',
   howHeard: 'fldXap1uAxQZpiW32',
   zohoId: 'fld399YPJaCMJgxgx',
+  // Auto-created inverse of Boats.customer — every Boat record linked to
+  // this Customer. Read this (with returnFieldsByFieldId) to list all of a
+  // customer's boats instead of relying on a fragile filterByFormula match
+  // against a linked-record field.
+  boatsLink: 'fld9cDE3Sy54fv2g3',
 };
 
 const BOAT_FIELDS = {
@@ -30,6 +35,9 @@ const BOAT_FIELDS = {
   type: 'fldqNu6yhurVfBsLO',
   length: 'fldI7KFd1RLfo32CD',
   style: 'fldLXDHIo7R5ElIjB',
+  // Auto-created inverse of Quotes.boat — every Quote record linked to this
+  // Boat (a boat can pick up a new Quote each season).
+  quotesLink: 'fld17Nqk6ax7vwEYe',
 };
 
 const QUOTE_FIELDS = {
@@ -184,6 +192,35 @@ async function updateQuote(token, quoteId, fieldsById) {
   return updated;
 }
 
+// Updates an existing Customer record in place. Only call this when the
+// Customer ID is already known for certain (loaded via the customer-link
+// flow, or just created in this same save) — never as part of a fuzzy
+// email/phone match. This is the intentional exception to "never overwrite
+// a CRM record from a guess": staff editing a known, already-linked
+// customer's info in the internal tool is supposed to flow back to Airtable.
+async function updateCustomer(token, customerId, fieldsById) {
+  const fields = stripUndefined(fieldsById);
+  const updated = await airtableRequest(token, `/${TABLES.customers}/${customerId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields, typecast: true }),
+  });
+  return updated;
+}
+
+// Updates an existing Boat record in place. Same rule as updateCustomer:
+// only ever called with a Boat ID that's already unambiguously known (a
+// boat loaded via the customer's link, or a boat just created in this same
+// save) — never a fuzzy match. Editing a known boat's type/length/style in
+// the internal tool is meant to overwrite the CRM record on purpose.
+async function updateBoat(token, boatId, fieldsById) {
+  const fields = stripUndefined(fieldsById);
+  const updated = await airtableRequest(token, `/${TABLES.boats}/${boatId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields, typecast: true }),
+  });
+  return updated;
+}
+
 module.exports = {
   TABLES,
   CUSTOMER_FIELDS,
@@ -194,4 +231,6 @@ module.exports = {
   createBoat,
   createQuote,
   updateQuote,
+  updateCustomer,
+  updateBoat,
 };
