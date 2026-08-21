@@ -1,14 +1,24 @@
 // Read-only lookup used by the internal quote tool
-// (/internalquote?requestId=<quote record id>) to pull a customer's original
-// website inquiry into the form automatically, so staff don't have to retype
-// it — and so there's no risk of a typo on the name/phone/email breaking the
-// "same customer" match that findOrCreateCustomer relies on elsewhere.
+// (/internalquote?requestId=<quote record id>) to pull a CUSTOMER's full
+// picture into the form automatically — every boat that customer has on
+// file, not just the single boat tied to whichever Quote record was clicked.
+// That way staff can see and adjust all of a customer's boats from one link.
 //
-// Returns the Quote's own fields plus whatever the linked Customer and Boat
-// records have on file. Nothing here writes anything.
+// For each of the customer's boats, picks the "best" Quote to prefill from:
+// the clicked quote itself (for the boat it belongs to), else that boat's
+// Status = "New" quote if it has one, else its most recently submitted
+// quote. Nothing here writes anything.
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
-const { TABLES, airtableRequest } = require('./_airtable');
+const { TABLES, CUSTOMER_FIELDS, BOAT_FIELDS, QUOTE_FIELDS, airtableRequest } = require('./_airtable');
+
+function getById(token, table, id) {
+  return airtableRequest(token, `/${table}/${id}?returnFieldsByFieldId=true`, { method: 'GET' });
+}
+
+function statusName(rawStatus) {
+  return (rawStatus && rawStatus.name) || rawStatus || '';
+}
 
 exports.handler = async function (event) {
   const token = process.env.AIRTABLE_TOKEN;
@@ -23,40 +33,112 @@ exports.handler = async function (event) {
   }
 
   try {
-    const quote = await airtableRequest(token, `/${TABLES.quotes}/${id}`, { method: 'GET' });
-    const f = quote.fields || {};
+    const clickedQuote = await getById(token, TABLES.quotes, id);
+    const qf = clickedQuote.fields || {};
+    const customerId = (qf[QUOTE_FIELDS.customer] && qf[QUOTE_FIELDS.customer][0]) || null;
 
-    const customerLink = f['Customer'] && f['Customer'][0];
-    const boatLink = f['Boat'] && f['Boat'][0];
+    // No linked Customer at all (shouldn't normally happen) - fall back to
+    // just this one quote's own fields plus its single linked boat.
+    if (!customerId) {
+      const boatId = (qf[QUOTE_FIELDS.boat] && qf[QUOTE_FIELDS.boat][0]) || null;
+      const boat = boatId ? await getById(token, TABLES.boats, boatId).catch(() => null) : null;
+      const bf = (boat && boat.fields) || {};
 
-    const [customer, boat] = await Promise.all([
-      customerLink ? airtableRequest(token, `/${TABLES.customers}/${customerLink}`, { method: 'GET' }).catch(() => null) : null,
-      boatLink ? airtableRequest(token, `/${TABLES.boats}/${boatLink}`, { method: 'GET' }).catch(() => null) : null,
-    ]);
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ok: true,
+          customerId: null,
+          name: qf[QUOTE_FIELDS.name] || '',
+          phone: qf[QUOTE_FIELDS.phone] || '',
+          email: qf[QUOTE_FIELDS.email] || '',
+          address: qf[QUOTE_FIELDS.address] || '',
+          boats: [
+            {
+              boatId,
+              quoteId: clickedQuote.id,
+              boatName: bf[BOAT_FIELDS.name] || '',
+              boatType: bf[BOAT_FIELDS.type] || '',
+              boatLength: bf[BOAT_FIELDS.length] || '',
+              style: bf[BOAT_FIELDS.style] || '',
+              package: qf[QUOTE_FIELDS.package] || '',
+              addOns: qf[QUOTE_FIELDS.addOns] || [],
+              comments: qf[QUOTE_FIELDS.comments] || '',
+              pickupDate: qf[QUOTE_FIELDS.pickupDate] || '',
+              discount: qf[QUOTE_FIELDS.discount] || '',
+              overrideOn: !!qf[QUOTE_FIELDS.override],
+              quotedTotal: qf[QUOTE_FIELDS.quotedTotal] || '',
+              status: statusName(qf[QUOTE_FIELDS.status]),
+            },
+          ],
+        }),
+      };
+    }
 
-    const cf = (customer && customer.fields) || {};
-    const bf = (boat && boat.fields) || {};
-    const status = (f['Status'] && f['Status'].name) || f['Status'] || '';
+    const customer = await getById(token, TABLES.customers, customerId);
+    const cf = customer.fields || {};
+    const boatIds = cf[CUSTOMER_FIELDS.boatsLink] || [];
+
+    const boats = await Promise.all(
+      boatIds.map(async (boatId) => {
+        const boat = await getById(token, TABLES.boats, boatId).catch(() => null);
+        if (!boat) return null;
+        const bf = boat.fields || {};
+        const quoteIds = bf[BOAT_FIELDS.quotesLink] || [];
+
+        let quotes = await Promise.all(
+          quoteIds.map((qid) => getById(token, TABLES.quotes, qid).catch(() => null))
+        );
+        quotes = quotes.filter(Boolean);
+
+        // Prefer this boat's "New" quote, else its most recently submitted one.
+        let bestQuote =
+          quotes.find((q) => statusName(q.fields[QUOTE_FIELDS.status]) === 'New') ||
+          quotes.slice().sort((a, b) => {
+            const at = a.fields[QUOTE_FIELDS.submittedAt] || '';
+            const bt = b.fields[QUOTE_FIELDS.submittedAt] || '';
+            return bt.localeCompare(at);
+          })[0];
+
+        // Whichever boat the clicked link belongs to should always prefill
+        // from the clicked quote itself, not some other quote on that boat.
+        if (quoteIds.indexOf(clickedQuote.id) !== -1) {
+          bestQuote = quotes.find((q) => q.id === clickedQuote.id) || bestQuote;
+        }
+
+        const qf2 = (bestQuote && bestQuote.fields) || {};
+
+        return {
+          boatId,
+          quoteId: bestQuote ? bestQuote.id : null,
+          boatName: bf[BOAT_FIELDS.name] || '',
+          boatType: bf[BOAT_FIELDS.type] || '',
+          boatLength: bf[BOAT_FIELDS.length] || '',
+          style: bf[BOAT_FIELDS.style] || '',
+          package: qf2[QUOTE_FIELDS.package] || '',
+          addOns: qf2[QUOTE_FIELDS.addOns] || [],
+          comments: qf2[QUOTE_FIELDS.comments] || '',
+          pickupDate: qf2[QUOTE_FIELDS.pickupDate] || '',
+          discount: qf2[QUOTE_FIELDS.discount] || '',
+          overrideOn: !!qf2[QUOTE_FIELDS.override],
+          quotedTotal: qf2[QUOTE_FIELDS.quotedTotal] || '',
+          status: statusName(qf2[QUOTE_FIELDS.status]),
+        };
+      })
+    );
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ok: true,
-        quoteId: quote.id,
-        customerId: customerLink || null,
-        boatId: boatLink || null,
-        status,
-        name: cf['Name'] || f['Name'] || '',
-        phone: cf['Phone'] || f['Phone'] || '',
-        email: cf['Email'] || f['Email'] || '',
-        address: cf['Address'] || f['Address'] || '',
-        boatType: bf['Boat Type'] || f['Boat Type'] || '',
-        boatLength: bf['Length (ft)'] || f['Boat Length (ft)'] || '',
-        package: f['Package'] || '',
-        addOns: f['Add-ons'] || [],
-        comments: f['Comments'] || '',
-        pickupDate: f['Desired Pickup Date'] || '',
+        customerId,
+        name: cf[CUSTOMER_FIELDS.name] || '',
+        phone: cf[CUSTOMER_FIELDS.phone] || '',
+        email: cf[CUSTOMER_FIELDS.email] || '',
+        address: cf[CUSTOMER_FIELDS.address] || '',
+        boats: boats.filter(Boolean),
       }),
     };
   } catch (err) {
