@@ -2,21 +2,46 @@
 // (/internalquote) and writes them into the relational Customers -> Boats ->
 // Quotes structure in the Waterline Marketing Airtable base.
 //
-// Two paths, depending on whether this quote started life as a website
-// inquiry (payload.existingQuoteId set by get-quote-request.js / the
-// "requestId" link on a Quote record):
-//   - Linked to an existing request: update that SAME Quote record in place
-//     (Status -> Quoted, pricing, add-ons, etc.) and leave the Customer and
-//     Boat records it's already linked to completely untouched. This is what
-//     ties the internal tool back to the original request without any risk
-//     of a staff typo overwriting that customer's or boat's saved info.
-//   - No linked request (a walk-in / phone quote): find-or-create the
-//     Customer by email/phone (so a repeat customer stays tied to one
-//     Customer record instead of getting duplicated), create a new Boat row,
-//     and create a new Quote row linked to both — the original behavior.
+// The internal tool now works in one batch per Save click, covering every
+// boat card currently in the session for one customer:
+//   payload = {
+//     customerId,      // set if this session started from a known customer
+//                       // (loaded via ?requestId=... or otherwise already on
+//                       // file) — null for a brand-new walk-in customer.
+//     customerName, phone, email, address,
+//     boats: [{ existingQuoteId, existingBoatId, boatName, boatCategory,
+//               boatLength, driveOrStyle, package, pickupDate, addOns,
+//               discount, overrideOn, total, quoteText }, ...]
+//   }
+//
+// Customer: if customerId is already known, PATCH that exact record with
+// whatever's in the Customer card — staff editing a known customer's info in
+// the internal tool is meant to overwrite the CRM record. If customerId is
+// NOT known, fall back to the original find-or-create-by-email/phone path
+// for a genuinely new/walk-in customer.
+//
+// Each boat: if existingBoatId is already known, PATCH that exact Boat
+// record (same "known record edits should overwrite" rule) instead of
+// creating a duplicate row. If it's a boat the staff just added in this
+// session, create a new Boat row linked to the customer.
+//
+// Each quote: if existingQuoteId is known, update that Quote in place
+// (this is what ties the internal tool back to a website inquiry). If it's
+// a new boat/new request, create a new Quote row linked to the customer and
+// boat.
 // Requires the AIRTABLE_TOKEN environment variable (set on the Netlify project).
 
-const { QUOTE_FIELDS, findOrCreateCustomer, createBoat, createQuote, updateQuote } = require('./_airtable');
+const {
+  CUSTOMER_FIELDS,
+  BOAT_FIELDS,
+  QUOTE_FIELDS,
+  findOrCreateCustomer,
+  updateCustomer,
+  createBoat,
+  updateBoat,
+  createQuote,
+  updateQuote,
+} = require('./_airtable');
 
 // Normalize the internal tool's boat-category codes to the Airtable options.
 const BOAT_TYPE_MAP = {
@@ -24,6 +49,8 @@ const BOAT_TYPE_MAP = {
   Pontoon: 'Pontoon',
   PWC: 'Jet Ski / PWC',
 };
+
+const REC_ID_RE = /^rec[A-Za-z0-9]{14}$/;
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -43,77 +70,108 @@ exports.handler = async function (event) {
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Server not configured' }) };
   }
 
+  const boatsPayload = Array.isArray(payload.boats) ? payload.boats : [];
+  if (!boatsPayload.length) {
+    return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'No boats in payload' }) };
+  }
+
   try {
-    const boatType = BOAT_TYPE_MAP[payload.boatCategory];
-    const existingQuoteId = payload.existingQuoteId;
-    const isLinkedToRequest = existingQuoteId && /^rec[A-Za-z0-9]{14}$/.test(existingQuoteId);
+    // --- Customer: update-in-place if known, else find-or-create. ---
+    let customerId = payload.customerId;
+    const knownCustomer = customerId && REC_ID_RE.test(customerId);
 
-    if (isLinkedToRequest) {
-      // Update the original website-inquiry Quote record in place. No
-      // Customer or Boat fields are touched here on purpose.
-      await updateQuote(token, existingQuoteId, {
-        [QUOTE_FIELDS.package]: payload.package || undefined,
-        [QUOTE_FIELDS.comments]: payload.quoteText || '',
-        [QUOTE_FIELDS.pickupDate]: payload.pickupDate || undefined,
-        [QUOTE_FIELDS.status]: 'Quoted',
-        [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
-        [QUOTE_FIELDS.quotedTotal]: payload.total ? Number(payload.total) : undefined,
-        [QUOTE_FIELDS.addOns]: Array.isArray(payload.addOns) && payload.addOns.length ? payload.addOns : undefined,
-        [QUOTE_FIELDS.discount]: payload.discount ? Number(payload.discount) : undefined,
-        [QUOTE_FIELDS.override]: !!payload.overrideOn,
+    if (knownCustomer) {
+      await updateCustomer(token, customerId, {
+        [CUSTOMER_FIELDS.name]: payload.customerName || undefined,
+        [CUSTOMER_FIELDS.phone]: payload.phone || undefined,
+        [CUSTOMER_FIELDS.email]: payload.email || undefined,
+        [CUSTOMER_FIELDS.address]: payload.address || undefined,
       });
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          ok: true,
-          recordId: existingQuoteId,
-          quoteLink: 'https://waterlinelakeservices.com/quote?id=' + existingQuoteId,
-        }),
-      };
+    } else {
+      customerId = await findOrCreateCustomer(token, {
+        name: payload.customerName,
+        phone: payload.phone,
+        email: payload.email,
+        address: payload.address,
+      });
     }
 
-    const customerId = await findOrCreateCustomer(token, {
-      name: payload.customerName,
-      phone: payload.phone,
-      email: payload.email,
-      address: payload.address,
-    });
+    // --- Each boat card: update-in-place if known, else create. ---
+    const results = [];
+    for (const boat of boatsPayload) {
+      const boatType = BOAT_TYPE_MAP[boat.boatCategory];
+      const knownBoat = boat.existingBoatId && REC_ID_RE.test(boat.existingBoatId);
 
-    const boatId = await createBoat(token, customerId, {
-      name: payload.boatName,
-      type: boatType,
-      length: payload.boatLength ? Number(payload.boatLength) : undefined,
-      style: payload.driveOrStyle,
-    });
+      let boatId;
+      if (knownBoat) {
+        boatId = boat.existingBoatId;
+        await updateBoat(token, boatId, {
+          [BOAT_FIELDS.type]: boatType,
+          [BOAT_FIELDS.length]: boat.boatLength ? Number(boat.boatLength) : undefined,
+          [BOAT_FIELDS.style]: boat.driveOrStyle,
+        });
+      } else {
+        boatId = await createBoat(token, customerId, {
+          name: boat.boatName,
+          type: boatType,
+          length: boat.boatLength ? Number(boat.boatLength) : undefined,
+          style: boat.driveOrStyle,
+        });
+      }
 
-    const quote = await createQuote(token, {
-      [QUOTE_FIELDS.name]: payload.customerName || '',
-      [QUOTE_FIELDS.phone]: payload.phone || undefined,
-      [QUOTE_FIELDS.email]: payload.email || undefined,
-      [QUOTE_FIELDS.address]: payload.address || undefined,
-      [QUOTE_FIELDS.boatType]: boatType,
-      [QUOTE_FIELDS.boatLength]: payload.boatLength ? Number(payload.boatLength) : undefined,
-      [QUOTE_FIELDS.package]: payload.package || undefined,
-      [QUOTE_FIELDS.comments]: payload.quoteText || '',
-      [QUOTE_FIELDS.pickupDate]: payload.pickupDate || undefined,
-      [QUOTE_FIELDS.submittedAt]: new Date().toISOString(),
-      [QUOTE_FIELDS.status]: 'Quoted',
-      [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
-      [QUOTE_FIELDS.quotedTotal]: payload.total ? Number(payload.total) : undefined,
-      [QUOTE_FIELDS.customer]: [customerId],
-      [QUOTE_FIELDS.boat]: [boatId],
-      [QUOTE_FIELDS.addOns]: Array.isArray(payload.addOns) && payload.addOns.length ? payload.addOns : undefined,
-      [QUOTE_FIELDS.discount]: payload.discount ? Number(payload.discount) : undefined,
-      [QUOTE_FIELDS.override]: !!payload.overrideOn,
-    });
+      const knownQuote = boat.existingQuoteId && REC_ID_RE.test(boat.existingQuoteId);
+      let quoteId;
+
+      if (knownQuote) {
+        quoteId = boat.existingQuoteId;
+        await updateQuote(token, quoteId, {
+          [QUOTE_FIELDS.package]: boat.package || undefined,
+          [QUOTE_FIELDS.comments]: boat.quoteText || '',
+          [QUOTE_FIELDS.pickupDate]: boat.pickupDate || undefined,
+          [QUOTE_FIELDS.status]: 'Quoted',
+          [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
+          [QUOTE_FIELDS.quotedTotal]: boat.total ? Number(boat.total) : undefined,
+          [QUOTE_FIELDS.addOns]: Array.isArray(boat.addOns) && boat.addOns.length ? boat.addOns : undefined,
+          [QUOTE_FIELDS.discount]: boat.discount ? Number(boat.discount) : undefined,
+          [QUOTE_FIELDS.override]: !!boat.overrideOn,
+        });
+      } else {
+        const quote = await createQuote(token, {
+          [QUOTE_FIELDS.name]: payload.customerName || '',
+          [QUOTE_FIELDS.phone]: payload.phone || undefined,
+          [QUOTE_FIELDS.email]: payload.email || undefined,
+          [QUOTE_FIELDS.address]: payload.address || undefined,
+          [QUOTE_FIELDS.boatType]: boatType,
+          [QUOTE_FIELDS.boatLength]: boat.boatLength ? Number(boat.boatLength) : undefined,
+          [QUOTE_FIELDS.package]: boat.package || undefined,
+          [QUOTE_FIELDS.comments]: boat.quoteText || '',
+          [QUOTE_FIELDS.pickupDate]: boat.pickupDate || undefined,
+          [QUOTE_FIELDS.submittedAt]: new Date().toISOString(),
+          [QUOTE_FIELDS.status]: 'Quoted',
+          [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
+          [QUOTE_FIELDS.quotedTotal]: boat.total ? Number(boat.total) : undefined,
+          [QUOTE_FIELDS.customer]: [customerId],
+          [QUOTE_FIELDS.boat]: [boatId],
+          [QUOTE_FIELDS.addOns]: Array.isArray(boat.addOns) && boat.addOns.length ? boat.addOns : undefined,
+          [QUOTE_FIELDS.discount]: boat.discount ? Number(boat.discount) : undefined,
+          [QUOTE_FIELDS.override]: !!boat.overrideOn,
+        });
+        quoteId = quote.id;
+      }
+
+      results.push({
+        boatId,
+        quoteId,
+        quoteLink: 'https://waterlinelakeservices.com/quote?id=' + quoteId,
+      });
+    }
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         ok: true,
-        recordId: quote.id,
-        quoteLink: 'https://waterlinelakeservices.com/quote?id=' + quote.id,
+        customerId,
+        boats: results,
       }),
     };
   } catch (err) {
