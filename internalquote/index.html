@@ -88,6 +88,38 @@
   .override-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
   .override-check input { width: 18px; height: 18px; accent-color: var(--deep); flex: none; }
 
+  /* BOAT CARDS */
+  .boat-card { position: relative; border: 1.5px solid var(--stone-2); }
+  .boat-card-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--stone-2); }
+  .boat-card-head h2 { margin: 0; padding: 0; border: none; }
+  .remove-boat-btn {
+    background: transparent; border: 1.5px solid var(--stone-2); color: var(--muted); font-size: 12px;
+    padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: 'Work Sans', sans-serif;
+  }
+  .remove-boat-btn:hover { border-color: #D98366; color: #B4472C; }
+  .add-boat-btn {
+    width: 100%; background: #fff; border: 1.5px dashed var(--glacier); color: var(--deep);
+    font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 14px; padding: 13px; border-radius: 12px;
+    cursor: pointer; margin-bottom: 18px;
+  }
+  .add-boat-btn:hover { background: var(--glacier-tint); }
+
+  .boat-mini-summary { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--stone-2); }
+  .boat-mini-summary .s-line { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--muted); }
+  .boat-mini-summary .s-line b { color: var(--ink); font-weight: 500; }
+  .boat-mini-summary .s-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--stone-2); }
+  .boat-mini-summary .s-total .label { font-size: 12px; color: var(--pine); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .boat-mini-summary .s-total .amt { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; color: var(--deep); }
+
+  .savings-box {
+    margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;
+    background: var(--glacier-tint); color: var(--pine); display: none;
+  }
+  .savings-box.show { display: block; }
+  .savings-box b { color: var(--deep); }
+  .savings-box.negative { background: #FCEFEA; color: #8A3E22; }
+  .savings-box.negative b { color: #8A3E22; }
+
   /* SUMMARY */
   .summary { position: sticky; top: 20px; }
   .summary-card { background: var(--deep); color: #fff; border-radius: 14px; padding: 24px; }
@@ -98,11 +130,6 @@
   .s-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; }
   .s-total .label { font-size: 13px; color: var(--glacier); text-transform: uppercase; letter-spacing: 0.06em; }
   .s-total .amt { font-family: 'Fraunces', serif; font-size: 34px; font-weight: 500; }
-  .upgrade-box {
-    margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.25);
-    font-size: 12.5px; color: #C7DEE5; line-height: 1.5;
-  }
-  .upgrade-box b { color: #fff; }
   .copy-btn {
     margin-top: 16px; width: 100%; background: var(--glacier); color: var(--deep-dark); border: none;
     font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 14px; padding: 12px; border-radius: 30px; cursor: pointer;
@@ -130,176 +157,43 @@
   <div class="main">
 
     <div class="card">
-      <h2>Customer &amp; boat</h2>
+      <h2>Customer</h2>
       <div id="loadedBanner" style="display:none; margin:-4px 0 16px; padding:9px 12px; border-radius:8px; font-size:12.5px; background:var(--glacier-tint); color:var(--pine); font-weight:500;"></div>
       <div class="row" style="margin-bottom:14px;">
         <div class="num-field"><label>Customer name</label><input type="text" id="custName" placeholder="—"></div>
-        <div class="num-field"><label>Boat / make</label><input type="text" id="boatName" placeholder="—"></div>
-      </div>
-      <div class="row" style="margin-bottom:14px;">
         <div class="num-field"><label>Phone</label><input type="text" id="custPhone" placeholder="—"></div>
-        <div class="num-field"><label>Email</label><input type="text" id="custEmail" placeholder="—"></div>
       </div>
       <div class="row" style="margin-bottom:14px;">
+        <div class="num-field"><label>Email</label><input type="text" id="custEmail" placeholder="—"></div>
         <div class="num-field"><label>Address</label><input type="text" id="custAddress" placeholder="Street, city"></div>
       </div>
-      <div class="row" style="margin-bottom:14px;">
+      <div class="row">
         <div class="num-field"><label>Date</label><input type="text" id="quoteDate" placeholder="—"></div>
         <div class="num-field"><label>Staff</label><input type="text" id="staffName" placeholder="—"></div>
       </div>
-      <div class="row">
-        <div class="num-field"><label>Desired pickup date</label><input type="date" id="pickupDate"></div>
-      </div>
+      <p class="hint">This customer's info is shared across every boat below — one Customer record, however many boats they store with us.</p>
     </div>
 
-    <div class="card">
-      <h2>Package</h2>
-      <div class="btn-group" id="pkgGroup">
-        <div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750 / $350 — flat rate, any length</span></div>
-        <div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $2,800 / $2,000 / $650</span></div>
-        <div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $3,500 / $3,100 / $1,100</span></div>
-      </div>
+    <div id="boatCardsContainer"></div>
 
-      <p class="field-label">Boat / PWC category</p>
-      <div class="btn-group" id="catGroup">
-        <div class="btn-opt active" data-val="SI">Ski / Inboard</div>
-        <div class="btn-opt" data-val="Pontoon">Pontoon</div>
-        <div class="btn-opt" data-val="PWC">Jet Ski / PWC</div>
-      </div>
-
-      <div id="driveWrap">
-        <p class="field-label">Drivetrain</p>
-        <div class="btn-group" id="driveGroup">
-          <div class="btn-opt active" data-val="Outboard">Outboard</div>
-          <div class="btn-opt" data-val="IO">I/O</div>
-          <div class="btn-opt" data-val="Inboard">Inboard / V-Drive</div>
-        </div>
-      </div>
-
-      <div id="styleWrap" style="display:none;">
-        <p class="field-label">Hull / riding style</p>
-        <div class="btn-group" id="styleGroup">
-          <div class="btn-opt active" data-val="Standup">Stand-up</div>
-          <div class="btn-opt" data-val="SitRec">Sit-down (Recreation)</div>
-          <div class="btn-opt" data-val="SitPerf">Sit-down (Perf./Tow-Sport)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="num-field">
-          <label id="lengthLabel">Boat length (ft)</label>
-          <input type="number" id="lengthInput" value="24" min="8" max="60">
-        </div>
-      </div>
-      <p class="hint" id="lengthHint"></p>
-      <div class="warn" id="customQuoteWarn">33'+ — recommend a custom quote rather than relying on the pricing table.</div>
-    </div>
-
-    <div class="card">
-      <h2>Add-ons</h2>
-
-      <div class="addon-row" id="row-detailing">
-        <input type="checkbox" id="add-detailing">
-        <div class="a-label"><b>Detailing</b><span class="a-note" id="note-detailing">Add-on for Anchor &amp; Harbor</span></div>
-        <div class="a-price">$450</div>
-      </div>
-
-      <div class="addon-row" id="row-wrap">
-        <input type="checkbox" id="add-wrap">
-        <div class="a-label"><b>Shrink wrapping</b><span class="a-note" id="note-wrap">Add-on for Anchor &amp; Harbor</span></div>
-        <div class="a-price">$400</div>
-      </div>
-
-      <div class="addon-row" id="row-liftcover">
-        <input type="checkbox" id="add-liftcover">
-        <div class="a-label"><b>Lift Cover removal and install</b><span class="a-note" id="note-liftcover">Available on any package</span></div>
-        <div class="a-price">$150</div>
-      </div>
-
-      <div class="addon-row">
-        <input type="checkbox" id="add-trailer">
-        <div class="a-label"><b>Trailer bearing &amp; tire check</b><span class="a-note">Range $75–150 — set exact amount</span></div>
-        <div class="a-price">$<input type="number" id="trailerAmt" value="75" min="75" max="150"></div>
-      </div>
-
-      <div class="addon-row">
-        <input type="checkbox" id="add-battery">
-        <div class="a-label"><b>Battery tender service</b><span class="a-note">$25–50 / battery — set count &amp; rate</span></div>
-        <div class="a-price">
-          <input type="number" id="batteryCount" value="1" min="0" max="12" style="width:44px;"> ×
-          $<input type="number" id="batteryRate" value="25" min="25" max="50">
-        </div>
-      </div>
-
-      <div class="addon-row" id="row-impeller">
-        <input type="checkbox" id="add-impeller">
-        <div class="a-label"><b>Impeller replacement (Outboard / I-O)</b><span class="a-note" id="note-impeller">Recommended every 2–3 years — requires lower unit removal. Inboards get a new impeller yearly as part of standard winterization, so no add-on needed there.</span></div>
-        <div class="a-price">$150</div>
-      </div>
-
-      <div class="addon-row disabled">
-        <input type="checkbox" id="add-vent" disabled>
-        <div class="a-label"><b>Vent Kit + Moisture and Pest Deterrent</b><span class="a-note" id="note-vent">Automatic with any shrink-wrapped boat — no charge</span></div>
-        <div class="a-price">Free</div>
-      </div>
-
-      <div class="row" style="margin-top:16px;">
-        <div class="num-field">
-          <label>Battery storage direction (note only, not priced)</label>
-          <input type="text" id="batteryDirection" placeholder="e.g. customer takes battery home">
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Adjustments</h2>
-      <div class="row" style="margin-bottom:14px;">
-        <div class="num-field">
-          <label>Discount ($ off total)</label>
-          <input type="number" id="discountAmt" value="0" min="0" step="25">
-        </div>
-      </div>
-      <div class="row" style="margin-bottom:10px;">
-        <label class="override-check">
-          <input type="checkbox" id="overrideToggle">
-          Override total price (skip the math — set an exact quote)
-        </label>
-      </div>
-      <div class="row" id="overrideRow" style="display:none;">
-        <div class="num-field">
-          <label>Override total ($)</label>
-          <input type="number" id="overrideAmt" value="0" min="0" step="25">
-        </div>
-      </div>
-      <p class="hint" id="adjustHint"></p>
-    </div>
+    <button type="button" class="add-boat-btn" id="addBoatBtn">+ Add another boat</button>
 
   </div>
 
   <div class="summary">
     <div class="summary-card">
       <h2>Quote summary</h2>
-      <div class="s-line"><span>Base price</span><b id="s-base">—</b></div>
-      <div class="s-line"><span>Length category</span><b id="s-lenmult">—</b></div>
-      <div class="s-line"><span>Drivetrain / style</span><b id="s-drivemult">—</b></div>
+      <div id="grandLines"></div>
       <div class="s-div"></div>
-      <div class="s-line"><span>Package subtotal</span><b id="s-pkgsub">—</b></div>
-      <div class="s-line"><span>Add-ons subtotal</span><b id="s-addsub">—</b></div>
-      <div class="s-line"><span>Discount</span><b id="s-discount">—</b></div>
-      <div class="s-total"><span class="label">Total quote</span><span class="amt" id="s-total">$0</span></div>
-
-      <div class="upgrade-box" id="upgradeBox"></div>
+      <div class="s-total"><span class="label">Grand total</span><span class="amt" id="grandTotal">$0</span></div>
 
       <button class="copy-btn" id="copyBtn">Copy quote summary</button>
       <button class="copy-btn save-btn" id="saveBtn">Save to CRM &amp; download PDF</button>
       <p class="copy-status" id="copyStatus"></p>
       <p class="copy-status" id="saveStatus"></p>
-      <div id="quoteLinkBox" style="display:none; margin-top:10px; padding:10px 12px; background:rgba(255,255,255,0.08); border-radius:8px;">
-        <p style="font-size:11.5px; color:#C7DEE5; margin:0 0 6px;">Live quote link — send this to the customer so they can review &amp; accept online:</p>
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="quoteLinkInput" readonly style="flex:1; font-size:11.5px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.95); color:#16232B;">
-          <button type="button" id="copyLinkBtn" style="font-size:11.5px; padding:6px 10px; border-radius:6px; border:none; background:var(--glacier); color:var(--deep-dark); cursor:pointer; font-weight:600;">Copy</button>
-        </div>
+      <div id="quoteLinksBox" style="display:none; margin-top:10px; padding:10px 12px; background:rgba(255,255,255,0.08); border-radius:8px;">
+        <p style="font-size:11.5px; color:#C7DEE5; margin:0 0 6px;">Live quote links — send these to the customer so they can review &amp; accept online:</p>
+        <div id="quoteLinksList"></div>
       </div>
     </div>
   </div>
@@ -318,10 +212,18 @@
   // WITH a length multiplier — we're deliberately keeping Anchor flat across
   // the board for consistency with the boat-pricing decision made earlier.
   // Flag this if that's not what you intended.)
+  //
+  // Pontoon Flagship base corrected 3100 -> 2700 (Aug '26): the old value
+  // priced Flagship at or above Harbor + buying Detailing/Shrink Wrap/Lift
+  // Cover separately ($1,000 in add-ons) for every pontoon length band, so
+  // "upgrade to Flagship and save" was never actually true for pontoons.
+  // 2700 brings the Harbor-vs-Flagship gap to $700, matching Ski/Inboard,
+  // and produces a genuine $150-$350 savings across all standard length
+  // bands (see the Flagship-savings callout on each boat card below).
   const BASE = {
     Anchor:   { SI: 900,  Pontoon: 750,  PWC: 350  },
     Harbor:   { SI: 2800, Pontoon: 2000, PWC: 650  },
-    Flagship: { SI: 3500, Pontoon: 3100, PWC: 1100 },
+    Flagship: { SI: 3500, Pontoon: 2700, PWC: 1100 },
   };
   const TIER_ORDER = ["Anchor", "Harbor", "Flagship"];
   const DRIVE_LABEL = { Outboard: "Outboard", IO: "I/O (Sterndrive)", Inboard: "Inboard / V-Drive" };
@@ -346,6 +248,9 @@
       "Full detail before spring delivery"
     ]
   };
+  // What Flagship bundles for free, priced at Harbor's a-la-carte rate — this
+  // is the basis for the "how much do you save with Flagship" comparison.
+  const FLAGSHIP_BUNDLED_ADDON_TOTAL = 450 + 400 + 150; // Detailing + Shrink Wrap + Lift Cover
 
   function boatLengthMultiplier(ft, pkg) {
     // Anchor: flat rate regardless of length — no storage footprint to size for.
@@ -391,234 +296,476 @@
     return DRIVE_LABEL[drive];
   }
 
-  const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-
-  let state = { pkg: "Harbor", cat: "SI", drive: "Outboard", style: "Standup" };
-
-  function wireGroup(id, key) {
-    const group = document.getElementById(id);
-    group.querySelectorAll(".btn-opt").forEach((el) => {
-      el.addEventListener("click", () => {
-        group.querySelectorAll(".btn-opt").forEach((o) => o.classList.remove("active"));
-        el.classList.add("active");
-        state[key] = el.dataset.val;
-        onChange();
-      });
-    });
-  }
-  wireGroup("pkgGroup", "pkg");
-  wireGroup("catGroup", "cat");
-  wireGroup("driveGroup", "drive");
-  wireGroup("styleGroup", "style");
-
-  const ids = [
-    "lengthInput", "trailerAmt", "batteryCount", "batteryRate",
-    "add-detailing", "add-wrap", "add-liftcover", "add-trailer", "add-battery", "add-impeller",
-    "discountAmt", "overrideAmt", "overrideToggle"
-  ];
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    el.addEventListener("input", onChange);
-    el.addEventListener("change", onChange);
-  });
-
-  function computePackagePrice() {
-    const base = BASE[state.pkg][state.cat];
-    const ft = parseFloat(document.getElementById("lengthInput").value || 0);
-    const lm = getLengthMultiplier(ft, state.pkg, state.cat);
-    const dm = getSecondaryMultiplier(state.cat, state.drive, state.style);
+  function priceFor(pkg, cat, ft, drive, style) {
+    const base = BASE[pkg][cat];
+    const lm = getLengthMultiplier(ft, pkg, cat);
+    const dm = getSecondaryMultiplier(cat, drive, style);
     const raw = base * lm.mult * dm;
     const rounded = Math.round(raw / 25) * 25;
     return { base, lm, dm, raw, rounded };
   }
 
-  function onChange() {
-    document.getElementById("driveWrap").style.display = state.cat === "SI" ? "block" : "none";
-    document.getElementById("styleWrap").style.display = state.cat === "PWC" ? "block" : "none";
+  // How much a customer saves by choosing Flagship instead of Harbor plus
+  // buying Detailing + Shrink Wrap + Lift Cover separately, for this boat's
+  // exact length/drivetrain combo (same comparison the sales callout shows).
+  function computeFlagshipSavings(cat, ft, drive, style) {
+    const harbor = priceFor("Harbor", cat, ft, drive, style);
+    const flagship = priceFor("Flagship", cat, ft, drive, style);
+    const harborPlusAddOns = harbor.rounded + FLAGSHIP_BUNDLED_ADDON_TOTAL;
+    const savings = harborPlusAddOns - flagship.rounded;
+    return { harborPlusAddOns, flagshipRounded: flagship.rounded, savings };
+  }
 
-    const lengthEl = document.getElementById("lengthInput");
-    if (state.cat === "PWC") {
+  const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+  // ---- BOAT CARD TEMPLATE ----
+  function boatCardHtml() {
+    return '' +
+      '<div class="boat-card-head"><h2>Boat <span data-role="cardNum">1</span></h2>' +
+        '<button type="button" class="remove-boat-btn" data-role="removeBtn">Remove this boat</button></div>' +
+      '<div class="row" style="margin-bottom:14px;">' +
+        '<div class="num-field"><label>Boat / make</label><input type="text" data-field="boatName" placeholder="—"></div>' +
+        '<div class="num-field"><label>Desired pickup date</label><input type="date" data-field="pickupDate"></div>' +
+      '</div>' +
+
+      '<p class="field-label">Package</p>' +
+      '<div class="btn-group" data-role="pkgGroup">' +
+        '<div class="btn-opt" data-val="Anchor">Anchor<span class="sub">from $900 / $750 / $350 — flat rate, any length</span></div>' +
+        '<div class="btn-opt active" data-val="Harbor">Harbor<span class="sub">from $2,800 / $2,000 / $650</span></div>' +
+        '<div class="btn-opt" data-val="Flagship">Flagship<span class="sub">from $3,500 / $2,700 / $1,100</span></div>' +
+      '</div>' +
+
+      '<p class="field-label">Boat / PWC category</p>' +
+      '<div class="btn-group" data-role="catGroup">' +
+        '<div class="btn-opt active" data-val="SI">Ski / Inboard</div>' +
+        '<div class="btn-opt" data-val="Pontoon">Pontoon</div>' +
+        '<div class="btn-opt" data-val="PWC">Jet Ski / PWC</div>' +
+      '</div>' +
+
+      '<div data-role="driveWrap">' +
+        '<p class="field-label">Drivetrain</p>' +
+        '<div class="btn-group" data-role="driveGroup">' +
+          '<div class="btn-opt active" data-val="Outboard">Outboard</div>' +
+          '<div class="btn-opt" data-val="IO">I/O</div>' +
+          '<div class="btn-opt" data-val="Inboard">Inboard / V-Drive</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div data-role="styleWrap" style="display:none;">' +
+        '<p class="field-label">Hull / riding style</p>' +
+        '<div class="btn-group" data-role="styleGroup">' +
+          '<div class="btn-opt active" data-val="Standup">Stand-up</div>' +
+          '<div class="btn-opt" data-val="SitRec">Sit-down (Recreation)</div>' +
+          '<div class="btn-opt" data-val="SitPerf">Sit-down (Perf./Tow-Sport)</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="row">' +
+        '<div class="num-field">' +
+          '<label data-role="lengthLabel">Boat length (ft)</label>' +
+          '<input type="number" data-field="lengthInput" value="24" min="8" max="60">' +
+        '</div>' +
+      '</div>' +
+      '<p class="hint" data-role="lengthHint"></p>' +
+      '<div class="warn" data-role="customQuoteWarn">33\'+ — recommend a custom quote rather than relying on the pricing table.</div>' +
+
+      '<div class="savings-box" data-role="savingsBox"></div>' +
+
+      '<p class="field-label" style="margin-top:18px;">Add-ons</p>' +
+
+      '<div class="addon-row" data-role="row-detailing">' +
+        '<input type="checkbox" data-field="add-detailing">' +
+        '<div class="a-label"><b>Detailing</b><span class="a-note" data-role="note-detailing">Add-on for Anchor &amp; Harbor</span></div>' +
+        '<div class="a-price">$450</div>' +
+      '</div>' +
+
+      '<div class="addon-row" data-role="row-wrap">' +
+        '<input type="checkbox" data-field="add-wrap">' +
+        '<div class="a-label"><b>Shrink wrapping</b><span class="a-note" data-role="note-wrap">Add-on for Anchor &amp; Harbor</span></div>' +
+        '<div class="a-price">$400</div>' +
+      '</div>' +
+
+      '<div class="addon-row" data-role="row-liftcover">' +
+        '<input type="checkbox" data-field="add-liftcover">' +
+        '<div class="a-label"><b>Lift Cover removal and install</b><span class="a-note" data-role="note-liftcover">Available on any package</span></div>' +
+        '<div class="a-price">$150</div>' +
+      '</div>' +
+
+      '<div class="addon-row">' +
+        '<input type="checkbox" data-field="add-trailer">' +
+        '<div class="a-label"><b>Trailer bearing &amp; tire check</b><span class="a-note">Range $75–150 — set exact amount</span></div>' +
+        '<div class="a-price">$<input type="number" data-field="trailerAmt" value="75" min="75" max="150"></div>' +
+      '</div>' +
+
+      '<div class="addon-row">' +
+        '<input type="checkbox" data-field="add-battery">' +
+        '<div class="a-label"><b>Battery tender service</b><span class="a-note">$25–50 / battery — set count &amp; rate</span></div>' +
+        '<div class="a-price">' +
+          '<input type="number" data-field="batteryCount" value="1" min="0" max="12" style="width:44px;"> ×' +
+          ' $<input type="number" data-field="batteryRate" value="25" min="25" max="50">' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="addon-row" data-role="row-impeller">' +
+        '<input type="checkbox" data-field="add-impeller">' +
+        '<div class="a-label"><b>Impeller replacement (Outboard / I-O)</b><span class="a-note" data-role="note-impeller">Recommended every 2–3 years — requires lower unit removal. Inboards get a new impeller yearly as part of standard winterization, so no add-on needed there.</span></div>' +
+        '<div class="a-price">$150</div>' +
+      '</div>' +
+
+      '<div class="addon-row disabled">' +
+        '<input type="checkbox" data-field="add-vent" disabled>' +
+        '<div class="a-label"><b>Vent Kit + Moisture and Pest Deterrent</b><span class="a-note" data-role="note-vent">Automatic with any shrink-wrapped boat — no charge</span></div>' +
+        '<div class="a-price">Free</div>' +
+      '</div>' +
+
+      '<div class="row" style="margin-top:16px;">' +
+        '<div class="num-field">' +
+          '<label>Battery storage direction (note only, not priced)</label>' +
+          '<input type="text" data-field="batteryDirection" placeholder="e.g. customer takes battery home">' +
+        '</div>' +
+      '</div>' +
+
+      '<p class="field-label" style="margin-top:18px;">Adjustments</p>' +
+      '<div class="row" style="margin-bottom:14px;">' +
+        '<div class="num-field">' +
+          '<label>Discount ($ off total)</label>' +
+          '<input type="number" data-field="discountAmt" value="0" min="0" step="25">' +
+        '</div>' +
+      '</div>' +
+      '<div class="row" style="margin-bottom:10px;">' +
+        '<label class="override-check">' +
+          '<input type="checkbox" data-field="overrideToggle">' +
+          ' Override total price (skip the math — set an exact quote)' +
+        '</label>' +
+      '</div>' +
+      '<div class="row" data-role="overrideRow" style="display:none;">' +
+        '<div class="num-field">' +
+          '<label>Override total ($)</label>' +
+          '<input type="number" data-field="overrideAmt" value="0" min="0" step="25">' +
+        '</div>' +
+      '</div>' +
+      '<p class="hint" data-role="adjustHint"></p>' +
+
+      '<div class="boat-mini-summary" data-role="boatSummary">' +
+        '<div class="s-line"><span>Base price</span><b data-role="s-base">—</b></div>' +
+        '<div class="s-line"><span>Length category</span><b data-role="s-lenmult">—</b></div>' +
+        '<div class="s-line"><span>Drivetrain / style</span><b data-role="s-drivemult">—</b></div>' +
+        '<div class="s-line"><span>Package subtotal</span><b data-role="s-pkgsub">—</b></div>' +
+        '<div class="s-line"><span>Add-ons subtotal</span><b data-role="s-addsub">—</b></div>' +
+        '<div class="s-line"><span>Discount</span><b data-role="s-discount">—</b></div>' +
+        '<div class="s-total"><span class="label">Boat total</span><span class="amt" data-role="s-total">$0</span></div>' +
+      '</div>';
+  }
+
+  let boatCards = [];
+  let cardSeq = 0;
+
+  function q(card, roleOrField, isField) {
+    const attr = isField ? 'data-field' : 'data-role';
+    return card.el.querySelector('[' + attr + '="' + roleOrField + '"]');
+  }
+
+  function createBoatCard(container) {
+    cardSeq += 1;
+    const el = document.createElement('div');
+    el.className = 'card boat-card';
+    el.innerHTML = boatCardHtml();
+    container.appendChild(el);
+
+    const card = {
+      el: el,
+      state: { pkg: 'Harbor', cat: 'SI', drive: 'Outboard', style: 'Standup' },
+      existingBoatId: null,
+      existingQuoteId: null,
+      meta: null,
+    };
+    boatCards.push(card);
+    wireCard(card);
+    renumberCards();
+    updateCardUI(card);
+    return card;
+  }
+
+  function removeBoatCard(card) {
+    if (boatCards.length <= 1) return;
+    const idx = boatCards.indexOf(card);
+    if (idx === -1) return;
+    card.el.remove();
+    boatCards.splice(idx, 1);
+    renumberCards();
+    recomputeAll();
+  }
+
+  function renumberCards() {
+    boatCards.forEach((c, i) => {
+      const numEl = q(c, 'cardNum');
+      if (numEl) numEl.textContent = String(i + 1);
+    });
+  }
+
+  function wireGroupOn(card, role, key) {
+    const group = q(card, role);
+    group.querySelectorAll('.btn-opt').forEach((el) => {
+      el.addEventListener('click', () => {
+        group.querySelectorAll('.btn-opt').forEach((o) => o.classList.remove('active'));
+        el.classList.add('active');
+        card.state[key] = el.dataset.val;
+        updateCardUI(card);
+        updateGrandSummary();
+      });
+    });
+  }
+
+  function wireCard(card) {
+    wireGroupOn(card, 'pkgGroup', 'pkg');
+    wireGroupOn(card, 'catGroup', 'cat');
+    wireGroupOn(card, 'driveGroup', 'drive');
+    wireGroupOn(card, 'styleGroup', 'style');
+
+    const fieldIds = [
+      'lengthInput', 'trailerAmt', 'batteryCount', 'batteryRate',
+      'add-detailing', 'add-wrap', 'add-liftcover', 'add-trailer', 'add-battery', 'add-impeller',
+      'discountAmt', 'overrideAmt', 'overrideToggle',
+    ];
+    fieldIds.forEach((f) => {
+      const el = q(card, f, true);
+      el.addEventListener('input', () => { updateCardUI(card); updateGrandSummary(); });
+      el.addEventListener('change', () => { updateCardUI(card); updateGrandSummary(); });
+    });
+
+    q(card, 'removeBtn').addEventListener('click', () => removeBoatCard(card));
+  }
+
+  function computeCardPrice(card) {
+    const ft = parseFloat(q(card, 'lengthInput', true).value || 0);
+    const p = priceFor(card.state.pkg, card.state.cat, ft, card.state.drive, card.state.style);
+    return { ft: ft, base: p.base, lm: p.lm, dm: p.dm, raw: p.raw, rounded: p.rounded };
+  }
+
+  function updateCardUI(card) {
+    q(card, 'driveWrap').style.display = card.state.cat === 'SI' ? 'block' : 'none';
+    q(card, 'styleWrap').style.display = card.state.cat === 'PWC' ? 'block' : 'none';
+
+    const lengthEl = q(card, 'lengthInput', true);
+    if (card.state.cat === 'PWC') {
       lengthEl.min = 6; lengthEl.max = 20;
-      document.getElementById("lengthLabel").textContent = "PWC length (ft)";
+      q(card, 'lengthLabel').textContent = 'PWC length (ft)';
     } else {
       lengthEl.min = 8; lengthEl.max = 60;
-      document.getElementById("lengthLabel").textContent = "Boat length (ft)";
+      q(card, 'lengthLabel').textContent = 'Boat length (ft)';
     }
 
-    const flagship = state.pkg === "Flagship";
+    const flagship = card.state.pkg === 'Flagship';
     const DEFAULT_NOTE = {
-      detailing: "Add-on for Anchor & Harbor",
-      wrap: "Add-on for Anchor & Harbor",
-      liftcover: "Available on any package",
+      detailing: 'Add-on for Anchor & Harbor',
+      wrap: 'Add-on for Anchor & Harbor',
+      liftcover: 'Available on any package',
     };
-    ["detailing", "wrap", "liftcover"].forEach((k) => {
-      const cb = document.getElementById("add-" + k);
-      const row = document.getElementById("row-" + k);
-      const note = document.getElementById("note-" + k);
+    ['detailing', 'wrap', 'liftcover'].forEach((k) => {
+      const cb = q(card, 'add-' + k, true);
+      const row = q(card, 'row-' + k);
+      const note = q(card, 'note-' + k);
       if (flagship) {
-        cb.checked = true; cb.disabled = true; row.classList.add("disabled");
-        note.textContent = "Included free in Flagship";
+        cb.checked = true; cb.disabled = true; row.classList.add('disabled');
+        note.textContent = 'Included free in Flagship';
       } else {
-        cb.disabled = false; row.classList.remove("disabled");
+        cb.disabled = false; row.classList.remove('disabled');
         note.textContent = DEFAULT_NOTE[k];
       }
     });
-    document.getElementById("note-vent").textContent = document.getElementById("add-wrap").checked
-      ? "Included automatically — no charge" : "Only applies once shrink wrapping is included";
+    q(card, 'note-vent').textContent = q(card, 'add-wrap', true).checked
+      ? 'Included automatically — no charge' : 'Only applies once shrink wrapping is included';
 
     // Impeller replacement add-on only makes sense for Outboard/I-O drivetrains
     // (Inboards get one every year as part of standard winterization already;
     // Pontoons are commonly outboard-powered too, so it's offered there as well).
-    const showImpeller = state.cat === "Pontoon" || (state.cat === "SI" && state.drive !== "Inboard");
-    const impellerRow = document.getElementById("row-impeller");
-    const impellerCb = document.getElementById("add-impeller");
+    const showImpeller = card.state.cat === 'Pontoon' || (card.state.cat === 'SI' && card.state.drive !== 'Inboard');
+    const impellerRow = q(card, 'row-impeller');
+    const impellerCb = q(card, 'add-impeller', true);
     if (showImpeller) {
-      impellerRow.classList.remove("disabled");
+      impellerRow.classList.remove('disabled');
       impellerCb.disabled = false;
     } else {
       impellerCb.checked = false;
       impellerCb.disabled = true;
-      impellerRow.classList.add("disabled");
+      impellerRow.classList.add('disabled');
     }
 
-    const { base, lm, dm, rounded } = computePackagePrice();
-    const ft = parseFloat(document.getElementById("lengthInput").value || 0);
-    document.getElementById("customQuoteWarn").classList.toggle("show", state.cat !== "PWC" && ft >= 33 && state.pkg !== "Anchor");
-    document.getElementById("lengthHint").textContent = lm.flat
+    const priced = computeCardPrice(card);
+    const ft = priced.ft;
+    q(card, 'customQuoteWarn').classList.toggle('show', card.state.cat !== 'PWC' && ft >= 33 && card.state.pkg !== 'Anchor');
+    q(card, 'lengthHint').textContent = priced.lm.flat
       ? "Flat rate — no per-foot charge (serviced at customer's own storage)"
-      : "Length category: " + lm.band;
+      : 'Length category: ' + priced.lm.band;
 
     let addons = 0;
     const lines = [];
-    if (document.getElementById("add-detailing").checked && !flagship) { addons += 450; lines.push(["Detailing", 450]); }
-    if (flagship) lines.push(["Detailing (included in Flagship)", 0]);
-    if (document.getElementById("add-wrap").checked && !flagship) { addons += 400; lines.push(["Shrink wrapping", 400]); }
-    if (flagship) lines.push(["Shrink wrapping (included in Flagship)", 0]);
-    if (document.getElementById("add-liftcover").checked && !flagship) { addons += 150; lines.push(["Lift Cover removal and install", 150]); }
-    if (flagship) lines.push(["Lift Cover removal and install (included in Flagship)", 0]);
-    if (document.getElementById("add-trailer").checked) {
-      const amt = parseFloat(document.getElementById("trailerAmt").value || 0);
-      addons += amt; lines.push(["Trailer bearing & tire check", amt]);
+    if (q(card, 'add-detailing', true).checked && !flagship) { addons += 450; lines.push(['Detailing', 450]); }
+    if (flagship) lines.push(['Detailing (included in Flagship)', 0]);
+    if (q(card, 'add-wrap', true).checked && !flagship) { addons += 400; lines.push(['Shrink wrapping', 400]); }
+    if (flagship) lines.push(['Shrink wrapping (included in Flagship)', 0]);
+    if (q(card, 'add-liftcover', true).checked && !flagship) { addons += 150; lines.push(['Lift Cover removal and install', 150]); }
+    if (flagship) lines.push(['Lift Cover removal and install (included in Flagship)', 0]);
+    if (q(card, 'add-trailer', true).checked) {
+      const amt = parseFloat(q(card, 'trailerAmt', true).value || 0);
+      addons += amt; lines.push(['Trailer bearing & tire check', amt]);
     }
-    if (document.getElementById("add-battery").checked) {
-      const count = parseFloat(document.getElementById("batteryCount").value || 0);
-      const rate = parseFloat(document.getElementById("batteryRate").value || 0);
+    if (q(card, 'add-battery', true).checked) {
+      const count = parseFloat(q(card, 'batteryCount', true).value || 0);
+      const rate = parseFloat(q(card, 'batteryRate', true).value || 0);
       const amt = count * rate;
-      addons += amt; lines.push(["Battery tender service (" + count + " × $" + rate + ")", amt]);
+      addons += amt; lines.push(['Battery tender service (' + count + ' × $' + rate + ')', amt]);
     }
-    if (document.getElementById("add-impeller").checked && showImpeller) {
-      addons += 150; lines.push(["Impeller replacement (Outboard/I-O)", 150]);
+    if (q(card, 'add-impeller', true).checked && showImpeller) {
+      addons += 150; lines.push(['Impeller replacement (Outboard/I-O)', 150]);
     }
 
-    // Discount / manual override.
-    const overrideOn = document.getElementById("overrideToggle").checked;
-    const discount = parseFloat(document.getElementById("discountAmt").value || 0);
-    const overrideAmt = parseFloat(document.getElementById("overrideAmt").value || 0);
-    document.getElementById("overrideRow").style.display = overrideOn ? "flex" : "none";
-    document.getElementById("discountAmt").disabled = overrideOn;
+    const overrideOn = q(card, 'overrideToggle', true).checked;
+    const discount = parseFloat(q(card, 'discountAmt', true).value || 0);
+    const overrideAmt = parseFloat(q(card, 'overrideAmt', true).value || 0);
+    q(card, 'overrideRow').style.display = overrideOn ? 'flex' : 'none';
+    q(card, 'discountAmt', true).disabled = overrideOn;
 
-    const subtotal = rounded + addons;
+    const subtotal = priced.rounded + addons;
     let total;
     if (overrideOn) {
       total = overrideAmt;
-      document.getElementById("s-discount").textContent = "Override active";
-      document.getElementById("adjustHint").textContent = "Manual override — the pricing math above is ignored for the final total.";
+      q(card, 's-discount').textContent = 'Override active';
+      q(card, 'adjustHint').textContent = 'Manual override — the pricing math above is ignored for the final total.';
     } else {
       total = Math.max(0, subtotal - discount);
-      document.getElementById("s-discount").textContent = discount > 0 ? "-" + money(discount) : "—";
-      document.getElementById("adjustHint").textContent = "";
+      q(card, 's-discount').textContent = discount > 0 ? '-' + money(discount) : '—';
+      q(card, 'adjustHint').textContent = '';
     }
 
-    document.getElementById("s-base").textContent = money(base) + " (" + catDisplayName(state.cat) + ")";
-    document.getElementById("s-lenmult").textContent = lm.flat ? "Flat rate (own storage)" : lm.band;
-    document.getElementById("s-drivemult").textContent = driveOrStyleLabel(state.cat, state.drive, state.style);
-    document.getElementById("s-pkgsub").textContent = money(rounded);
-    document.getElementById("s-addsub").textContent = money(addons);
-    document.getElementById("s-total").textContent = money(total);
+    q(card, 's-base').textContent = money(priced.base) + ' (' + catDisplayName(card.state.cat) + ')';
+    q(card, 's-lenmult').textContent = priced.lm.flat ? 'Flat rate (own storage)' : priced.lm.band;
+    q(card, 's-drivemult').textContent = driveOrStyleLabel(card.state.cat, card.state.drive, card.state.style);
+    q(card, 's-pkgsub').textContent = money(priced.rounded);
+    q(card, 's-addsub').textContent = money(addons);
+    q(card, 's-total').textContent = money(total);
 
-    const idx = TIER_ORDER.indexOf(state.pkg);
-    let upgradeHtml = "";
-    if (idx < TIER_ORDER.length - 1 && !overrideOn) {
-      const nextTier = TIER_ORDER[idx + 1];
-      const nextLm = getLengthMultiplier(ft, nextTier, state.cat);
-      const nextBase = BASE[nextTier][state.cat];
-      const nextRaw = nextBase * nextLm.mult * dm;
-      const nextRounded = Math.round(nextRaw / 25) * 25;
-      const delta = nextRounded - rounded;
-      upgradeHtml = "<b>Upgrade to " + nextTier + ":</b> +" + money(delta) + " more (same boat, same add-ons not carried over automatically).";
+    // Flagship savings callout — always shown (regardless of the currently
+    // selected package) so staff can use it as a talking point when quoting
+    // Anchor/Harbor, and to confirm the savings when Flagship is selected.
+    const savingsBox = q(card, 'savingsBox');
+    if (card.state.pkg === 'Anchor') {
+      savingsBox.classList.remove('show', 'negative');
+      savingsBox.innerHTML = '';
+    } else {
+      const sv = computeFlagshipSavings(card.state.cat, ft, card.state.drive, card.state.style);
+      savingsBox.classList.add('show');
+      if (sv.savings >= 0) {
+        savingsBox.classList.remove('negative');
+        savingsBox.innerHTML = '<b>Flagship saves ' + money(sv.savings) + '</b> vs. Harbor + Detailing + Shrink Wrap + Lift Cover bought separately (' +
+          money(sv.harborPlusAddOns) + ' vs. ' + money(sv.flagshipRounded) + ' for Flagship) at this length/drivetrain.';
+      } else {
+        savingsBox.classList.add('negative');
+        savingsBox.innerHTML = '<b>Heads up:</b> at this length/drivetrain, Flagship (' + money(sv.flagshipRounded) +
+          ') costs ' + money(Math.abs(sv.savings)) + ' more than Harbor + those same add-ons separately (' + money(sv.harborPlusAddOns) + ').';
+      }
     }
-    document.getElementById("upgradeBox").innerHTML = upgradeHtml;
 
-    window._quoteLines = lines;
-    window._quoteMeta = { base, lm, dm, rounded, addons, subtotal, discount, overrideOn, overrideAmt, total };
+    const idx = TIER_ORDER.indexOf(card.state.pkg);
+    card.meta = {
+      ft: ft, base: priced.base, lm: priced.lm, dm: priced.dm, rounded: priced.rounded,
+      addons: addons, lines: lines, subtotal: subtotal, discount: discount,
+      overrideOn: overrideOn, overrideAmt: overrideAmt, total: total,
+      pkg: card.state.pkg, cat: card.state.cat, drive: card.state.drive, style: card.state.style,
+    };
   }
 
-  function buildQuoteText() {
-    const cust = document.getElementById("custName").value || "—";
-    const boat = document.getElementById("boatName").value || "—";
-    const date = document.getElementById("quoteDate").value || "—";
-    const staff = document.getElementById("staffName").value || "—";
-    const address = document.getElementById("custAddress").value || "—";
-    const pickup = document.getElementById("pickupDate").value || "—";
-    const battDir = document.getElementById("batteryDirection").value || "—";
-    const m = window._quoteMeta;
-    const lines = window._quoteLines.filter((l) => l[1] > 0);
-    const secondaryLabel = state.cat === "Pontoon" ? "" : ", " + driveOrStyleLabel(state.cat, state.drive, state.style);
+  function recomputeAll() {
+    boatCards.forEach(updateCardUI);
+    updateGrandSummary();
+  }
 
-    let txt = "WATERLINE LAKE SERVICES — QUOTE\n";
-    txt += "Customer: " + cust + "   Boat/PWC: " + boat + "\n";
-    txt += "Address: " + address + "\n";
-    txt += "Date: " + date + "   Staff: " + staff + "\n";
-    txt += "Desired pickup date: " + pickup + "\n\n";
-    txt += "Package: " + state.pkg + " (" + catDisplayName(state.cat) + secondaryLabel + "), " + document.getElementById("lengthInput").value + "ft\n";
-    txt += "Base " + money(m.base) + (m.lm.flat ? " (flat rate, own storage)" : " — " + m.lm.band) + " = " + money(m.rounded) + "\n\n";
+  function updateGrandSummary() {
+    const linesEl = document.getElementById('grandLines');
+    let grand = 0;
+    linesEl.innerHTML = boatCards.map((card, i) => {
+      const m = card.meta;
+      grand += m ? m.total : 0;
+      const boatName = q(card, 'boatName', true).value || ('Boat ' + (i + 1));
+      return '<div class="s-line"><span>' + boatName + ' — ' + m.pkg + '</span><b>' + money(m.total) + '</b></div>';
+    }).join('');
+    document.getElementById('grandTotal').textContent = money(grand);
+  }
+
+  function boatQuoteText(card, idx) {
+    const m = card.meta;
+    const lines = m.lines.filter((l) => l[1] > 0);
+    const secondaryLabel = m.cat === 'Pontoon' ? '' : ', ' + driveOrStyleLabel(m.cat, m.drive, m.style);
+    const boatName = q(card, 'boatName', true).value || ('Boat ' + (idx + 1));
+    const pickup = q(card, 'pickupDate', true).value || '—';
+    const battDir = q(card, 'batteryDirection', true).value || '—';
+
+    let txt = 'Boat ' + (idx + 1) + ': ' + boatName + '\n';
+    txt += 'Desired pickup date: ' + pickup + '\n';
+    txt += 'Package: ' + m.pkg + ' (' + catDisplayName(m.cat) + secondaryLabel + '), ' + m.ft + 'ft\n';
+    txt += 'Base ' + money(m.base) + (m.lm.flat ? ' (flat rate, own storage)' : ' — ' + m.lm.band) + ' = ' + money(m.rounded) + '\n';
     if (lines.length) {
-      txt += "Add-ons:\n";
-      lines.forEach((l) => { txt += "  " + l[0] + " — " + money(l[1]) + "\n"; });
-      txt += "\n";
+      txt += 'Add-ons:\n';
+      lines.forEach((l) => { txt += '  ' + l[0] + ' — ' + money(l[1]) + '\n'; });
     }
-    if (battDir !== "—") txt += "Battery storage: " + battDir + "\n\n";
+    if (battDir !== '—') txt += 'Battery storage: ' + battDir + '\n';
     if (m.overrideOn) {
-      txt += "MANUAL OVERRIDE — computed subtotal was " + money(m.subtotal) + "\n";
+      txt += 'MANUAL OVERRIDE — computed subtotal was ' + money(m.subtotal) + '\n';
     } else if (m.discount > 0) {
-      txt += "Subtotal before discount: " + money(m.subtotal) + "\n";
-      txt += "Discount: -" + money(m.discount) + "\n";
+      txt += 'Subtotal before discount: ' + money(m.subtotal) + '\n';
+      txt += 'Discount: -' + money(m.discount) + '\n';
     }
-    txt += "TOTAL QUOTE: " + money(m.total) + "\n";
+    txt += 'Boat total: ' + money(m.total) + '\n';
     return txt;
   }
 
-  document.getElementById("copyBtn").addEventListener("click", () => {
-    const txt = buildQuoteText();
+  function buildAllQuotesText() {
+    const cust = document.getElementById('custName').value || '—';
+    const date = document.getElementById('quoteDate').value || '—';
+    const staff = document.getElementById('staffName').value || '—';
+    const address = document.getElementById('custAddress').value || '—';
+
+    let txt = 'WATERLINE LAKE SERVICES — QUOTE\n';
+    txt += 'Customer: ' + cust + '\n';
+    txt += 'Address: ' + address + '\n';
+    txt += 'Date: ' + date + '   Staff: ' + staff + '\n\n';
+
+    let grand = 0;
+    boatCards.forEach((card, i) => {
+      txt += boatQuoteText(card, i) + '\n';
+      grand += card.meta.total;
+    });
+    txt += 'GRAND TOTAL (' + boatCards.length + (boatCards.length === 1 ? ' boat' : ' boats') + '): ' + money(grand) + '\n';
+    return txt;
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const txt = buildAllQuotesText();
     navigator.clipboard.writeText(txt).then(() => {
-      document.getElementById("copyStatus").textContent = "Copied to clipboard.";
-      setTimeout(() => { document.getElementById("copyStatus").textContent = ""; }, 2500);
+      document.getElementById('copyStatus').textContent = 'Copied to clipboard.';
+      setTimeout(() => { document.getElementById('copyStatus').textContent = ''; }, 2500);
     }).catch(() => {
-      document.getElementById("copyStatus").textContent = "Couldn't copy — select and copy manually.";
+      document.getElementById('copyStatus').textContent = "Couldn't copy — select and copy manually.";
     });
   });
 
-  // ---- BRANDED PDF EXPORT ----
-  function buildQuotePdf(quoteLink) {
-    const cust = document.getElementById("custName").value || "Customer";
-    const boat = document.getElementById("boatName").value || "—";
-    const phone = document.getElementById("custPhone").value || "—";
-    const email = document.getElementById("custEmail").value || "—";
-    const address = document.getElementById("custAddress").value || "—";
-    const date = document.getElementById("quoteDate").value || new Date().toLocaleDateString("en-US");
-    const staff = document.getElementById("staffName").value || "—";
-    const pickup = document.getElementById("pickupDate").value || "";
-    const battDir = document.getElementById("batteryDirection").value || "";
-    const m = window._quoteMeta;
-    const lines = window._quoteLines.filter((l) => l[1] > 0);
+  // ---- BRANDED PDF EXPORT (one combined PDF covering every boat) ----
+  function buildCombinedQuotePdf(quoteLinks) {
+    const cust = document.getElementById('custName').value || 'Customer';
+    const phone = document.getElementById('custPhone').value || '—';
+    const email = document.getElementById('custEmail').value || '—';
+    const address = document.getElementById('custAddress').value || '—';
+    const date = document.getElementById('quoteDate').value || new Date().toLocaleDateString('en-US');
+    const staff = document.getElementById('staffName').value || '—';
 
-    const doc = new jspdf.jsPDF({ unit: "pt", format: "letter" });
+    const doc = new jspdf.jsPDF({ unit: 'pt', format: 'letter' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const DEEP = [19, 78, 94];
     const GLACIER = [140, 199, 214];
     const INK = [22, 35, 43];
     const MUTED = [106, 116, 128];
+    let y = 0;
 
     function ensureSpace(needed) {
       if (y + needed > pageHeight - 50) {
@@ -627,383 +774,478 @@
       }
     }
 
-    doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
-    doc.rect(0, 0, pageWidth, 86, "F");
-    doc.setFillColor(GLACIER[0], GLACIER[1], GLACIER[2]);
-    doc.rect(0, 86, pageWidth, 4, "F");
+    function drawHeader() {
+      doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
+      doc.rect(0, 0, pageWidth, 86, 'F');
+      doc.setFillColor(GLACIER[0], GLACIER[1], GLACIER[2]);
+      doc.rect(0, 86, pageWidth, 4, 'F');
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("Waterline Lake Services", 40, 40);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(215, 231, 236);
-    doc.text("Boat Winterization, Storage, Detailing & Lake Services – Indiana Lake Communities", 40, 58);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text('Waterline Lake Services', 40, 40);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(215, 231, 236);
+      doc.text('Boat Winterization, Storage, Detailing & Lake Services – Indiana Lake Communities', 40, 58);
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(255, 255, 255);
-    doc.text("QUOTE", pageWidth - 40, 40, { align: "right" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(215, 231, 236);
-    doc.text("Date: " + date, pageWidth - 40, 56, { align: "right" });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(255, 255, 255);
+      doc.text('QUOTE', pageWidth - 40, 40, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(215, 231, 236);
+      doc.text('Date: ' + date, pageWidth - 40, 56, { align: 'right' });
+    }
 
-    let y = 118;
+    drawHeader();
+    y = 118;
     doc.setTextColor(INK[0], INK[1], INK[2]);
-    doc.setFont("helvetica", "bold");
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11.5);
-    doc.text("Prepared for", 40, y);
-    doc.setFont("helvetica", "normal");
+    doc.text('Prepared for', 40, y);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10.5);
     y += 17;
     doc.text(cust, 40, y); y += 15;
-    doc.text("Boat/PWC: " + boat, 40, y); y += 15;
-    doc.text("Address: " + address, 40, y); y += 15;
-    doc.text("Phone: " + phone, 40, y); y += 15;
-    doc.text("Email: " + email, 40, y); y += 15;
-    doc.text("Desired pickup: " + (pickup || "TBD"), 40, y);
+    doc.text('Address: ' + address, 40, y); y += 15;
+    doc.text('Phone: ' + phone, 40, y); y += 15;
+    doc.text('Email: ' + email, 40, y);
 
     let y2 = 118;
-    doc.setFont("helvetica", "bold");
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11.5);
-    doc.text("Prepared by", pageWidth - 220, y2);
-    doc.setFont("helvetica", "normal");
+    doc.text('Prepared by', pageWidth - 220, y2);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10.5);
     y2 += 17;
-    doc.text("Staff: " + staff, pageWidth - 220, y2); y2 += 15;
-    doc.text("Waterline Lake Services LLC", pageWidth - 220, y2); y2 += 15;
-    doc.text("service@waterlinelakeservices.com", pageWidth - 220, y2); y2 += 15;
-    doc.text("317-258-8269", pageWidth - 220, y2);
+    doc.text('Staff: ' + staff, pageWidth - 220, y2); y2 += 15;
+    doc.text('Waterline Lake Services LLC', pageWidth - 220, y2); y2 += 15;
+    doc.text('service@waterlinelakeservices.com', pageWidth - 220, y2); y2 += 15;
+    doc.text('317-258-8269', pageWidth - 220, y2);
 
     y = Math.max(y, y2) + 28;
-    doc.setDrawColor(220, 225, 228);
-    doc.line(40, y, pageWidth - 40, y);
-    y += 26;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
-    doc.text(state.pkg + " package", 40, y);
-    y += 17;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const catLabel = state.cat === "Pontoon" ? "Pontoon"
-      : state.cat === "PWC" ? "Jet Ski / PWC — " + STYLE_LABEL[state.style]
-      : "Ski / Inboard — " + DRIVE_LABEL[state.drive];
-    doc.text(catLabel + ", " + document.getElementById("lengthInput").value + " ft", 40, y);
-    y += 26;
 
     function row(label, value, bold) {
-      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
       doc.setFontSize(10.5);
       doc.setTextColor(INK[0], INK[1], INK[2]);
       doc.text(label, 40, y);
-      doc.text(value, pageWidth - 40, y, { align: "right" });
+      doc.text(value, pageWidth - 40, y, { align: 'right' });
       y += 18;
     }
 
-    // Pricing breakdown shows plain-language categories, not raw multiplier
-    // numbers — customers were asking "what's the 1.12 for?"; the category
-    // (boat size / drivetrain / riding style) is self-explanatory on its own.
-    row("Base price (" + catDisplayName(state.cat) + ")", money(m.base));
-    if (!m.lm.flat) {
-      row("Length category (" + m.lm.band + ")", " ");
-    } else {
-      row("Length", "Flat rate — own storage");
-    }
-    if (state.cat === "PWC") {
-      row("Hull / riding style", STYLE_LABEL[state.style]);
-    } else if (state.cat !== "Pontoon") {
-      row("Drivetrain", DRIVE_LABEL[state.drive]);
-    }
-    doc.setDrawColor(230, 234, 236);
-    doc.line(40, y, pageWidth - 40, y);
-    y += 4;
-    row("Package subtotal", money(m.rounded), true);
-    y += 6;
+    let grandTotal = 0;
 
-    if (lines.length) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10.5);
-      doc.setTextColor(INK[0], INK[1], INK[2]);
-      doc.text("Add-ons", 40, y);
-      y += 16;
-      lines.forEach((l) => row(l[0], money(l[1])));
-    }
-    if (battDir) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(9.5);
+    boatCards.forEach((card, i) => {
+      const m = card.meta;
+      const boatName = q(card, 'boatName', true).value || ('Boat ' + (i + 1));
+      const pickup = q(card, 'pickupDate', true).value || '';
+      const battDir = q(card, 'batteryDirection', true).value || '';
+      const lines = m.lines.filter((l) => l[1] > 0);
+      grandTotal += m.total;
+
+      ensureSpace(60);
+      doc.setDrawColor(220, 225, 228);
+      doc.line(40, y, pageWidth - 40, y);
+      y += 22;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
+      doc.text('Boat ' + (i + 1) + ': ' + boatName + ' — ' + m.pkg + ' package', 40, y);
+      y += 17;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text("Battery storage: " + battDir, 40, y);
-      y += 18;
-    }
+      const catLabel = m.cat === 'Pontoon' ? 'Pontoon'
+        : m.cat === 'PWC' ? 'Jet Ski / PWC — ' + STYLE_LABEL[m.style]
+        : 'Ski / Inboard — ' + DRIVE_LABEL[m.drive];
+      doc.text(catLabel + ', ' + m.ft + ' ft' + (pickup ? ' — desired pickup: ' + pickup : ''), 40, y);
+      y += 24;
 
-    if (!m.overrideOn && m.discount > 0) {
+      row('Base price (' + catDisplayName(m.cat) + ')', money(m.base));
+      if (!m.lm.flat) {
+        row('Length category (' + m.lm.band + ')', ' ');
+      } else {
+        row('Length', 'Flat rate — own storage');
+      }
+      if (m.cat === 'PWC') {
+        row('Hull / riding style', STYLE_LABEL[m.style]);
+      } else if (m.cat !== 'Pontoon') {
+        row('Drivetrain', DRIVE_LABEL[m.drive]);
+      }
       doc.setDrawColor(230, 234, 236);
       doc.line(40, y, pageWidth - 40, y);
       y += 4;
-      row("Discount", "-" + money(m.discount));
-    }
+      row('Package subtotal', money(m.rounded), true);
+      y += 4;
 
-    ensureSpace(46 + 30);
-    y += 8;
-    doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
-    doc.rect(40, y, pageWidth - 80, 46, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("TOTAL QUOTE", 56, y + 29);
-    doc.setFontSize(20);
-    doc.text(money(m.total), pageWidth - 56, y + 30, { align: "right" });
-    y += 46 + 20;
+      if (lines.length) {
+        ensureSpace(16 + lines.length * 18);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.setTextColor(INK[0], INK[1], INK[2]);
+        doc.text('Add-ons', 40, y);
+        y += 16;
+        lines.forEach((l) => { ensureSpace(18); row(l[0], money(l[1])); });
+      }
+      if (battDir) {
+        ensureSpace(18);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9.5);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text('Battery storage: ' + battDir, 40, y);
+        y += 18;
+      }
+      if (!m.overrideOn && m.discount > 0) {
+        ensureSpace(22);
+        doc.setDrawColor(230, 234, 236);
+        doc.line(40, y, pageWidth - 40, y);
+        y += 4;
+        row('Discount', '-' + money(m.discount));
+      }
 
-    if (m.overrideOn) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8.5);
-      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text("This total was set manually by staff (standard pricing would have been " + money(m.subtotal) + ").", 40, y);
-      y += 18;
-    }
-    y += 8;
+      ensureSpace(40);
+      y += 6;
+      doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
+      doc.rect(40, y, pageWidth - 80, 34, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.text('BOAT TOTAL', 54, y + 22);
+      doc.setFontSize(15);
+      doc.text(money(m.total), pageWidth - 54, y + 23, { align: 'right' });
+      y += 34 + 14;
 
-    // What's included, pulled from the package the customer chose.
-    const services = PACKAGE_SERVICES[state.pkg] || [];
-    if (services.length) {
-      ensureSpace(20 + services.length * 15);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
-      doc.text("What's included in " + state.pkg, 40, y);
-      y += 17;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(INK[0], INK[1], INK[2]);
-      services.forEach((s) => {
-        doc.text("•  " + s, 46, y, { maxWidth: pageWidth - 90 });
+      if (m.overrideOn) {
+        ensureSpace(16);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text('This total was set manually by staff (standard pricing would have been ' + money(m.subtotal) + ').', 40, y);
+        y += 16;
+      }
+
+      const services = PACKAGE_SERVICES[m.pkg] || [];
+      if (services.length) {
+        ensureSpace(18 + services.length * 14);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
+        doc.text("What's included in " + m.pkg, 40, y);
         y += 15;
-      });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(INK[0], INK[1], INK[2]);
+        services.forEach((s) => {
+          doc.text('•  ' + s, 46, y, { maxWidth: pageWidth - 90 });
+          y += 14;
+        });
+      }
+
+      const link = quoteLinks && quoteLinks[i];
+      if (link) {
+        ensureSpace(20);
+        y += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
+        doc.text('Accept this boat online: ', 40, y);
+        const labelWidth = doc.getTextWidth('Accept this boat online: ');
+        doc.setFont('helvetica', 'normal');
+        doc.textWithLink(link, 40 + labelWidth, y, { url: link });
+        y += 18;
+      }
       y += 10;
-    }
+    });
 
     ensureSpace(60);
-    doc.setFont("helvetica", "normal");
+    doc.setDrawColor(220, 225, 228);
+    doc.line(40, y, pageWidth - 40, y);
+    y += 22;
+    doc.setFillColor(DEEP[0], DEEP[1], DEEP[2]);
+    doc.rect(40, y, pageWidth - 80, 46, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('GRAND TOTAL (' + boatCards.length + (boatCards.length === 1 ? ' boat' : ' boats') + ')', 56, y + 29);
+    doc.setFontSize(20);
+    doc.text(money(grandTotal), pageWidth - 56, y + 30, { align: 'right' });
+    y += 46 + 26;
+
+    ensureSpace(60);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
     doc.text(
-      "This quote is valid for 14 days from the date above. No mileage surcharge across the Indiana lake communities we serve.",
+      'This quote is valid for 14 days from the date above. No mileage surcharge across the Indiana lake communities we serve.',
       40, y, { maxWidth: pageWidth - 80 }
     );
-    y += 22;
+    y += 30;
 
-    if (quoteLink) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
-      doc.setTextColor(DEEP[0], DEEP[1], DEEP[2]);
-      doc.text("Prefer to accept online? ", 40, y);
-      const labelWidth = doc.getTextWidth("Prefer to accept online? ");
-      doc.setFont("helvetica", "normal");
-      doc.textWithLink(quoteLink, 40 + labelWidth, y, { url: quoteLink });
-      y += 18;
-    }
-    y += 18;
-
-    // Signature of acceptance.
     ensureSpace(60);
     doc.setDrawColor(180, 190, 195);
     doc.line(40, y, 260, y);
     doc.line(300, y, pageWidth - 40, y);
-    doc.setFont("helvetica", "normal");
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text("Customer signature (acceptance of quote)", 40, y + 13);
-    doc.text("Date", 300, y + 13);
+    doc.text('Customer signature (acceptance of quote)', 40, y + 13);
+    doc.text('Date', 300, y + 13);
 
-    const fname = "Waterline-Quote-" + cust.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") + ".pdf";
-    doc.save(fname || "Waterline-Quote.pdf");
+    const fname = 'Waterline-Quote-' + cust.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') + '.pdf';
+    doc.save(fname || 'Waterline-Quote.pdf');
   }
 
-  // ---- SAVE TO CRM + PDF ----
-  document.getElementById("saveBtn").addEventListener("click", () => {
-    const saveStatus = document.getElementById("saveStatus");
-    const cust = document.getElementById("custName").value.trim();
+  // ---- SAVE TO CRM + PDF (one Save click covers every boat card) ----
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const saveStatus = document.getElementById('saveStatus');
+    const cust = document.getElementById('custName').value.trim();
     if (!cust) {
-      saveStatus.style.color = "#F0B4A6";
-      saveStatus.textContent = "Add a customer name first.";
+      saveStatus.style.color = '#F0B4A6';
+      saveStatus.textContent = 'Add a customer name first.';
       return;
     }
 
-    const m = window._quoteMeta;
-    const showImpeller = state.cat === "Pontoon" || (state.cat === "SI" && state.drive !== "Inboard");
-    const addOns = [];
-    if (document.getElementById("add-detailing").checked) addOns.push("Detailing");
-    if (document.getElementById("add-wrap").checked) addOns.push("Shrink Wrapping");
-    if (document.getElementById("add-liftcover").checked) addOns.push("Lift Cover Install");
-    if (document.getElementById("add-trailer").checked) addOns.push("Trailer Bearing & Tire Check");
-    if (document.getElementById("add-battery").checked) addOns.push("Battery Tender Service");
-    if (document.getElementById("add-impeller").checked && showImpeller) addOns.push("Impeller Replacement");
+    recomputeAll();
+
+    const boatsPayload = boatCards.map((card, i) => {
+      const m = card.meta;
+      const showImpeller = card.state.cat === 'Pontoon' || (card.state.cat === 'SI' && card.state.drive !== 'Inboard');
+      const addOns = [];
+      if (q(card, 'add-detailing', true).checked) addOns.push('Detailing');
+      if (q(card, 'add-wrap', true).checked) addOns.push('Shrink Wrapping');
+      if (q(card, 'add-liftcover', true).checked) addOns.push('Lift Cover Install');
+      if (q(card, 'add-trailer', true).checked) addOns.push('Trailer Bearing & Tire Check');
+      if (q(card, 'add-battery', true).checked) addOns.push('Battery Tender Service');
+      if (q(card, 'add-impeller', true).checked && showImpeller) addOns.push('Impeller Replacement');
+
+      return {
+        existingBoatId: card.existingBoatId || null,
+        existingQuoteId: card.existingQuoteId || null,
+        boatName: q(card, 'boatName', true).value,
+        boatCategory: card.state.cat,
+        boatLength: q(card, 'lengthInput', true).value,
+        driveOrStyle: driveOrStyleLabel(card.state.cat, card.state.drive, card.state.style),
+        package: card.state.pkg,
+        pickupDate: q(card, 'pickupDate', true).value,
+        addOns: addOns,
+        discount: m.discount,
+        overrideOn: m.overrideOn,
+        total: m.total,
+        quoteText: boatQuoteText(card, i),
+      };
+    });
 
     const payload = {
+      customerId: window._customerId || null,
       customerName: cust,
-      phone: document.getElementById("custPhone").value,
-      email: document.getElementById("custEmail").value,
-      address: document.getElementById("custAddress").value,
-      boatCategory: state.cat,
-      boatName: document.getElementById("boatName").value,
-      boatLength: document.getElementById("lengthInput").value,
-      driveOrStyle: driveOrStyleLabel(state.cat, state.drive, state.style),
-      package: state.pkg,
-      pickupDate: document.getElementById("pickupDate").value,
-      addOns: addOns,
-      discount: m.discount,
-      overrideOn: m.overrideOn,
-      total: m.total,
-      quoteText: buildQuoteText(),
-      existingQuoteId: window._existingQuoteId || null,
+      phone: document.getElementById('custPhone').value,
+      email: document.getElementById('custEmail').value,
+      address: document.getElementById('custAddress').value,
+      boats: boatsPayload,
     };
 
-    saveStatus.style.color = "var(--glacier)";
-    saveStatus.textContent = "Saving to CRM…";
-    document.getElementById("quoteLinkBox").style.display = "none";
+    saveStatus.style.color = 'var(--glacier)';
+    saveStatus.textContent = 'Saving to CRM…';
+    document.getElementById('quoteLinksBox').style.display = 'none';
 
-    fetch("/api/save-internal-quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    fetch('/api/save-internal-quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
       .then((res) => {
-        if (!res.ok) { throw new Error("Request failed"); }
+        if (!res.ok) { throw new Error('Request failed'); }
         return res.json();
       })
       .then((data) => {
-        // Build the PDF only once we know the quote link, so it can include
-        // a clickable "accept online" line pointing at the live quote page.
-        buildQuotePdf(data.quoteLink);
-        saveStatus.style.color = "var(--glacier)";
-        saveStatus.textContent = "Saved to CRM ✓ — PDF downloaded.";
-        if (data.quoteLink) {
-          document.getElementById("quoteLinkInput").value = data.quoteLink;
-          document.getElementById("quoteLinkBox").style.display = "block";
-        }
+        window._customerId = data.customerId;
+        const quoteLinks = (data.boats || []).map((b) => b.quoteLink);
+        (data.boats || []).forEach((b, i) => {
+          if (boatCards[i]) {
+            boatCards[i].existingBoatId = b.boatId;
+            boatCards[i].existingQuoteId = b.quoteId;
+          }
+        });
+
+        buildCombinedQuotePdf(quoteLinks);
+        saveStatus.style.color = 'var(--glacier)';
+        saveStatus.textContent = 'Saved to CRM ✓ — PDF downloaded.';
+
+        const linksList = document.getElementById('quoteLinksList');
+        linksList.innerHTML = (data.boats || []).map((b, i) => {
+          const name = q(boatCards[i], 'boatName', true).value || ('Boat ' + (i + 1));
+          return '<div style="display:flex; gap:6px; margin-bottom:6px;">' +
+            '<input type="text" readonly value="' + b.quoteLink + '" style="flex:1; font-size:11.5px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.95); color:#16232B;">' +
+            '</div>';
+        }).join('');
+        if (quoteLinks.length) document.getElementById('quoteLinksBox').style.display = 'block';
       })
       .catch(() => {
         // Still get the staff a PDF even if the CRM write failed — just
-        // without a live link, since no quote record exists to point at.
-        buildQuotePdf(null);
-        saveStatus.style.color = "#F0B4A6";
-        saveStatus.textContent = "PDF downloaded, but the CRM save failed — add this one in Airtable manually.";
+        // without live links, since no quote records exist to point at.
+        buildCombinedQuotePdf(null);
+        saveStatus.style.color = '#F0B4A6';
+        saveStatus.textContent = 'PDF downloaded, but the CRM save failed — add these in Airtable manually.';
       });
   });
 
-  document.getElementById("copyLinkBtn").addEventListener("click", () => {
-    const input = document.getElementById("quoteLinkInput");
-    input.select();
-    navigator.clipboard.writeText(input.value).catch(() => {});
-  });
-
-  // ---- PREFILL FROM A LINK (e.g. a link shared from an inquiry notification) ----
-  // Supports query params: name, phone, email, address, length, boatType
-  // ("Pontoon", "Jet Ski"/"PWC", or anything else treated as Ski/Inboard),
-  // package ("Anchor"/"Harbor"/"Flagship").
-  function applyBoatTypeToCategory(boatType) {
-    let cat = "SI";
-    if (boatType.indexOf("Pontoon") !== -1) cat = "Pontoon";
-    else if (boatType.indexOf("Jet Ski") !== -1 || boatType.indexOf("PWC") !== -1) cat = "PWC";
-    state.cat = cat;
-    document.querySelectorAll("#catGroup .btn-opt").forEach((el) => {
-      el.classList.toggle("active", el.dataset.val === cat);
+  // ---- PREFILL FROM A LINK ----
+  // requestId (a Quote record id from its "Internal Tool Link") loads the
+  // WHOLE customer: every boat they have on file gets its own card here, so
+  // staff can review/adjust all of them from one link, not just the boat
+  // tied to whichever quote was clicked. Saving afterwards updates those
+  // same Customer/Boat/Quote records rather than creating new ones.
+  function applyBoatTypeToCategory(card, boatType) {
+    let cat = 'SI';
+    if (boatType.indexOf('Pontoon') !== -1) cat = 'Pontoon';
+    else if (boatType.indexOf('Jet Ski') !== -1 || boatType.indexOf('PWC') !== -1) cat = 'PWC';
+    card.state.cat = cat;
+    q(card, 'catGroup').querySelectorAll('.btn-opt').forEach((el) => {
+      el.classList.toggle('active', el.dataset.val === cat);
     });
   }
-  function applyPackage(pkg) {
+  function applyDriveOrStyle(card, label) {
+    if (!label) return;
+    if (card.state.cat === 'PWC') {
+      const styleKey = Object.keys(STYLE_LABEL).find((k) => STYLE_LABEL[k] === label);
+      if (styleKey) {
+        card.state.style = styleKey;
+        q(card, 'styleGroup').querySelectorAll('.btn-opt').forEach((el) => {
+          el.classList.toggle('active', el.dataset.val === styleKey);
+        });
+      }
+    } else if (card.state.cat !== 'Pontoon') {
+      const driveKey = Object.keys(DRIVE_LABEL).find((k) => DRIVE_LABEL[k] === label);
+      if (driveKey) {
+        card.state.drive = driveKey;
+        q(card, 'driveGroup').querySelectorAll('.btn-opt').forEach((el) => {
+          el.classList.toggle('active', el.dataset.val === driveKey);
+        });
+      }
+    }
+  }
+  function applyPackage(card, pkg) {
     if (pkg && BASE[pkg]) {
-      state.pkg = pkg;
-      document.querySelectorAll("#pkgGroup .btn-opt").forEach((el) => {
-        el.classList.toggle("active", el.dataset.val === pkg);
+      card.state.pkg = pkg;
+      q(card, 'pkgGroup').querySelectorAll('.btn-opt').forEach((el) => {
+        el.classList.toggle('active', el.dataset.val === pkg);
       });
     }
   }
   // Maps the Add-ons values as stored in Airtable back to this tool's
-  // checkbox ids, so a website inquiry's requested add-ons come in
+  // checkbox fields, so a website inquiry's requested add-ons come in
   // pre-checked. Only touches checkboxes that aren't currently disabled
   // (e.g. skips Detailing/Shrink wrap/Lift cover when Flagship already
   // forces them on).
-  const ADDON_CHECKBOX_ID = {
-    "Detailing": "add-detailing",
-    "Shrink Wrapping": "add-wrap",
-    "Lift Cover Install": "add-liftcover",
-    "Trailer Bearing & Tire Check": "add-trailer",
-    "Battery Tender Service": "add-battery",
-    "Impeller Replacement": "add-impeller",
+  const ADDON_CHECKBOX_FIELD = {
+    'Detailing': 'add-detailing',
+    'Shrink Wrapping': 'add-wrap',
+    'Lift Cover Install': 'add-liftcover',
+    'Trailer Bearing & Tire Check': 'add-trailer',
+    'Battery Tender Service': 'add-battery',
+    'Impeller Replacement': 'add-impeller',
   };
-  function applyAddOns(addOns) {
+  function applyAddOns(card, addOns) {
     (addOns || []).forEach((name) => {
-      const id = ADDON_CHECKBOX_ID[name];
-      const el = id && document.getElementById(id);
+      const field = ADDON_CHECKBOX_FIELD[name];
+      const el = field && q(card, field, true);
       if (el && !el.disabled) el.checked = true;
     });
   }
   function showLoadedBanner(text, isError) {
-    const el = document.getElementById("loadedBanner");
+    const el = document.getElementById('loadedBanner');
     el.textContent = text;
-    el.style.background = isError ? "#FCEFEA" : "";
-    el.style.color = isError ? "#8A3E22" : "";
-    el.style.display = "block";
+    el.style.background = isError ? '#FCEFEA' : '';
+    el.style.color = isError ? '#8A3E22' : '';
+    el.style.display = 'block';
   }
+
+  function prefillCardFromBoat(card, boatData) {
+    if (boatData.boatId) card.existingBoatId = boatData.boatId;
+    if (boatData.quoteId) card.existingQuoteId = boatData.quoteId;
+    if (boatData.boatName) q(card, 'boatName', true).value = boatData.boatName;
+    if (boatData.boatLength) q(card, 'lengthInput', true).value = boatData.boatLength;
+    if (boatData.pickupDate) q(card, 'pickupDate', true).value = boatData.pickupDate;
+    if (boatData.boatType) applyBoatTypeToCategory(card, boatData.boatType);
+    if (boatData.package) applyPackage(card, boatData.package);
+    updateCardUI(card); // rebuild add-on disabled states for the now-current package/category first
+    if (boatData.style) applyDriveOrStyle(card, boatData.style);
+    applyAddOns(card, boatData.addOns);
+    if (boatData.overrideOn) {
+      q(card, 'overrideToggle', true).checked = true;
+      if (boatData.quotedTotal) q(card, 'overrideAmt', true).value = boatData.quotedTotal;
+    } else if (boatData.discount) {
+      q(card, 'discountAmt', true).value = boatData.discount;
+    }
+    updateCardUI(card);
+  }
+
+  const container = document.getElementById('boatCardsContainer');
 
   (function prefillFromQuery() {
     const params = new URLSearchParams(window.location.search);
+    const requestId = params.get('requestId');
 
-    // If this link came from a Quote record's "Internal Tool Link" (i.e. a
-    // website inquiry Ben is turning into a formal quote), load everything
-    // fresh from Airtable instead of trusting hand-built URL params — this
-    // is what keeps the eventual save tied to the SAME Customer and Boat
-    // records the website form already created, with no chance of a typo
-    // creating a duplicate contact.
-    const requestId = params.get("requestId");
     if (requestId) {
-      showLoadedBanner("Loading the original request…");
-      fetch("/api/get-quote-request?id=" + encodeURIComponent(requestId))
+      showLoadedBanner('Loading the customer’s full boat list…');
+      fetch('/api/get-quote-request?id=' + encodeURIComponent(requestId))
         .then((res) => {
-          if (!res.ok) { throw new Error("Request failed"); }
+          if (!res.ok) { throw new Error('Request failed'); }
           return res.json();
         })
         .then((data) => {
-          if (!data.ok) { throw new Error("Not found"); }
-          window._existingQuoteId = data.quoteId;
-          if (data.name) document.getElementById("custName").value = data.name;
-          if (data.phone) document.getElementById("custPhone").value = data.phone;
-          if (data.email) document.getElementById("custEmail").value = data.email;
-          if (data.address) document.getElementById("custAddress").value = data.address;
-          if (data.boatLength) document.getElementById("lengthInput").value = data.boatLength;
-          if (data.pickupDate) document.getElementById("pickupDate").value = data.pickupDate;
-          if (data.boatType) applyBoatTypeToCategory(data.boatType);
-          if (data.package) applyPackage(data.package);
-          onChange(); // rebuild add-on disabled states for the now-current package/category first
-          applyAddOns(data.addOns);
-          onChange();
+          if (!data.ok) { throw new Error('Not found'); }
+          window._customerId = data.customerId || null;
+          if (data.name) document.getElementById('custName').value = data.name;
+          if (data.phone) document.getElementById('custPhone').value = data.phone;
+          if (data.email) document.getElementById('custEmail').value = data.email;
+          if (data.address) document.getElementById('custAddress').value = data.address;
+
+          const boats = (data.boats && data.boats.length) ? data.boats : [{}];
+          boats.forEach((boatData) => {
+            const card = createBoatCard(container);
+            prefillCardFromBoat(card, boatData);
+          });
+          recomputeAll();
+
+          const boatWord = boats.length === 1 ? 'boat' : 'boats';
           showLoadedBanner(
-            "Loaded from " + (data.name || "a") + "'s website inquiry — saving will update this same request, not create a new one."
+            'Loaded ' + boats.length + ' ' + boatWord + ' for ' + (data.name || 'this customer') +
+            ' — saving will update these same records, not create new ones.'
           );
         })
         .catch(() => {
+          createBoatCard(container);
+          recomputeAll();
           showLoadedBanner("Couldn't load that request automatically — double-check the name/phone/email below, or fill in from scratch.", true);
         });
       return; // requestId takes priority over the simpler param-based prefill below
     }
 
-    const textMap = { name: "custName", phone: "custPhone", email: "custEmail", address: "custAddress", length: "lengthInput" };
+    const card = createBoatCard(container);
+    recomputeAll();
+
+    const textMap = { name: 'custName', phone: 'custPhone', email: 'custEmail', address: 'custAddress' };
     Object.keys(textMap).forEach((key) => {
       const val = params.get(key);
       if (val) { document.getElementById(textMap[key]).value = val; }
     });
-    const boatType = params.get("boatType");
-    if (boatType) applyBoatTypeToCategory(boatType);
-    applyPackage(params.get("package"));
+    const lengthVal = params.get('length');
+    if (lengthVal) q(card, 'lengthInput', true).value = lengthVal;
+    const boatType = params.get('boatType');
+    if (boatType) applyBoatTypeToCategory(card, boatType);
+    applyPackage(card, params.get('package'));
+    recomputeAll();
   })();
 
-  onChange();
+  document.getElementById('addBoatBtn').addEventListener('click', () => {
+    createBoatCard(container);
+    recomputeAll();
+  });
 </script>
 
 </body>
