@@ -219,6 +219,25 @@
     color: var(--stone); font-size: 13px; padding: 34px 20px 14px; letter-spacing: 0.02em;
   }
 
+  /* REVIEWS */
+  #reviews { background: var(--paper); }
+  .rating-line {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 0 0 14px;
+  }
+  .rating-line .stars { color: var(--sun); font-size: 17px; letter-spacing: 2px; }
+  .rating-line .score { font-family: 'Fraunces', serif; font-weight: 500; font-size: 16px; color: var(--deep); }
+  .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1040px; margin: 0 auto 40px; }
+  .review-card {
+    background: #fff; border: 1px solid var(--stone-2); border-radius: 16px;
+    padding: 26px 24px; border-top: 4px solid var(--glacier);
+    display: flex; flex-direction: column;
+  }
+  .review-card .review-stars { color: var(--sun); font-size: 14px; letter-spacing: 2px; margin-bottom: 12px; }
+  .review-card .review-text { font-size: 14.5px; line-height: 1.65; color: var(--ink); margin: 0 0 16px; flex: 1; }
+  .review-card .review-author { font-family: 'Fraunces', serif; font-weight: 500; font-size: 14.5px; color: var(--deep); margin: 0; }
+  .reviews-cta { text-align: center; }
+
   /* PACKAGES */
   #packages { background: linear-gradient(180deg, var(--wash) 0%, #FFFFFF 55%); }
   .pkg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1040px; margin: 0 auto; }
@@ -357,7 +376,7 @@
   .footer-legal { text-align: center; font-size: 11.5px; opacity: 0.65; margin-top: 30px; }
 
   @media (max-width: 760px) {
-    .pkg-grid, .steps, .trust, .form-row, .feature { grid-template-columns: 1fr; }
+    .pkg-grid, .steps, .trust, .form-row, .feature, .review-grid { grid-template-columns: 1fr; }
     .feature-photo img { height: 260px; }
     h1.hero-title { font-size: 34px; }
     .form-card { padding: 26px 20px; }
@@ -599,6 +618,50 @@
     </div>
   </div>
   <p class="process-note">No mileage surcharge — we probably already pass each other around the community.</p>
+</section>
+
+<section id="reviews">
+  <div class="section-head">
+    <p class="section-label">Reviews</p>
+    <h2 class="section-title">What our customers say</h2>
+    <div class="rating-line"><span class="stars">★★★★★</span><span class="score">5.0 out of 5</span></div>
+    <p class="section-sub">From real customers on Google — boat owners across Grandview Lake, Harrison Lake and Cordry-Sweetwater.</p>
+  </div>
+  <div class="review-grid">
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"Brian and his team give exceptional service, I highly recommend them for your boat storage, winterizing, and detailing needs!"</p>
+      <p class="review-author">Tom D.</p>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"Their agreement and different types of storage were easy to read and select. They jumped right on moving the boats so I could start a deck project. Their communication is great. Highly recommend."</p>
+      <p class="review-author">John M.</p>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"Brian is awesome! He has a ton of boat knowledge. Extremely professional and prompt. I would highly recommend him for your boating needs."</p>
+      <p class="review-author">Chris B.</p>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"Brian was super responsive on responding and solving our issues with our pontoon and speed boat. The process was smooth and professional. Great job!"</p>
+      <p class="review-author">Dale G.</p>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"I worked with Waterline Lake Services for a repair issue on my jetski and maintenance issue on my trailer. Both were handled properly the first time, within days or less, and at a fair price. Well done, Waterline!"</p>
+      <p class="review-author">Matthew C.</p>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"External waterfront service. Great people to work with — very honest and reliable!!"</p>
+      <p class="review-author">Tom T.</p>
+    </div>
+  </div>
+  <div class="reviews-cta">
+    <a href="https://g.page/r/CZXbX4MsCq5uEBM/review" target="_blank" rel="noopener" class="btn-primary">Leave us a review</a>
+  </div>
 </section>
 <div class="divider"></div>
 
