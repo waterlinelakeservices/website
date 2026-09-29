@@ -37,3 +37,24 @@
 [[headers]]
   for = "/quote"
   [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# --- Winterization checklist (staff only) ---
+[[redirects]]
+  from = "/api/winterize"
+  to = "/.netlify/functions/winterize"
+  status = 200
+
+[[headers]]
+  for = "/winterize"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/winterize/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-cache"
