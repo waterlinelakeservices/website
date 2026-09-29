@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Waterline — Winterization Checklist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#134E5E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Winterize">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --deep: #134E5E; --deep-dark: #0C3944; --pine: #2F5D50; --glacier: #8CC7D6;
+  --glacier-tint: rgba(140,199,214,0.18); --stone: #E8ECEF; --stone-2: #DCE3E6; --white: #FFFFFF;
+  --ink: #16232B; --paper: #FFFFFF; --muted: #6A7480; --wash: #F2F9FA; --sun: #E7A24C;
+  /* working colors for this tool */
+  --sun-tint: #FBF0DE; --sun-ink: #8A5A17; --pine-tint: #E6EFEC; --na-tint: #EEF1F2; --danger: #A8433A;
+  --grad: linear-gradient(160deg, var(--deep) 0%, var(--deep-dark) 60%, var(--pine) 130%);
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--stone); color: var(--ink); font: 16px/1.55 'Work Sans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--glacier); outline-offset: 2px; }
+img { max-width: 100%; display: block; }
+h1, h2, h3, .voice { font-family: 'Fraunces', Georgia, serif; font-weight: 500; line-height: 1.2; margin: 0; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 128px; }
+@media (min-width: 820px) { .wrap { max-width: 900px; padding: 0 28px 128px; } }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.hide { display: none !important; }
+
+/* header */
+.top { background: var(--grad); color: #fff; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
+.top .in { max-width: 900px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; min-height: 58px; }
+.top .brand { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; }
+.top .brand svg { width: 30px; height: 30px; flex: none; }
+.top .brand b { font: 500 20px 'Fraunces', Georgia, serif; }
+.top .brand span { font-size: 13px; color: var(--glacier); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top h1 { font-size: 20px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top .back { background: none; border: 0; color: #fff; font-size: 30px; line-height: 1; padding: 4px 10px 6px 0; }
+.top .who-btn { background: rgba(255,255,255,.1); border: 1px solid rgba(140,199,214,.5); color: #fff; border-radius: 30px; padding: 6px 12px; font-size: 13px; }
+.saving { font-size: 12.5px; color: var(--glacier); white-space: nowrap; }
+.rule { height: 5px; background: var(--deep-dark); position: relative; }
+.rule i { position: absolute; inset: 0 auto 0 0; background: var(--glacier); transition: width .4s ease; }
+
+/* HIN plate: the one memorable element */
+.plate { display: inline-flex; flex-direction: column; border: 2px solid var(--glacier); border-radius: 8px; padding: 5px 12px 6px; background: rgba(140,199,214,.08); }
+.plate small { font-size: 10.5px; letter-spacing: .1em; color: var(--glacier); font-weight: 600; }
+.plate b { font: 600 clamp(22px, 6.5vw, 32px)/1.1 'Work Sans', sans-serif; letter-spacing: .14em; }
+
+/* controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 30px; padding: 13px 24px; font-weight: 600; font-size: 15.5px; min-height: 50px; text-decoration: none; background: var(--deep); color: #fff; border-bottom: 2px solid var(--glacier); }
+.btn:active { transform: translateY(1px); }
+.btn.glacier { background: var(--glacier); color: var(--deep-dark); border-bottom: 0; }
+.btn.sec { background: #fff; color: var(--deep); border: 1.5px solid var(--stone-2); }
+.btn.ghost { background: none; color: var(--deep); border: 0; padding: 8px 12px; min-height: 42px; text-decoration: underline; text-underline-offset: 3px; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+label.f { display: block; margin: 0 0 14px; }
+label.f span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.in-t { width: 100%; border: 1.5px solid var(--stone-2); border-radius: 10px; background: #fff; padding: 11px 13px; min-height: 48px; font-size: 16px; }
+.in-t:focus { border-color: var(--deep); outline: none; box-shadow: 0 0 0 3px var(--glacier-tint); }
+textarea.in-t { min-height: 84px; resize: vertical; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 440px) { .grid2 { grid-template-columns: 1fr; } }
+.card { background: #fff; border: 1px solid var(--stone-2); border-radius: 16px; padding: 18px; margin: 14px 0; }
+.card h2 { font-size: 22px; color: var(--deep); margin-bottom: 12px; }
+.banner { border-radius: 12px; padding: 12px 14px; margin: 12px 0; font-size: 15px; background: var(--sun-tint); border-left: 4px solid var(--sun); }
+.banner.info { background: var(--wash); border-left-color: var(--glacier); }
+.chip { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 30px; background: var(--stone); color: var(--muted); white-space: nowrap; }
+.chip.prog { background: var(--glacier-tint); color: var(--deep); }
+.chip.rev { background: var(--sun-tint); color: var(--sun-ink); }
+.chip.done { background: var(--pine); color: #fff; }
+
+/* login */
+.login { min-height: 100vh; background: var(--grad); color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 32px 22px; position: relative; overflow: hidden; }
+.login .box { max-width: 380px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+.login svg.mark { width: 64px; height: 64px; }
+.login h1 { font-size: 34px; margin: 14px 0 6px; }
+.login p { color: #CFE6EC; margin: 0 0 22px; }
+.login .in-t { font-size: 26px; letter-spacing: .4em; text-align: center; border: 0; }
+.login .err { color: #FFD9A8; min-height: 24px; margin: 10px 0 0; font-size: 15px; }
+.login .etch { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; width: 100%; }
+
+/* home */
+.hero { padding: 24px 0 8px; }
+.hero h2 { font-size: 30px; color: var(--deep); }
+.filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; }
+.filters button { border: 1.5px solid var(--stone-2); background: #fff; border-radius: 30px; padding: 8px 15px; white-space: nowrap; font-weight: 500; font-size: 14.5px; }
+.filters button[aria-pressed="true"] { background: var(--deep); color: #fff; border-color: var(--deep); }
+.jobs { display: grid; gap: 10px; }
+@media (min-width: 820px) { .jobs { grid-template-columns: 1fr 1fr; } }
+.jobrow { display: flex; gap: 12px; align-items: center; background: #fff; border: 1px solid var(--stone-2); border-left: 4px solid var(--glacier); border-radius: 14px; padding: 13px 14px; width: 100%; text-align: left; }
+.jobrow[data-st="Complete"] { border-left-color: var(--pine); }
+.jobrow[data-st="Awaiting Review"] { border-left-color: var(--sun); }
+.jobrow .meta { flex: 1; min-width: 0; }
+.jobrow .meta b { display: block; font: 500 18px 'Fraunces', Georgia, serif; color: var(--deep); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jobrow .hin { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+.empty { text-align: center; padding: 40px 10px; color: var(--muted); }
+
+/* job header */
+.jobhead { background: var(--grad); color: #fff; }
+.jobhead .in { max-width: 900px; margin: 0 auto; padding: 4px 16px 16px; display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.jobhead .who { flex: 1; min-width: 170px; }
+.jobhead .who b { display: block; font: 500 20px/1.2 'Fraunces', Georgia, serif; }
+.jobhead .who span { color: #CFE6EC; font-size: 14px; }
+.jobhead .chip.prog { background: var(--glacier); color: var(--deep-dark); }
+
+/* bottom tabs */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--stone-2); z-index: 30; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabs .in { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+.tabs button { background: none; border: 0; padding: 9px 2px 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 500; color: var(--muted); position: relative; min-height: 58px; }
+.tabs button svg { width: 23px; height: 23px; }
+.tabs button[aria-selected="true"] { color: var(--deep); font-weight: 600; }
+.tabs button[aria-selected="true"]::before { content: ""; position: absolute; top: 0; left: 24%; right: 24%; height: 3px; background: var(--glacier); border-radius: 0 0 3px 3px; }
+.tabs .badge { position: absolute; top: 4px; right: calc(50% - 24px); background: var(--sun); color: var(--deep-dark); font-weight: 600; border-radius: 30px; font-size: 11px; min-width: 19px; height: 19px; line-height: 19px; padding: 0 5px; }
+
+/* checklist */
+.sec { background: #fff; border: 1px solid var(--stone-2); border-radius: 16px; margin: 12px 0; overflow: hidden; }
+.sec > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 15px 16px; cursor: pointer; }
+.sec > summary::-webkit-details-marker { display: none; }
+.sec > summary h3 { flex: 1; font-size: 19px; color: var(--deep); }
+.sec > summary .cnt { font-size: 14px; font-weight: 600; color: var(--muted); }
+.sec[data-complete="1"] > summary .cnt { color: var(--pine); }
+.sec[data-complete="1"] { border-top: 4px solid var(--pine); }
+.sec .chev { transition: transform .2s; width: 18px; height: 18px; color: var(--glacier); flex: none; }
+.sec[open] .chev { transform: rotate(90deg); }
+.sec .secnote { padding: 0 16px 8px; font-size: 14px; color: var(--muted); }
+.sec .secbar { display: flex; gap: 8px; padding: 0 16px 12px; flex-wrap: wrap; }
+.item { border-top: 1px solid var(--stone-2); padding: 13px 16px; }
+.item[data-s="done"] { background: var(--pine-tint); }
+.item[data-s="na"] { background: var(--na-tint); }
+.item[data-s="na"] .itxt { text-decoration: line-through; color: var(--muted); }
+.item[data-s="flag"] { background: var(--sun-tint); }
+.irow { display: flex; gap: 12px; align-items: flex-start; }
+.tick { flex: none; width: 38px; height: 38px; border-radius: 10px; border: 2px solid var(--stone-2); background: #fff; display: grid; place-items: center; padding: 0; color: var(--muted); }
+.tick svg { width: 21px; height: 21px; }
+.tick.box svg { opacity: 0; }
+.item[data-s="done"] .tick.box { background: var(--pine); border-color: var(--pine); color: #fff; }
+.item[data-s="done"] .tick.box svg { opacity: 1; }
+.item[data-s="flag"] .tick.box { background: var(--sun); border-color: var(--sun); color: var(--deep-dark); }
+.item[data-s="flag"] .tick.box svg { opacity: 1; }
+.tick.more { border: 0; background: none; }
+.itxt { flex: 1; padding-top: 6px; }
+.itxt .req { display: inline-block; margin-left: 6px; font-size: 12.5px; font-weight: 600; color: var(--sun-ink); white-space: nowrap; }
+.itxt .req.ok { color: var(--pine); }
+.itxt .hint { display: block; font-size: 14px; color: var(--muted); margin-top: 2px; }
+.iact { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0 50px; }
+.iact button, .iact label { border: 1.5px solid var(--stone-2); background: #fff; border-radius: 30px; padding: 7px 14px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; cursor: pointer; }
+.iact label.cam { border-color: var(--deep); color: var(--deep); }
+.iact label.cam.need { border-color: var(--sun); background: var(--sun-tint); color: var(--sun-ink); }
+.iact svg { width: 18px; height: 18px; }
+.ival { margin: 10px 0 0 50px; display: flex; gap: 10px; flex-wrap: wrap; }
+.ival label { flex: 1 1 150px; min-width: 0; }
+.ival span { font-size: 13px; color: var(--muted); display: block; margin-bottom: 3px; }
+.ival .in-t { min-height: 44px; padding: 8px 11px; max-width: 100%; min-width: 0; }
+.thumbs { display: flex; gap: 8px; overflow-x: auto; margin: 10px 0 0 50px; }
+.thumbs .th { position: relative; flex: none; }
+.thumbs img { width: 78px; height: 78px; object-fit: cover; border-radius: 10px; border: 1px solid var(--stone-2); }
+.th.pending img { opacity: .55; }
+.th.pending::after { content: "Uploading"; position: absolute; left: 4px; right: 4px; bottom: 4px; font-size: 10.5px; text-align: center; background: rgba(12,57,68,.8); color: #fff; border-radius: 6px; padding: 1px 0; }
+.flagnote { margin: 10px 0 0 50px; }
+@media (min-width: 820px) { .ival label { flex-basis: 220px; } }
+
+/* photos tab */
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+@media (min-width: 820px) { .pgrid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); } }
+.pgrid figure { margin: 0; background: #fff; border: 1px solid var(--stone-2); border-radius: 12px; overflow: hidden; }
+.pgrid img { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: var(--stone); }
+.pgrid figcaption { padding: 6px 9px; font-size: 13px; }
+.pgrid figcaption input { width: 100%; border: 0; background: none; padding: 2px 0; font-size: 14px; }
+.pgrid .pbar { display: flex; justify-content: space-between; align-items: center; padding: 0 9px 7px; font-size: 12px; color: var(--muted); }
+.pgrid .pbar button { background: none; border: 0; color: var(--danger); font-size: 13px; padding: 4px; }
+.cp { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--stone-2); }
+.cp:first-of-type { border-top: 0; }
+.cp .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--sun); flex: none; }
+.cp .dot.ok { background: var(--pine); }
+.cp .t { flex: 1; }
+
+/* parts */
+.tblwrap { overflow-x: auto; }
+table.parts { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 440px; }
+table.parts th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 6px 4px; border-bottom: 1px solid var(--stone-2); }
+table.parts td { padding: 6px 4px; border-bottom: 1px solid var(--stone-2); vertical-align: top; }
+table.parts input { width: 100%; border: 1.5px solid var(--stone-2); border-radius: 8px; background: #fff; padding: 8px 9px; min-height: 42px; font-size: 16px; }
+table.parts td.q { width: 76px; }
+table.parts td.x { width: 38px; }
+table.parts button.del { background: none; border: 0; color: var(--danger); font-size: 22px; line-height: 1; padding: 8px; }
+.rec { border: 1px solid var(--stone-2); border-left: 4px solid var(--sun); border-radius: 12px; padding: 12px; margin: 10px 0; background: var(--wash); }
+.rec .top2 { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.rec select { border: 1.5px solid var(--stone-2); border-radius: 8px; background: #fff; padding: 8px 10px; font-size: 15px; }
+
+.res { display: block; width: 100%; text-align: left; background: var(--wash); border: 1px solid var(--stone-2); border-radius: 12px; padding: 11px 13px; margin: 8px 0; }
+.res b { display: block; color: var(--deep); }
+.res span { font-size: 14px; color: var(--muted); }
+
+.sig { border: 1.5px dashed var(--glacier); border-radius: 12px; background: var(--wash); touch-action: none; width: 100%; height: 160px; display: block; }
+.sigimg { border: 1px solid var(--stone-2); border-radius: 12px; background: #fff; max-height: 120px; }
+
+.sheet { position: fixed; inset: 0; background: rgba(12,57,68,.55); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+.sheet .panel { background: #fff; border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 520px; }
+.sheet h2 { font-size: 22px; color: var(--deep); margin-bottom: 6px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--deep-dark); color: #fff; padding: 11px 18px; border-radius: 30px; font-size: 15px; z-index: 70; max-width: 92vw; text-align: center; box-shadow: 0 8px 26px rgba(12,57,68,.3); }
+.list-plain { margin: 0; padding-left: 20px; }
+.list-plain li { margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast hide" role="status" aria-live="polite"></div>
+<script>
+/* ============================================================
+   PARTS & FLUIDS REFERENCE (from the shop's reference sheet)
+   ============================================================ */
+const GM_BLOCKS = ["6.0L","6.0L HO","7.4L LSX","6.2L Supercharged","5.3L DI","6.2L DI"];
+const FORD_BLOCKS = ["Ford GT40","5.7L","8.1L"];
+const PROFILES = {
+  "GS 20":   { kind:"inboard", impeller:"PCM # RP061022", oilGM:"SAE 5W-30 DEXOS GEN 2", oilFord:"SAE 15W-40 \u201cGF-4/SM\u201d", transDD:"Dexron III", transV:"Dexron III" },
+  "SAN 210": { kind:"inboard", impeller:"PCM # RP061022", oilGM:"SAE 5W-30 DEXOS GEN 2", oilFord:"SAE 15W-40 \u201cGF-4/SM\u201d", transDD:"Dexron III", transV:"Dexron III" },
+  "NXT20":   { kind:"inboard", impeller:"Johnson Impeller Kit 09-812BT-1", oilGM:"", oilFord:"SAE 15W-40 \u201cGF-4/SM\u201d", transDD:"Dexron III", transV:"Indmar Full Synthetic 50W Transmission Oil" },
+  "Outboard - Standard": { kind:"outboard", oil:"Marine 10W-30", fog:"STA-BIL Fogging Oil (12 oz | 22001)" },
+  "Outboard - 200hp +":  { kind:"outboard", oil:"Marine 25W-40", fog:"STA-BIL Fogging Oil (12 oz | 22001)" },
+  "PWC - Rotax":    { kind:"pwc", oil:"BRP XPS 4T 5W-40 Synthetic Oil" },
+  "PWC - Standard": { kind:"pwc", oil:"Marine 10W-40" },
+  "Other / not listed": { kind:"any" }
+};
+const STABILIZER = "Sta-Bil 360 Marine Fuel Stabilizer 8oz";
+
+const TYPES = {
+  DD:{label:"Direct Drive", short:"Direct drive inboard (ski boat)"},
+  VD:{label:"V-Drive", short:"V-drive inboard (wake/surf)"},
+  IO:{label:"Inboard/Outboard", short:"Sterndrive (MerCruiser, Volvo Penta)"},
+  PT:{label:"Pontoon", short:"Outboard pontoon or tritoon"},
+  OB:{label:"Outboard boat", short:"Outboard, non-pontoon hull"},
+  PWC:{label:"PWC", short:"Sea-Doo, WaveRunner, Jet Ski"}
+};
+const INB = ["DD","VD"], OUTB = ["PT","OB"], ALL = ["DD","VD","IO","PT","OB","PWC"], BOATS = ["DD","VD","IO","PT","OB"];
+
+/* ============================================================
+   CHECKLIST
+   photo: "req" = required photo, "opt" = suggested photo
+   inputs: values recorded on the line
+   spring: line added to the customer's spring launch list when done
+   ============================================================ */
+const SECTIONS = [
+ { id:"intake", title:"Intake and inspection", types:ALL, items:[
+   {id:"in_auth", t:"Work order signed; customer approved a spending limit for extra work found", inputs:[{k:"limit",label:"Approved limit ($)",type:"number"}], isNew:true},
+   {id:"in_hinphoto", t:"Photograph the HIN plate", photo:"req"},
+   {id:"in_serial", t:"Photograph the engine serial tag", photo:"req"},
+   {id:"in_hours", t:"Record engine hours", photo:"req", inputs:[{k:"hours",label:"Engine hours",type:"number",job:"engineHours"}]},
+   {id:"in_walk", t:"Walk-around photos: bow, both sides, stern, helm, and interior", photo:"req", minPhotos:4},
+   {id:"in_damage", t:"Photograph and note any existing damage (gelcoat, tubes, upholstery)", photo:"opt", inputs:[{k:"note",label:"Damage notes",type:"text"}]},
+   {id:"in_issues", t:"Note customer-reported issues on the work order", inputs:[{k:"note",label:"Customer-reported issues",type:"text"}]},
+   {id:"in_inventory", t:"Inventory gear left aboard (life jackets, electronics, tubes, covers)", inputs:[{k:"note",label:"Items aboard",type:"text"}], isNew:true},
+   {id:"in_run", t:"Run test before service: gauges, alarms, temperature, and any fault codes", inputs:[{k:"note",label:"Fault codes / findings",type:"text"}], isNew:true},
+   {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"}
+ ]},
+ { id:"fuel", title:"Fuel system", types:ALL, items:[
+   {id:"fu_stab", t:"Add marine fuel stabilizer at label dose for the tank size", photo:"opt", part:"stabilizer"},
+   {id:"fu_top", t:"Top off tank to about 90\u201395% full (leave room for expansion)", inputs:[{k:"gal",label:"Gallons added",type:"number"}]},
+   {id:"fu_run", t:"Run engine 10\u201315 min to circulate stabilized fuel through lines and injectors/carb"},
+   {id:"fu_filter", t:"Replace fuel/water-separator filter", photo:"opt", inputs:[{k:"part",label:"Filter part #",type:"text"}]},
+   {id:"fu_lines", t:"Inspect fuel lines, primer bulb, and vent for cracks or leaks"}
+ ]},
+ { id:"battery", title:"Battery and electrical", types:ALL, items:[
+   {id:"ba_volt", t:"Fully charge battery and record voltage", photo:"opt", inputs:[{k:"v",label:"Voltage (V)",type:"number",job:"batteryVoltage"}]},
+   {id:"ba_disc", t:"Disconnect negative cable (or remove battery for heated storage)", spring:"Reconnect the battery (or reinstall it if it was removed)"},
+   {id:"ba_term", t:"Clean and grease terminals with dielectric grease"},
+   {id:"ba_sw", t:"Turn battery switch OFF", spring:"Turn the battery switch back ON"}
+ ]},
+ /* ---------- Direct drive & V-drive ---------- */
+ { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
+   {id:"eo_warm", t:"Warm engine to operating temp on hose / fake-a-lake"},
+   {id:"eo_oil", t:"Change engine oil and filter", photo:"opt", part:"oil", inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
+   {id:"eo_trans", t:"Check transmission fluid level and condition; change if due or milky", part:"transDD"},
+   {id:"eo_leaks", t:"Inspect for oil, fuel, or coolant leaks"}
+ ]},
+ { id:"inb_fog", title:"Fogging and ignition", types:INB, items:[
+   {id:"fg_fog", t:"Fog engine: EFI through the throttle body while running until it stalls or smokes heavily; carb through the carb", part:"fog"},
+   {id:"fg_cyl", t:"Pull spark plugs, fog each cylinder, turn over briefly (coil/fuel pump fuse out), reinstall or replace plugs"},
+   {id:"fg_belt", t:"Inspect serpentine/alternator belt and tension"}
+ ]},
+ { id:"inb_raw", title:"Cooling system: raw-water cooled", types:INB, cooling:"raw", items:[
+   {id:"cr_block", t:"Open all block drain plugs/petcocks (both sides) and drain fully; probe drains with wire", photo:"req", spring:"Close or reinstall all block drains"},
+   {id:"cr_man", t:"Drain exhaust manifolds and risers", spring:"Close or reinstall manifold and riser drains"},
+   {id:"cr_pump", t:"Remove and drain raw-water pump; inspect impeller (replace if cracked, set, or 2+ seasons old)", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}]},
+   {id:"cr_hoses", t:"Drain or remove circulating pump hoses, thermostat housing, and oil/trans coolers", spring:"Reconnect hoses and coolers removed for draining"},
+   {id:"cr_heater", t:"Blow out heater core and hoses (if equipped) or fill with antifreeze"},
+   {id:"cr_af", t:"Optional antifreeze method: pull through pickup until pink exits the exhaust", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
+   {id:"cr_tag", t:"Leave drains open or reinstall per shop policy; tag the helm \u201cENGINE DRAINED\u201d", photo:"req", spring:"Remove the \u201cENGINE DRAINED\u201d tag after drains are closed"}
+ ]},
+ { id:"inb_closed", title:"Cooling system: closed (freshwater) cooled", types:INB, cooling:"closed", items:[
+   {id:"cc_test", t:"Test coolant freeze point with refractometer; replace if above \u221230\u00b0F", photo:"req", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
+   {id:"cc_raw", t:"Drain raw-water side: heat exchanger, exhaust manifolds, raw-water pump, and coolers", photo:"opt", spring:"Close raw-water side drains"},
+   {id:"cc_imp", t:"Inspect raw-water pump impeller", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}], isNew:true}
+ ]},
+ { id:"inb_gear", title:"Running gear", types:INB, items:[
+   {id:"rg_prop", t:"Remove prop; inspect for dings, grease shaft, reinstall (or store prop for repair)", photo:"opt"},
+   {id:"rg_shaft", t:"Check shaft for play at strut / cutless bearing"},
+   {id:"rg_seal", t:"Inspect shaft seal or packing gland; drain any water trapped around it"},
+   {id:"rg_rudder", t:"Inspect rudder, rudder packing, and fin; grease rudder post"}
+ ]},
+ { id:"dd_ballast", title:"Ballast and extras", types:["DD"], equip:true, items:[
+   {id:"bl_pumps", t:"Run ballast pumps both directions until dry; blow out ballast lines and pumps", photo:"opt"},
+   {id:"bl_bags", t:"Open and drain any bilge-mounted ballast bags"},
+   {id:"bl_shower", t:"Blow out shower and transom washdown lines"}
+ ]},
+ { id:"vd_drive", title:"V-drive gearbox and driveline", types:["VD"], items:[
+   {id:"vd_box", t:"Check V-drive gearbox fluid level and condition (separate from transmission on many models); change if due or milky", part:"transV"},
+   {id:"vd_coupler", t:"Inspect coupler / U-joint between transmission and V-drive; grease if fitted"},
+   {id:"vd_mounts", t:"Check V-drive and engine mounts for cracks or movement"},
+   {id:"vd_drains", t:"Locate rear-facing block and manifold drains (often tight to the transom); confirm each one drained", photo:"req"},
+   {id:"vd_exh", t:"Drain water trapped in exhaust tips, mufflers, and surf-system exhaust diverters"}
+ ]},
+ { id:"vd_surf", title:"Ballast, surf systems, and tower", types:["VD"], items:[
+   {id:"vs_ballast", t:"Run every ballast pump (hard tanks and bags) both ways until dry; blow out lines with low-pressure air", photo:"opt"},
+   {id:"vs_bags", t:"Drain or remove plug-in surf/wedge bags; dry and store folded"},
+   {id:"vs_shower", t:"Blow out shower and transom washdown lines"},
+   {id:"vs_tabs", t:"Cycle surf tabs / wake plates fully up; inspect actuators and hydraulic lines"},
+   {id:"vs_tower", t:"Lower or fold tower if required for cover; grease tower pivots", spring:"Raise the tower and check the pivot hardware"},
+   {id:"vs_acc", t:"Inspect tower speakers, lights, and board racks for loose hardware"}
+ ]},
+ /* ---------- Sterndrive ---------- */
+ { id:"io_engine", title:"Sterndrive engine", types:["IO"], items:[
+   {id:"io_oil", t:"Change engine oil and filter warm", photo:"opt", part:"oil", inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
+   {id:"io_fog", t:"Fog engine (throttle body or carb) and cylinders", part:"fog"},
+   {id:"io_drain", t:"Raw-water: drain block, exhaust manifolds, and risers, or fill with antifreeze", photo:"req", cooling:"raw", spring:"Close block, manifold, and riser drains", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
+   {id:"io_coolant", t:"Closed-cooled: test coolant freeze point", photo:"req", cooling:"closed", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
+   {id:"io_pump", t:"Drain seawater pump and hoses; on Volvo, drain lower hoses at the thermostat housing", spring:"Reconnect seawater pump hoses"},
+   {id:"io_belts", t:"Inspect belts, hoses, and flame arrestor; clean arrestor"}
+ ]},
+ { id:"io_drive", title:"Outdrive", types:["IO"], items:[
+   {id:"od_lube", t:"Drain gear lube; check for water (milky) or metal on the drain magnet", photo:"req", inputs:[{k:"cond",label:"Lube condition",type:"select",opts:["Clean","Milky (water)","Metal on magnet"]}]},
+   {id:"od_fill", t:"Refill gear lube from the bottom up until it exits the vent", inputs:[{k:"qty",label:"Gear lube qty (oz)",type:"number"}]},
+   {id:"od_imp", t:"Replace drive impeller (drive-mounted pump) if due, or record impeller age", photo:"req", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]},{k:"age",label:"Impeller age (seasons)",type:"number"}]},
+   {id:"od_prop", t:"Remove prop; inspect, grease splines, reinstall with new tab washer if needed", photo:"opt"},
+   {id:"od_anode", t:"Inspect sacrificial anodes; replace if more than 50% eroded", photo:"req"},
+   {id:"od_gimbal", t:"Grease gimbal bearing and U-joints (via fittings or drive removal per manual)"},
+   {id:"od_bellows", t:"Inspect bellows (U-joint, exhaust, shift) for cracks or dry rot", photo:"req"},
+   {id:"od_trim", t:"Check trim/tilt fluid level; inspect rams and hoses for leaks"},
+   {id:"od_down", t:"Store drive trimmed fully DOWN to drain water and relieve bellows"}
+ ]},
+ /* ---------- Outboard (pontoon & other) ---------- */
+ { id:"ob_engine", title:"Outboard engine", types:OUTB, items:[
+   {id:"ob_flush", t:"Flush with muffs or flush port for 10 min on stabilized fuel"},
+   {id:"ob_oil", t:"4-stroke: change engine oil and filter", photo:"opt", part:"oil", inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
+   {id:"ob_fog", t:"Fog engine per manufacturer (fogging oil, or built-in fogging mode on some models)", part:"fog"},
+   {id:"ob_plugs", t:"Replace or inspect spark plugs; replace inline and on-engine fuel filters"},
+   {id:"ob_vst", t:"Drain vapor separator tank (carb/EFI models where specified)"},
+   {id:"ob_imp", t:"Replace water pump impeller if due", photo:"opt", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]},{k:"age",label:"Impeller age (seasons)",type:"number"}]},
+   {id:"ob_steer", t:"Check hydraulic steering fluid and helm/cylinder for leaks", isNew:true}
+ ]},
+ { id:"ob_lower", title:"Lower unit and prop", types:OUTB, items:[
+   {id:"lu_lube", t:"Drain gear lube; check for water or metal; refill from the bottom up", photo:"req", inputs:[{k:"cond",label:"Lube condition",type:"select",opts:["Clean","Milky (water)","Metal on magnet"]},{k:"qty",label:"Gear lube qty (oz)",type:"number"}]},
+   {id:"lu_prop", t:"Remove prop; check for fishing line on shaft seal; grease splines, reinstall", photo:"opt"},
+   {id:"lu_anode", t:"Inspect anodes; replace if more than 50% eroded", photo:"opt"},
+   {id:"lu_trim", t:"Check power trim/tilt fluid; grease swivel bracket and tilt tube fittings"},
+   {id:"lu_down", t:"Store motor trimmed fully DOWN (vertical) so cooling passages drain", photo:"opt"}
+ ]},
+ { id:"pt_hull", title:"Pontoon-specific", types:["PT"], items:[
+   {id:"pt_tubes", t:"Inspect tubes for dents, cracks, and leaking welds; check drain plugs in each tube", photo:"opt"},
+   {id:"pt_clean", t:"Clean tubes (acid/aluminum brightener if ordered)"},
+   {id:"pt_deck", t:"Check deck and fence for loose rivets, soft decking, or damaged railing gates"},
+   {id:"pt_bimini", t:"Inspect bimini frame and canvas; stow bimini in boot"},
+   {id:"pt_live", t:"Blow out or antifreeze livewell, sink, and freshwater lines (if equipped)"}
+ ]},
+ /* ---------- PWC ---------- */
+ { id:"pwc_engine", title:"PWC engine", types:["PWC"], note:"Never run a PWC out of water for more than 15 seconds without water through the flush fitting.", items:[
+   {id:"pw_flush", t:"Flush cooling system per manual: start engine first, then turn on hose; run ~90 sec; hose off before engine"},
+   {id:"pw_blow", t:"Blow out water: rev briefly with hose off (10\u201315 sec max)"},
+   {id:"pw_oil", t:"Change engine oil and filter (4-stroke)", photo:"opt", part:"oil", inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"}]},
+   {id:"pw_fog", t:"Fog engine per manual (Sea-Doo: winterization/fogging mode in the gauge menu)"},
+   {id:"pw_af", t:"Add antifreeze through flush fitting if required; Sea-Doo closed-loop: test coolant", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
+   {id:"pw_sc", t:"Supercharged models: check supercharger service interval", inputs:[{k:"h",label:"SC hours",type:"number"}]},
+   {id:"pw_plugs", t:"Remove, inspect, and replace spark plugs if due"}
+ ]},
+ { id:"pwc_pump", title:"Jet pump and hull", types:["PWC"], items:[
+   {id:"pj_grate", t:"Clean intake grate; inspect impeller and wear ring for nicks or gap", photo:"req"},
+   {id:"pj_grease", t:"Grease drive shaft splines / PTO and pump bearings where fitted"},
+   {id:"pj_nozzle", t:"Inspect steering nozzle, reverse gate, and cables; lubricate pivots"},
+   {id:"pj_bilge", t:"Open bilge drain plugs; dry hull interior; spray corrosion inhibitor on engine and electrical", spring:"Close the PWC bilge drain plugs"},
+   {id:"pj_seat", t:"Clean and treat seat; stow seat slightly propped for airflow"}
+ ]},
+ { id:"pwc_store", title:"PWC battery and storage", types:["PWC"], items:[
+   {id:"ps_batt", t:"Remove battery and store on maintainer", spring:"Reinstall the charged battery"},
+   {id:"ps_nose", t:"Store nose-high on trailer so water drains from the pump and exhaust"},
+   {id:"ps_plug", t:"Plug exhaust outlet and cover intake grate against rodents; install cover", photo:"req", spring:"Remove the exhaust plug and intake grate cover"}
+ ]},
+ /* ---------- Common finish ---------- */
+ { id:"interior", title:"Interior and hull", types:ALL, items:[
+   {id:"ih_plug", t:"Remove drain plug(s); store with keys and tag the helm \u201cPLUG OUT\u201d", photo:"req", spring:"Reinstall the drain plug(s) and remove the \u201cPLUG OUT\u201d tag", types:BOATS},
+   {id:"ih_bilge", t:"Drain and dry bilge; clean with bilge cleaner", types:BOATS},
+   {id:"ih_bpump", t:"Test bilge pump and float switch before storage", types:BOATS, isNew:true},
+   {id:"ih_items", t:"Remove life jackets, electronics, and valuables; return to customer or tag and store", inputs:[{k:"note",label:"Where stored",type:"text"}]},
+   {id:"ih_vinyl", t:"Clean and condition vinyl; prop cushions for airflow"},
+   {id:"ih_moist", t:"Place moisture absorbers / mildew control in cabin and storage lockers", spring:"Remove moisture absorbers"},
+   {id:"ih_rodent", t:"Place rodent deterrent in engine bay and storage compartments", spring:"Remove rodent deterrent", isNew:true},
+   {id:"ih_wash", t:"Wash hull, remove waterline stains, wax if ordered", photo:"opt"}
+ ]},
+ { id:"fresh", title:"Freshwater, head, and accessories", types:BOATS, equip:true, items:[
+   {id:"fw_tank", t:"Drain freshwater tank, water heater, and lines; pump RV antifreeze through faucets and shower", spring:"Flush antifreeze from freshwater system"},
+   {id:"fw_head", t:"Pump out and flush holding tank; add antifreeze to head"},
+   {id:"fw_live", t:"Blow out or antifreeze livewells and washdown pumps"}
+ ]},
+ { id:"cover", title:"Cover and storage", types:ALL, items:[
+   {id:"cv_grease", t:"Grease steering and control cables per manual"},
+   {id:"cv_plugs", t:"Plug exhaust outlets and air intakes; tag the helm \u201cREMOVE PLUGS BEFORE START\u201d", photo:"req", types:BOATS, spring:"Remove exhaust and air intake plugs and the helm tag"},
+   {id:"cv_cover", t:"Install cover or shrink-wrap with vents; support frame so snow can\u2019t pool", photo:"req", spring:"Remove shrink-wrap or cover"},
+   {id:"cv_loc", t:"Record storage location", photo:"opt", inputs:[{k:"loc",label:"Storage location",type:"text",job:"storageLocation"}]}
+ ]},
+ { id:"final", title:"Final checks", types:ALL, items:[
+   {id:"fc_tags", t:"All drains, plugs, and tags recorded on this work order"},
+   {id:"fc_keys", t:"Keys, drain plug, and removed items stored and labeled", inputs:[{k:"bin",label:"Key tag / bin #",type:"text"}]},
+   {id:"fc_photos", t:"Photos of the finished, covered boat", photo:"req", minPhotos:2}
+ ]}
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = { view: "login", filter: "active", q: "", jobs: null, jobsErr: null, job: null, photos: [], pendingPhotos: [], history: [],
+  tab: "check", open: new Set(), openItems: new Set(), crm: blankCrm(), tech: "", newHin: "", busy: false, saved: null, sheet: null };
+function blankCrm() { return { q: "", results: null, err: null, loading: false, cust: null, boats: null, manual: false, relink: false }; }
+let saveTimer = null, saving = false, saveAgain = false;
+const $app = document.getElementById("app");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const fmtDate = d => { if (!d) return ""; const x = typeof d === "number" ? new Date(d) : new Date(d + "T12:00:00"); return x.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); };
+const fmtTime = t => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function toast(msg, ms = 2800) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.remove("hide"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add("hide"), ms); }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+/* ============================================================
+   SERVER
+   ============================================================ */
+class ApiError extends Error { constructor(m, status, offline) { super(m); this.status = status; this.offline = offline; } }
+async function api(action, payload = {}) {
+  let res;
+  try {
+    res = await fetch("/api/winterize", { method: "POST", headers: { "Content-Type": "application/json", "x-tech-pin": lsGet("wl_pin") || "" }, body: JSON.stringify({ action, ...payload }) });
+  } catch (e) { throw new ApiError("No connection", 0, true); }
+  let d; try { d = await res.json(); } catch (e) { d = { ok: false, error: "Unexpected response from the server (" + res.status + ")" }; }
+  if (res.status === 401 && action !== "login") { signOut("Your PIN was changed or removed. Sign in again."); throw new ApiError("Signed out", 401); }
+  if (!d.ok) throw new ApiError(d.error || "Request failed", res.status);
+  return d;
+}
+function signOut(msg) { lsDel("wl_pin"); lsDel("wl_tech"); S.tech = ""; S.view = "login"; S.job = null; S.loginErr = msg || ""; render(); }
+
+/* ============================================================
+   HIN
+   ============================================================ */
+function normHin(h) { return String(h || "").toUpperCase().replace(/^US[-\s]?/, "").replace(/[^A-Z0-9]/g, ""); }
+function parseHin(h) {
+  h = normHin(h);
+  if (h.length !== 12) return { ok: false, hin: h, msg: h.length ? `${h.length} of 12 characters. US HINs are 12 characters.` : "" };
+  const ok = /^[A-Z0-9]{3}[A-Z0-9]{5}[A-L][0-9][0-9]{2}$/.test(h);
+  const my = parseInt(h.slice(10), 10); const year = my > 50 ? 1900 + my : 2000 + my;
+  return { ok, hin: h, year, msg: ok ? `Maker code ${h.slice(0, 3)}, model year ${year}` : "This doesn't match the standard HIN pattern. Double-check the plate." };
+}
+
+/* ============================================================
+   CHECKLIST LOGIC
+   ============================================================ */
+function sectionsFor(job) {
+  if (!job.type) return [];
+  return SECTIONS.filter(s => s.types.includes(job.type) && (!s.cooling || !job.cooling || s.cooling === job.cooling))
+    .map(s => ({ ...s, items: s.items.filter(i => (!i.types || i.types.includes(job.type)) && (!i.cooling || !job.cooling || i.cooling === job.cooling)) }))
+    .filter(s => s.items.length);
+}
+function liveItems(job) { const out = []; sectionsFor(job).forEach(s => { if (s.equip && job.notEquipped && job.notEquipped[s.id]) return; s.items.forEach(i => out.push({ ...i, sec: s.id, secTitle: s.title })); }); return out; }
+function st(job, id) { return (job.checks && job.checks[id] && job.checks[id].s) || ""; }
+function photosOf(id) { return [...S.photos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => p.jobId === S.job.id && p.item === id)]; }
+function progress(job) { const items = liveItems(job); if (!items.length) return { done: 0, total: 0, pct: 0 }; const done = items.filter(i => st(job, i.id)).length; return { done, total: items.length, pct: Math.round(done / items.length * 100) }; }
+function missingPhotos(job) { return liveItems(job).filter(i => i.photo === "req" && st(job, i.id) !== "na" && photosOf(i.id).length < (i.minPhotos || 1)); }
+function flagged(job) { return liveItems(job).filter(i => st(job, i.id) === "flag"); }
+function springList(job) { return liveItems(job).filter(i => i.spring && st(job, i.id) === "done").map(i => i.spring); }
+const IMP_IDS = ["cr_pump", "cc_imp", "od_imp", "ob_imp"];
+const impellerOf = j => { const id = IMP_IDS.find(x => j.checks && j.checks[x] && j.checks[x].v && j.checks[x].v.imp); return id ? j.checks[id].v.imp : ""; };
+
+function partFor(job, key) {
+  const p = PROFILES[job.profile] || {};
+  if (key === "stabilizer") return STABILIZER;
+  if (key === "oil") { if (p.kind === "inboard") { if (GM_BLOCKS.includes(job.block)) return p.oilGM || ""; if (FORD_BLOCKS.includes(job.block)) return p.oilFord || ""; return ""; } return p.oil || ""; }
+  if (key === "transDD") return job.type === "VD" ? (p.transV || "") : (p.transDD || "");
+  if (key === "transV") return p.transV || "";
+  if (key === "impeller") return p.impeller || "";
+  if (key === "fog") return p.fog || "";
+  return "";
+}
+const PART_LABEL = { stabilizer: "Fuel stabilizer", oil: "Engine oil", transDD: "Transmission fluid", transV: "V-drive gearbox fluid", impeller: "Impeller", fog: "Fogging oil" };
+function suggestedParts(job) { const keys = [...new Set(liveItems(job).map(i => i.part).filter(Boolean))]; return keys.map(k => ({ key: k, label: PART_LABEL[k], name: partFor(job, k) })); }
+function seedParts(job) {
+  const have = new Set((job.parts || []).map(p => p.key).filter(Boolean));
+  return [...(job.parts || []), ...suggestedParts(job).filter(s => !have.has(s.key)).map(s => ({ key: s.key, name: s.name || `${s.label} (not on reference sheet)`, qty: "", part: "" }))];
+}
+
+/* ============================================================
+   AIRTABLE SUMMARY (what shows up as columns)
+   ============================================================ */
+const STATUS_AT = { in_progress: "In Progress", awaiting_review: "Awaiting Review", complete: "Complete" };
+const STATUS_FROM_AT = { "In Progress": "in_progress", "Awaiting Review": "awaiting_review", "Complete": "complete" };
+const COOL_AT = { raw: "Raw-water", closed: "Closed (freshwater)" };
+function summaryOf(j) {
+  const p = progress(j);
+  const log = sectionsFor(j).map(s => {
+    if (s.equip && j.notEquipped && j.notEquipped[s.id]) return `${s.title}: not equipped`;
+    return s.title + "\n" + s.items.map(i => {
+      const c = (j.checks && j.checks[i.id]) || {}; const mk = c.s === "done" ? "[x]" : c.s === "na" ? "[N/A]" : c.s === "flag" ? "[!]" : "[ ]";
+      const vals = i.inputs ? i.inputs.map(inp => c.v && c.v[inp.k] ? inp.label + ": " + c.v[inp.k] : "").filter(Boolean).join("; ") : "";
+      const n = S.photos.filter(x => x.item === i.id).length;
+      return `  ${mk} ${i.t}${vals ? " (" + vals + ")" : ""}${c.s === "flag" && c.note ? " | " + c.note : ""}${n ? ` | ${n} photo${n > 1 ? "s" : ""}` : ""}${c.by && c.s ? " | " + c.by : ""}`;
+    }).join("\n");
+  }).join("\n\n");
+  const recs = recList(j);
+  const boatName = [j.year, j.makeModel || (j.boat && j.boat.name) || (j.type && TYPES[j.type].label)].filter(Boolean).join(" ") || "Boat";
+  const so = j.signoff || {};
+  return {
+    title: `${(j.dateIn || today()).slice(0, 4)} Winterization - ${(j.customer && j.customer.name) || "No customer"} - ${boatName}`,
+    status: STATUS_AT[j.status] || "In Progress", svc: j.type ? TYPES[j.type].label : undefined, hin: j.hin || "",
+    tech: so.techName || j.technician || "", reviewer: so.revName || "", dateIn: j.dateIn || "", dateDone: j.status === "complete" ? j.dateCompleted : "",
+    hours: j.engineHours, volts: j.batteryVoltage, coolant: j.coolantF, af: j.antifreezeGal,
+    fuel: j.checks && j.checks.fu_top && j.checks.fu_top.v && j.checks.fu_top.v.gal, labor: j.laborHours,
+    impeller: impellerOf(j), steps: `${p.done}/${p.total}`, log,
+    parts: (j.parts || []).filter(x => x.name).map(x => x.name + (x.qty ? " | Qty " + x.qty : "") + (x.part ? " | Part # " + x.part : "")).join("\n"),
+    recs: recs.map(r => r.pri + ": " + r.text).join("\n"), quote: recs.length > 0,
+    removed: j.removed || "", spring: springList(j).join("\n"), photoCount: S.photos.filter(p => p.id).length,
+    storage: j.storageLocation || "", report: !!j.reportAt
+  };
+}
+function boatSummary(j) {
+  const b = { hin: j.hin, year: j.year, engine: j.engine, serial: j.serial, svc: j.type ? TYPES[j.type].label : "", cooling: COOL_AT[j.cooling] || "",
+    profile: j.profile, hours: j.engineHours, storage: j.storageLocation, mmc: j.makeModel };
+  if (j.status === "complete") { b.lastWint = j.dateCompleted || today(); if (impellerOf(j) === "Replaced") b.impDate = b.lastWint; }
+  return b;
+}
+function recList(j) {
+  return [...flagged(j).map(i => ({ pri: "Found during service", text: i.t.split(";")[0] + ((j.checks[i.id] || {}).note ? ": " + j.checks[i.id].note : ""), id: i.id })),
+    ...(j.recs || []).filter(r => r.text)];
+}
+
+/* ============================================================
+   SAVE (to Airtable, with a copy on this device)
+   ============================================================ */
+function setSaving(t) { const el = document.getElementById("savestate"); if (el) el.textContent = t; }
+function stateOf(j) { const { _local, ...rest } = j; return rest; }
+function save(fields, rerender) {
+  Object.assign(S.job, fields); S.job.updatedAt = Date.now();
+  lsSet("wl_job_" + S.job.id, JSON.stringify(S.job));
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); setSaving("Saving\u2026");
+  if (rerender) render();
+}
+async function flush() {
+  if (!S.job) return;
+  if (saving) { saveAgain = true; return; }
+  saving = true; const j = S.job;
+  try {
+    await api("saveJob", { id: j.id, state: stateOf(j), summary: summaryOf(j), boat: boatSummary(j) });
+    S.saved = Date.now(); j._syncedAt = j.updatedAt; lsSet("wl_job_" + j.id, JSON.stringify(j)); setSaving("Saved");
+  } catch (e) {
+    if (e.offline) { setSaving("Offline: saved on this phone"); } else if (e.status !== 401) { setSaving("Not saved: " + e.message); }
+    clearTimeout(saveTimer); saveTimer = setTimeout(flush, e.offline ? 15000 : 30000);
+  }
+  saving = false;
+  if (saveAgain) { saveAgain = false; flush(); }
+}
+window.addEventListener("online", () => { if (S.job) flush(); drainPhotoQueue(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && S.job && saveTimer) { clearTimeout(saveTimer); flush(); } });
+
+/* ============================================================
+   PHOTOS: compress on the phone, queue on the device, upload to Airtable
+   ============================================================ */
+const IDB = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open("wl_winterize", 1); r.onupgradeneeded = () => r.result.createObjectStore("photos", { keyPath: "qid" }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction("photos", mode); const out = fn(t.objectStore("photos")); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error); }); };
+  return { put: v => tx("readwrite", s => s.put(v)).catch(() => {}), del: k => tx("readwrite", s => s.delete(k)).catch(() => {}), all: () => tx("readonly", s => s.getAll()).catch(() => []) };
+})();
+async function compress(file, max = 1600, q = 0.8) {
+  let src, w, h;
+  try { src = await createImageBitmap(file, { imageOrientation: "from-image" }); w = src.width; h = src.height; }
+  catch (e) { src = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); w = src.naturalWidth; h = src.naturalHeight; }
+  const sc = Math.min(1, max / Math.max(w, h)); const c = document.createElement("canvas"); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+  c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, "image/jpeg", q));
+}
+const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(b); });
+async function addPhotos(files, item) {
+  const it = item ? liveItems(S.job).find(i => i.id === item) : null;
+  const rec = !it && item ? (S.job.recs || []).find(r => r.id === item) : null;
+  for (const f of files) {
+    let blob; try { blob = await compress(f); } catch (e) { toast("That file isn't a photo the browser can read."); continue; }
+    const p = { qid: "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), jobId: S.job.id, hin: S.job.hin, item: item || "", sec: it ? it.secTitle : rec ? "Recommendation" : "",
+      step: it ? it.t : rec ? (rec.text || "Recommendation") : "General", caption: it ? it.t.split(";")[0] : rec ? "Recommendation" : "General", at: Date.now(), blob };
+    p.thumb = URL.createObjectURL(blob);
+    S.pendingPhotos.push(p); IDB.put({ ...p, thumb: undefined });
+  }
+  refreshAfterPhoto(item); drainPhotoQueue();
+}
+let draining = false;
+async function drainPhotoQueue() {
+  if (draining || !lsGet("wl_pin")) return; draining = true;
+  try {
+    const stored = await IDB.all();
+    stored.forEach(s => { if (!S.pendingPhotos.some(p => p.qid === s.qid)) { s.thumb = URL.createObjectURL(s.blob); S.pendingPhotos.push(s); } });
+    for (const p of [...S.pendingPhotos]) {
+      if (p.failed) continue;
+      try {
+        const r = await api("uploadPhoto", { jobId: p.jobId, hin: p.hin, item: p.item, sec: p.sec, step: p.step, caption: p.caption, at: p.at, contentType: "image/jpeg", data: await blobToB64(p.blob) });
+        S.pendingPhotos = S.pendingPhotos.filter(x => x.qid !== p.qid); IDB.del(p.qid);
+        if (S.job && S.job.id === p.jobId) { r.photo.thumb = p.thumb; S.photos.push(r.photo); refreshAfterPhoto(p.item); }
+      } catch (e) {
+        if (e.offline) { updateUploadLabel(); break; }
+        if (e.status === 401) break;
+        p.failed = e.message; IDB.put({ ...p, thumb: undefined });
+        toast("A photo didn't upload: " + e.message, 5000);
+      }
+    }
+  } finally { draining = false; updateUploadLabel(); if (S.job) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 800); } }
+}
+function updateUploadLabel() {
+  const n = S.pendingPhotos.filter(p => S.job && p.jobId === S.job.id).length;
+  const el = document.getElementById("savestate"); if (!el) return;
+  if (n) el.textContent = navigator.onLine === false ? `${n} photo${n > 1 ? "s" : ""} waiting for signal` : `Uploading ${n} photo${n > 1 ? "s" : ""}\u2026`;
+}
+function refreshAfterPhoto(item) {
+  if (S.view !== "job") return;
+  if (S.tab === "check" && item && document.getElementById("it_" + item)) rerenderItem(item); else if (S.tab !== "finish") render();
+  updateUploadLabel();
+}
+async function removePhoto(id) {
+  if (!confirm("Delete this photo from the job and from Airtable?")) return;
+  const q = S.pendingPhotos.find(p => p.qid === id);
+  if (q) { S.pendingPhotos = S.pendingPhotos.filter(p => p.qid !== id); IDB.del(id); render(); return; }
+  try { await api("deletePhoto", { id, jobId: S.job.id }); S.photos = S.photos.filter(p => p.id !== id); render(); save({}); }
+  catch (e) { toast(e.offline ? "You're offline. Delete it once you have signal." : "Couldn't delete: " + e.message, 4000); }
+}
+function camBtn(item, need, label) {
+  return `<label class="cam${need ? " need" : ""}"><input type="file" accept="image/*" capture="environment" multiple hidden data-photo="${esc(item || "")}">${I.cam}${esc(label || "Photo")}</label>`;
+}
+const thumbHtml = p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(p.cap || p.caption || "")}" loading="lazy"></span>`;
+
+/* ============================================================
+   ICONS + MARK
+   ============================================================ */
+const MARK = `<svg class="mark" viewBox="0 0 80 80" fill="none" aria-hidden="true"><circle cx="40" cy="34" r="22" stroke="#FFFFFF" stroke-width="2.5"/><line x1="8" y1="34" x2="72" y2="34" stroke="#8CC7D6" stroke-width="3"/><circle cx="40" cy="34" r="3" fill="#8CC7D6"/></svg>`;
+const ETCH = `<svg class="etch" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0,130 L85,65 L150,110 L250,38 L330,102 L420,52 L510,106 L600,32 L690,92 L780,56 L870,112 L960,46 L1050,98 L1140,64 L1200,102" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.3"/><path d="M0,138 Q30,132 60,138 T120,138 T180,138 T240,138 T300,138 T360,138 T420,138 T480,138 T540,138 T600,138 T660,138 T720,138 T780,138 T840,138 T900,138 T960,138 T1020,138 T1080,138 T1140,138 T1200,138" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.45"/></svg>`;
+const I = {
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  cam: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`,
+  chev: `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>`,
+  dots: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`,
+  boat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c3 2 6 2 9 0s6-2 9 0M5 14l2-6h10l2 6"/></svg>`,
+  list: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>`,
+  photo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg>`,
+  wrench: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14.5 5.5a4 4 0 0 0 4.9 4.9L21 12l-9 9-3-3 9-9-1.6-1.6a4 4 0 0 1-4.9-4.9z"/></svg>`,
+  flag: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>`,
+  sign: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 19c3-4 5-12 8-12s-2 10 1 10 3-4 5-4 2 3 4 3M3 22h18"/></svg>`
+};
+function ring(pct) { const r = 19, c = 2 * Math.PI * r; return `<svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="${pct}% complete" style="flex:none"><circle cx="23" cy="23" r="${r}" stroke="#DCE3E6" stroke-width="5" fill="none"/><circle cx="23" cy="23" r="${r}" stroke="${pct === 100 ? "#2F5D50" : "#8CC7D6"}" stroke-width="5" fill="none" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct / 100)}" transform="rotate(-90 23 23)" stroke-linecap="round"/><text x="23" y="27.5" text-anchor="middle" font-family="Work Sans,Arial" font-weight="600" font-size="12.5" fill="#134E5E">${pct}</text></svg>`; }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const STATUS = { in_progress: ["In progress", "prog"], awaiting_review: ["Needs review", "rev"], complete: ["Complete", "done"] };
+const chip = s => { const x = STATUS[s] || STATUS.in_progress; return `<span class="chip ${x[1]}">${x[0]}</span>`; };
+function render() {
+  if (S.view === "login") return renderLogin();
+  if (S.view === "home") return renderHome();
+  if (S.view === "new") return renderNew();
+  if (S.view === "job") return renderJob();
+}
+function topbar(back, title) {
+  return `<header class="top"><div class="in">${back ? `<button class="back" data-a="home" aria-label="Back to jobs">\u2039</button><h1>${esc(title)}</h1>` :
+    `<div class="brand">${MARK}<div><b>Waterline</b><br><span>Winterization checklist</span></div></div><button class="who-btn" data-a="signout">${esc(S.tech)} \u00b7 Sign out</button>`}</div></header>`;
+}
+function renderLogin() {
+  $app.innerHTML = `<main class="login"><div class="box">${MARK}<h1>Winterization checklist</h1><p>Staff only. Enter your tech PIN to start.</p>
+    <form id="loginf" autocomplete="off"><label class="f"><span style="color:#CFE6EC">Tech PIN</span><input class="in-t" id="pin" type="password" inputmode="numeric" autocomplete="current-password" required></label>
+    <button class="btn glacier block" type="submit" ${S.busy ? "disabled" : ""}>${S.busy ? "Checking\u2026" : "Sign in"}</button></form>
+    <p class="err" role="alert">${esc(S.loginErr || "")}</p></div>${ETCH}</main>`;
+  setTimeout(() => { const p = document.getElementById("pin"); p && p.focus(); }, 50);
+}
+function renderHome() {
+  const q = S.q.toLowerCase(); const jobs = S.jobs || [];
+  const f = S.filter;
+  const list = jobs.filter(j => f === "all" || (f === "active" ? j.status !== "Complete" : f === "review" ? j.status === "Awaiting Review" : j.status === "Complete"))
+    .filter(j => !q || [j.hin, j.customer, j.title, j.storage].join(" ").toLowerCase().includes(q));
+  const n = k => jobs.filter(j => j.status === k).length;
+  const pend = S.pendingPhotos.length;
+  $app.innerHTML = topbar(false) + `<main class="wrap">
+    <section class="hero"><h2>Winterization jobs</h2><p class="muted" style="margin:6px 0 16px">Start at the boat with its HIN. Everything you check, measure, and photograph saves to that boat in Airtable.</p>
+      <button class="btn block" data-a="new">Start a winterization</button></section>
+    ${pend ? `<div class="banner">${pend} photo${pend > 1 ? "s" : ""} waiting to upload. ${navigator.onLine === false ? "They'll send when you have signal." : `<button class="btn ghost" data-a="retryphotos">Try now</button>`}</div>` : ""}
+    <label class="f" style="margin-top:20px"><span>Find a job</span><input class="in-t" id="q" type="search" placeholder="HIN, customer, or storage spot" value="${esc(S.q)}"></label>
+    <div class="filters" role="group" aria-label="Filter jobs">${[["active", "Open", n("In Progress") + n("Awaiting Review")], ["review", "Needs review", n("Awaiting Review")], ["complete", "Complete", n("Complete")], ["all", "All", jobs.length]].map(([k, l, c]) => `<button data-filter="${k}" aria-pressed="${f === k}">${l} (${c})</button>`).join("")}</div>
+    ${S.jobsErr ? `<div class="banner">${esc(S.jobsErr)} <button class="btn ghost" data-a="reload">Try again</button></div>` : ""}
+    ${S.jobs === null && !S.jobsErr ? `<p class="empty">Loading jobs\u2026</p>` : `<div class="jobs">${list.map(j => { const [d, t] = (j.steps || "0/0").split("/").map(Number); const pct = t ? Math.round(d / t * 100) : 0; const parts = (j.title || "").split(" - ");
+      return `<button class="jobrow" data-st="${esc(j.status)}" data-open="${esc(j.id)}">${ring(pct)}<div class="meta"><b>${esc(j.customer || parts[1] || "No customer yet")}</b><div class="small muted">${esc([parts[2], j.svc].filter(Boolean).join(", "))}</div><div class="hin">${esc(j.hin || "NO HIN")}</div></div>${chip(STATUS_FROM_AT[j.status])}</button>`; }).join("")}</div>
+      ${list.length ? "" : `<p class="empty">${jobs.length ? "No jobs match." : "No jobs yet. Start one at the first boat."}</p>`}`}
+  </main>`;
+}
+function renderNew() {
+  const p = parseHin(S.newHin);
+  $app.innerHTML = topbar(true, "New winterization") + `<main class="wrap"><div class="card" style="margin-top:20px">
+    <h2>Boat identification</h2>
+    <p class="small muted" style="margin-top:-6px">The HIN is on the upper right of the transom (starboard side). On PWCs it's usually at the rear of the hull, near the pump.</p>
+    <label class="f"><span>Hull ID (HIN)</span><input class="in-t" id="hin" autocomplete="off" autocapitalize="characters" spellcheck="false" style="font-size:24px;font-weight:600;letter-spacing:.14em;text-transform:uppercase" value="${esc(S.newHin)}" placeholder="ABC12345D606"></label>
+    <p class="small" id="hinmsg" style="margin:-6px 0 16px;color:${p.ok ? "var(--pine)" : "var(--muted)"}">${esc(p.msg)}</p>
+    <button class="btn block" data-a="create" ${p.hin.length < 5 || S.busy ? "disabled" : ""}>${S.busy ? "Looking up this boat\u2026" : "Start job for this boat"}</button>
+    <p class="small muted" style="margin:12px 0 0">If the boat is already in Airtable, the customer and boat fill in automatically.</p>
+  </div></main>`;
+}
+function renderJob() {
+  const inked = {}; document.querySelectorAll("canvas.sig").forEach(cv => { if (cv._ink) inked[cv.dataset.sig] = cv.toDataURL("image/png"); });
+  const j = S.job; const p = progress(j); const miss = missingPhotos(j).length; const cust = j.customer && j.customer.name;
+  $app.innerHTML = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to jobs">\u2039</button><h1>${esc(TYPES[j.type] ? TYPES[j.type].label : "Winterization")}</h1><span class="saving" id="savestate">${S.saved ? "Saved" : ""}</span></div></header>
+  <div class="jobhead"><div class="in"><div class="plate"><small>HULL ID</small><b>${esc(j.hin || "NO HIN")}</b></div>
+    <div class="who"><b>${esc(cust || "Customer not linked")}</b><span>${esc([j.year, j.makeModel].filter(Boolean).join(" ") || "Add boat details")}</span></div>${chip(j.status)}</div></div>
+  <div class="rule" title="${p.pct}% complete"><i style="width:${p.pct}%"></i></div>
+  <main class="wrap">${S.tab === "info" ? tabInfo(j) : S.tab === "check" ? tabCheck(j) : S.tab === "photos" ? tabPhotos(j) : S.tab === "parts" ? tabParts(j) : tabFinish(j)}</main>
+  <nav class="tabs" aria-label="Job sections"><div class="in" role="tablist">
+    ${[["info", "Boat", I.boat, !j.type || !cust ? "!" : ""], ["check", "Checklist", I.list, ""], ["photos", "Photos", I.photo, miss || ""], ["parts", "Parts", I.wrench, ""], ["finish", "Finish", I.sign, ""]]
+      .map(([k, l, ic, b]) => `<button role="tab" aria-selected="${S.tab === k}" data-tab="${k}">${ic}${l}${b ? `<span class="badge">${b}</span>` : ""}</button>`).join("")}
+  </div></nav>${S.sheet ? S.sheet : ""}`;
+  updateUploadLabel();
+  if (S.tab === "finish") { initSig(); restoreInk(inked); }
+}
+function restoreInk(inked) {
+  Object.entries(inked).forEach(([who, url]) => { const cv = document.querySelector(`canvas.sig[data-sig="${who}"]`); if (!cv) return;
+    const im = new Image(); im.onload = () => { const ctx = cv.getContext("2d"); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(im, 0, 0, cv.width, cv.height); ctx.restore(); cv._ink = true; }; im.src = url; });
+}
+
+/* ---------- Boat tab ---------- */
+function field(k, label, type, opts) {
+  const v = S.job[k] == null ? "" : S.job[k];
+  if (type === "select") return `<label class="f"><span>${label}</span><select class="in-t" data-f="${k}"><option value="">Choose\u2026</option>${opts.map(o => { const [val, lab] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${String(v) === String(val) ? "selected" : ""}>${esc(lab)}</option>`; }).join("")}</select></label>`;
+  return `<label class="f"><span>${label}</span><input class="in-t" data-f="${k}" type="${type || "text"}" ${type === "number" ? 'inputmode="decimal" step="any"' : ""} value="${esc(v)}"></label>`;
+}
+function tabInfo(j) {
+  const c = j.customer; const prof = PROFILES[j.profile] || {};
+  let crm;
+  if (c && !S.crm.manual && !S.crm.cust && !S.crm.results && !S.crm.relink) {
+    crm = `<div class="card"><h2>Customer</h2><p style="margin:0"><b>${esc(c.name)}</b> <span class="chip">${c.src === "crm" ? "In Airtable" : "Entered by hand"}</span></p>
+      <p class="small muted" style="margin:4px 0 0">${esc([c.phone, c.email].filter(Boolean).join("  |  "))}${j.boat ? `<br>Boat record: ${esc(j.boat.name)}${j.boat.type ? " (" + esc(j.boat.type) + ")" : ""}` : ""}</p>
+      ${!j.boat && c.src === "crm" ? `<p class="banner small">No boat record linked, so the HIN and engine details won't be saved on a boat in Airtable.</p>` : ""}
+      ${c.src !== "crm" ? `<p class="banner small">Entered by hand, so this job isn't linked to a customer record. Add them in Airtable, then link them here.</p>` : ""}
+      <button class="btn ghost" data-a="relink" style="padding-left:0">Change customer or boat</button></div>`;
+  } else {
+    crm = `<div class="card"><h2>Link to customer</h2>${S.crm.manual ? `
+      <div class="grid2">${["name", "phone", "email"].map(k => `<label class="f"><span>${{ name: "Customer name", phone: "Phone", email: "Email" }[k]}</span><input class="in-t" data-m="${k}" value="${esc((c && c.src !== "crm" && c[k]) || "")}"></label>`).join("")}</div>
+      <button class="btn" data-a="savemanual">Save customer</button> <button class="btn ghost" data-a="crmback">Search Airtable instead</button>` : `
+      <p class="small muted" style="margin-top:-6px">Search Airtable customers by name, phone, or email.</p>
+      <div style="display:flex;gap:8px"><input class="in-t" id="crmq" type="search" placeholder="Customer name" value="${esc(S.crm.q)}" enterkeyhint="search"><button class="btn" data-a="crmsearch" ${S.crm.loading ? "disabled" : ""}>Search</button></div>
+      ${S.crm.loading ? `<p class="muted small">Looking up\u2026</p>` : ""}${S.crm.err ? `<div class="banner">${esc(S.crm.err)}</div>` : ""}
+      ${S.crm.cust ? `<p style="margin:14px 0 4px"><b>${esc(S.crm.cust.name)}</b>: pick the boat you're working on</p>
+          ${(S.crm.boats || []).map((b, i) => `<button class="res" data-boat="${i}"><b>${esc(b.name)}</b><span>${esc([b.mmc, b.type, b.drive, b.length ? b.length + " ft" : "", b.hin ? "HIN " + b.hin : ""].filter(Boolean).join(", "))}</span></button>`).join("")}
+          ${S.crm.boats ? `<button class="res" data-boat="-1"><b>Boat isn't listed</b><span>Link the customer only</span></button>` : ""}`
+        : S.crm.results ? (S.crm.results.length ? S.crm.results.map((r, i) => `<button class="res" data-cust="${i}"><b>${esc(r.name)}</b><span>${esc([r.phone, r.email].filter(Boolean).join("  |  "))}${r.boats.length ? "  |  " + r.boats.length + " boat" + (r.boats.length > 1 ? "s" : "") : ""}</span></button>`).join("") : `<p class="muted">No customers match \u201c${esc(S.crm.q)}\u201d.</p>`) : ""}
+      <button class="btn ghost" data-a="manual" style="padding-left:0">Not in Airtable? Enter by hand</button>${c ? `<button class="btn ghost" data-a="crmcancel">Cancel</button>` : ""}`}</div>`;
+  }
+  const hist = S.history || [];
+  return `${crm}
+  ${hist.length ? `<div class="card"><h2>This boat's history</h2>${hist.map(h => `<p style="margin:6px 0"><b>${esc(fmtDate(h.dateIn) || "Earlier job")}</b>: ${esc(h.status)}${h.hours ? `, ${esc(h.hours)} hrs` : ""}${h.impeller ? `, impeller ${esc(String(h.impeller).toLowerCase())}` : ""}${h.recs ? `<br><span class="small muted">${esc(h.recs.split("\n")[0])}</span>` : ""}</p>`).join("")}</div>` : ""}
+  <div class="card"><h2>Boat and engine</h2>
+    ${field("type", "Service type (sets the checklist)", "select", Object.entries(TYPES).map(([k, v]) => [k, v.label + ": " + v.short]))}
+    ${["DD", "VD", "IO"].includes(j.type) ? field("cooling", "Cooling system", "select", [["raw", "Raw-water cooled"], ["closed", "Closed (freshwater) cooled"]]) : ""}
+    ${["DD", "VD", "IO"].includes(j.type) && !j.cooling ? `<p class="banner" style="margin-top:-6px">Choose the cooling system. Until you do, both cooling checklists show.</p>` : ""}
+    <div class="grid2">${field("year", "Model year", "number")}${field("length", "Length (ft)", "number")}</div>
+    ${field("makeModel", "Make, model, and color", "text")}
+    <div class="grid2">${field("engine", "Engine make, model, HP", "text")}${field("serial", "Engine serial #", "text")}</div>
+    ${field("profile", "Parts profile (from the reference sheet)", "select", Object.keys(PROFILES))}
+    ${prof.kind === "inboard" ? field("block", "Engine block (sets oil type)", "select", [...GM_BLOCKS, ...FORD_BLOCKS, "Other"]) : ""}
+    <div class="grid2">${field("engineHours", "Engine hours", "number")}${field("storageLocation", "Storage location", "text")}</div>
+    <div class="grid2">${field("technician", "Technician", "text")}${field("dateIn", "Date in", "date")}</div>
+    ${field("hin", "HIN (correct if mistyped)", "text")}
+  </div>`;
+}
+
+/* ---------- Checklist tab ---------- */
+function tabCheck(j) {
+  if (!j.type) return `<div class="card" style="margin-top:20px"><h2>Choose the service type first</h2><p>The checklist depends on the drivetrain.</p><button class="btn" data-tab="info">Go to boat details</button></div>`;
+  const p = progress(j); const miss = missingPhotos(j);
+  return `<p class="muted" style="margin:16px 0 4px">${p.done} of ${p.total} steps done${miss.length ? `, ${miss.length} required photo${miss.length > 1 ? "s" : ""} still needed` : ""}. Follow the engine maker's manual where it differs.</p>
+  <details class="card" style="padding:13px 18px"><summary style="cursor:pointer;font-weight:600;color:var(--deep)">Safety before starting</summary>
+    <p class="small">Run engines only with water supplied (hose adapter or fake-a-lake). Ventilate the engine bay and run blowers before starting inboards. Keep antifreeze and fogging oil away from open flame. Disconnect the battery before electrical work.</p>
+    <p class="small"><b>Antifreeze:</b> propylene glycol (pink, marine/RV rated to \u221250\u00b0F or \u2212100\u00b0F). Never automotive ethylene glycol in raw-water systems.</p></details>
+  ${sectionsFor(j).map(s => secHtml(j, s)).join("")}`;
+}
+function secHtml(j, s) {
+  const na = s.equip && j.notEquipped && j.notEquipped[s.id];
+  const done = na ? s.items.length : s.items.filter(i => st(j, i.id)).length; const complete = done === s.items.length;
+  return `<details class="sec" data-sec="${s.id}" data-complete="${complete ? 1 : 0}" ${S.open.has(s.id) ? "open" : ""}>
+    <summary>${I.chev}<h3>${esc(s.title)}</h3><span class="cnt">${na ? "Not equipped" : done + "/" + s.items.length}</span></summary>
+    ${s.note ? `<p class="secnote">${esc(s.note)}</p>` : ""}
+    ${s.equip ? `<div class="secbar"><button class="btn sec" style="min-height:40px;padding:6px 14px;font-size:14px" data-na-sec="${s.id}">${na ? "Boat has this equipment" : "Boat doesn't have this"}</button></div>` : ""}
+    ${na ? "" : s.items.map(i => itemHtml(j, i)).join("")}</details>`;
+}
+function itemHtml(j, i) {
+  const c = (j.checks && j.checks[i.id]) || {}; const s = c.s || ""; const ph = photosOf(i.id); const need = i.minPhotos || 1;
+  const ex = S.openItems.has(i.id) || s === "flag";
+  const photoTag = i.photo === "req" ? `<span class="req ${ph.length >= need ? "ok" : ""}">${ph.length >= need ? "Photo taken" : "Photo required" + (need > 1 ? " (" + ph.length + "/" + need + ")" : "")}</span>` : "";
+  const pn = i.part ? partFor(j, i.part) : "";
+  return `<div class="item" data-s="${s}" id="it_${i.id}"><div class="irow">
+      <button class="tick box" data-tick="${i.id}" aria-label="${s === "done" ? "Mark not done" : "Mark done"}: ${esc(i.t)}" aria-pressed="${s === "done"}">${s === "flag" ? I.flag : I.check}</button>
+      <div class="itxt">${esc(i.t)}${photoTag}${pn ? `<span class="hint">Use: ${esc(pn)}</span>` : (i.part && j.profile ? `<span class="hint">No ${esc(PART_LABEL[i.part].toLowerCase())} on the reference sheet for this profile</span>` : "")}${c.by && s ? `<span class="hint">${s === "na" ? "N/A" : s === "flag" ? "Flagged" : "Done"} by ${esc(c.by)}</span>` : ""}</div>
+      <button class="tick more" data-more="${i.id}" aria-label="More options" aria-expanded="${ex}">${I.dots}</button></div>
+    ${i.inputs ? `<div class="ival">${i.inputs.map(inp => { const v = (c.v && c.v[inp.k]) != null ? c.v[inp.k] : (inp.job && j[inp.job] != null ? j[inp.job] : "");
+      const attrs = `data-iv="${i.id}" data-k="${inp.k}" ${inp.job ? `data-job="${inp.job}"` : ""}`;
+      return inp.type === "select" ? `<label><span>${esc(inp.label)}</span><select class="in-t" ${attrs}><option value=""></option>${inp.opts.map(o => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`
+        : inp.type === "text" ? `<label style="flex-basis:100%"><span>${esc(inp.label)}</span><input class="in-t" ${attrs} value="${esc(v)}"></label>`
+        : `<label><span>${esc(inp.label)}</span><input class="in-t" type="number" inputmode="decimal" step="any" ${attrs} value="${esc(v)}"></label>`; }).join("")}</div>` : ""}
+    ${ph.length ? `<div class="thumbs">${ph.map(thumbHtml).join("")}</div>` : ""}
+    ${(i.photo || ex) ? `<div class="iact">${camBtn(i.id, i.photo === "req" && ph.length < need, ph.length ? "Add photo" : "Take photo")}${ex ? `<button data-na="${i.id}">${s === "na" ? "Undo N/A" : "Not applicable"}</button><button data-flag="${i.id}">${I.flag}${s === "flag" ? "Clear flag" : "Needs attention"}</button>` : ""}</div>` : ""}
+    ${s === "flag" ? `<div class="flagnote"><label><span class="small muted">What needs attention? This goes on the customer's recommendations.</span><textarea class="in-t" data-fnote="${i.id}" rows="2">${esc(c.note || "")}</textarea></label></div>` : ""}
+  </div>`;
+}
+
+/* ---------- Photos tab ---------- */
+function tabPhotos(j) {
+  const req = liveItems(j).filter(i => i.photo === "req" && st(j, i.id) !== "na");
+  const all = [...S.photos, ...S.pendingPhotos.filter(p => p.jobId === j.id)].sort((a, b) => a.at - b.at);
+  return `<div class="card" style="margin-top:20px"><h2>Required photo checkpoints</h2>
+    <p class="small muted" style="margin-top:-6px">These go on the customer report and protect you if a question comes up in spring.</p>
+    ${req.map(i => { const n = photosOf(i.id).length, need = i.minPhotos || 1; return `<div class="cp"><span class="dot ${n >= need ? "ok" : ""}"></span><span class="t">${esc(i.t.split(";")[0])}<br><span class="small muted">${esc(i.secTitle)}${need > 1 ? `, ${n}/${need} photos` : ""}</span></span><span class="iact" style="margin:0">${camBtn(i.id, n < need, n ? "More" : "Take")}</span></div>`; }).join("") || `<p class="muted">Choose the service type to see checkpoints.</p>`}
+  </div>
+  <div class="card"><h2>All photos (${all.length})</h2>
+    <div class="iact" style="margin:0 0 14px">${camBtn("", false, "Add a general photo")}</div>
+    <div class="pgrid">${all.map(p => `<figure><img src="${esc(p.thumb || p.url || "")}" alt="${esc(p.cap || p.caption)}" loading="lazy"><figcaption>${p.qid ? `<span class="small muted">${p.failed ? "Upload failed: " + esc(p.failed) : "Waiting to upload"}</span>` : `<input data-cap="${esc(p.id)}" value="${esc(p.cap)}" aria-label="Photo caption">`}</figcaption>
+      <div class="pbar"><span>${esc(fmtTime(p.at))}</span><button data-delphoto="${esc(p.id || p.qid)}">Delete</button></div></figure>`).join("")}</div>
+    ${all.length ? "" : `<p class="muted">No photos yet.</p>`}
+    <p class="small muted" style="margin:12px 0 0">Photos save to the Winterization Photos table in Airtable, linked to this job.</p>
+  </div>`;
+}
+
+/* ---------- Parts tab ---------- */
+function tabParts(j) {
+  const parts = j.parts || []; const fl = flagged(j); const recs = j.recs || [];
+  const unseeded = suggestedParts(j).filter(s => !parts.some(p => p.key === s.key));
+  return `<div class="card" style="margin-top:20px"><h2>Parts and fluids used</h2>
+    ${j.profile ? "" : `<p class="banner">Set the parts profile on the Boat tab to fill in fluids from the reference sheet.</p>`}
+    <div class="tblwrap"><table class="parts"><thead><tr><th>Part / fluid</th><th>Qty</th><th>Part #</th><th></th></tr></thead><tbody>
+      ${parts.map((p, i) => `<tr><td><input data-part="${i}" data-k="name" value="${esc(p.name)}" aria-label="Part name"></td><td class="q"><input data-part="${i}" data-k="qty" inputmode="decimal" value="${esc(p.qty)}" aria-label="Quantity"></td><td><input data-part="${i}" data-k="part" value="${esc(p.part)}" aria-label="Part number"></td><td class="x"><button class="del" data-delpart="${i}" aria-label="Remove">\u00d7</button></td></tr>`).join("")}
+    </tbody></table></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sec" data-a="addpart">Add a part</button>${unseeded.length ? `<button class="btn sec" data-a="seedparts">Add ${unseeded.length} suggested</button>` : ""}</div>
+  </div>
+  <div class="card"><h2>Recommended repairs</h2>
+    <p class="small muted" style="margin-top:-6px">These print on the customer report so you can quote them before spring.</p>
+    ${fl.length ? `<p style="margin:10px 0 4px;font-weight:600">Flagged on the checklist</p>${fl.map(i => `<div class="rec"><b>${esc(i.t.split(";")[0])}</b><div class="small">${esc((j.checks[i.id] && j.checks[i.id].note) || "No note yet. Add one on the checklist.")}</div></div>`).join("")}` : ""}
+    ${recs.map((r, i) => `<div class="rec"><div class="top2"><select data-rec="${i}" data-k="pri" aria-label="Priority">${["Safety: fix before use", "Before spring launch", "Monitor"].map(o => `<option ${r.pri === o ? "selected" : ""}>${o}</option>`).join("")}</select><span style="flex:1"></span><button class="btn ghost" data-delrec="${i}" style="color:var(--danger)">Remove</button></div>
+      <textarea class="in-t" data-rec="${i}" data-k="text" rows="2" placeholder="What you found and what you recommend">${esc(r.text)}</textarea>
+      ${photosOf(r.id).length ? `<div class="thumbs" style="margin-left:0">${photosOf(r.id).map(thumbHtml).join("")}</div>` : ""}
+      <div class="iact" style="margin-left:0">${camBtn(r.id, false, "Photo of the problem")}</div></div>`).join("")}
+    <button class="btn sec" data-a="addrec">Add a recommendation</button>
+  </div>
+  <div class="card"><h2>Items removed or stored</h2><textarea class="in-t" data-f="removed" rows="3" placeholder="Life jackets to customer; stereo remote in bin 14\u2026">${esc(j.removed || "")}</textarea></div>`;
+}
+
+/* ---------- Finish tab ---------- */
+function tabFinish(j) {
+  const miss = missingPhotos(j); const open = liveItems(j).filter(i => !st(j, i.id));
+  const ready = j.type && open.length === 0 && miss.length === 0; const sp = springList(j); const so = j.signoff || {};
+  const pend = S.pendingPhotos.filter(p => p.jobId === j.id).length;
+  return `<div class="card" style="margin-top:20px"><h2>Ready to sign off?</h2>
+    <div class="cp"><span class="dot ${j.customer ? "ok" : ""}"></span><span class="t">Customer linked${j.customer ? ": " + esc(j.customer.name) : ""}</span></div>
+    <div class="cp"><span class="dot ${open.length ? "" : "ok"}"></span><span class="t">${open.length ? open.length + " checklist step" + (open.length > 1 ? "s" : "") + " not marked done, N/A, or flagged" : "Every checklist step resolved"}</span>${open.length ? `<button class="btn ghost" data-jump="${open[0].id}">Next</button>` : ""}</div>
+    <div class="cp"><span class="dot ${miss.length ? "" : "ok"}"></span><span class="t">${miss.length ? miss.length + " required photo" + (miss.length > 1 ? "s" : "") + " missing" : "All required photos taken"}</span>${miss.length ? `<button class="btn ghost" data-tab="photos">Show</button>` : ""}</div>
+    ${pend ? `<div class="cp"><span class="dot"></span><span class="t">${pend} photo${pend > 1 ? "s" : ""} still uploading</span></div>` : ""}
+    <div class="cp"><span class="dot ${so.techSig ? "ok" : ""}"></span><span class="t">Technician signature</span></div>
+    ${field("laborHours", "Labor hours", "number")}
+  </div>
+  <div class="card"><h2>Technician sign-off</h2>${sigBlock("tech", so.techName || j.technician || S.tech, so.techSig, so.techAt)}
+    ${j.status === "in_progress" ? `${ready ? "" : `<label class="f" style="margin-top:12px"><span>Submitting with open items or missing photos? Say why.</span><textarea class="in-t" data-f="overrideNote" rows="2">${esc(j.overrideNote || "")}</textarea></label>`}
+      <button class="btn block" data-a="submit" ${so.techSig && (ready || (j.overrideNote || "").trim()) ? "" : "disabled"}>Submit for review</button>` : ""}</div>
+  ${j.status !== "in_progress" ? `<div class="card"><h2>Reviewer sign-off</h2><p class="small muted" style="margin-top:-6px">A second person checks drains, plugs, tags, and the cover before the job closes.</p>
+    ${sigBlock("rev", so.revName || (j.status === "awaiting_review" && S.tech !== (so.techName || j.technician) ? S.tech : ""), so.revSig, so.revAt)}
+    ${j.status === "awaiting_review" ? `<button class="btn block" data-a="complete" ${so.revSig ? "" : "disabled"}>Mark job complete</button><button class="btn ghost block" data-a="reopen">Send back to technician</button>` : `<p style="margin:10px 0 0">Completed ${esc(fmtDate(j.dateCompleted))}. <button class="btn ghost" data-a="reopen">Reopen</button></p>`}</div>` : ""}
+  <div class="card"><h2>Documents</h2>
+    <p class="small muted" style="margin-top:-6px">${j.status === "complete" ? "Ready to send. The customer report is also saved to this job in Airtable." : "You can preview now. Reports print as a draft until the job is complete."}</p>
+    <div style="display:grid;gap:10px"><button class="btn" data-a="pdf-customer">Customer report (PDF)</button><button class="btn sec" data-a="pdf-full">Full work order (PDF)</button></div>
+    ${j.reportAt ? `<p class="small muted" style="margin:10px 0 0">Customer report last made ${esc(fmtTime(j.reportAt))}</p>` : ""}</div>
+  <div class="card"><h2>Spring launch list</h2><p class="small muted" style="margin-top:-6px">Built from what was done. Prints on both documents.</p>
+    ${sp.length ? `<ul class="list-plain">${sp.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : `<p class="muted">Fills in as you complete steps.</p>`}</div>
+  <p class="small muted" style="text-align:center">${S.saved ? "Saved to Airtable " + esc(fmtTime(S.saved)) : ""}</p>`;
+}
+function sigBlock(who, name, has, at) {
+  const editable = who === "tech" ? S.job.status === "in_progress" : S.job.status === "awaiting_review";
+  const data = who === "tech" ? (S.job.signoff || {}).techSigData : (S.job.signoff || {}).revSigData;
+  return `<label class="f"><span>Name</span><input class="in-t" data-signame="${who}" value="${esc(name)}" ${editable ? "" : "disabled"}></label>
+  ${has ? `<img class="sigimg" src="${esc(data || "")}" alt="Signature of ${esc(name)}"><p class="small muted" style="margin:6px 0 0">Signed ${esc(fmtTime(at))}${editable ? ` <button class="btn ghost" data-sigclear="${who}">Sign again</button>` : ""}</p>`
+    : editable ? `<canvas class="sig" data-sig="${who}" aria-label="Sign here with your finger"></canvas><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-sigsave="${who}">Save signature</button><button class="btn ghost" data-sigwipe="${who}">Clear</button></div>` : `<p class="muted">Not signed.</p>`}`;
+}
+function initSig() {
+  document.querySelectorAll("canvas.sig").forEach(cv => {
+    if (cv._init) return; cv._init = 1;
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; cv.width = r.width * dpr; cv.height = r.height * dpr;
+    const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr); ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#16232B";
+    let down = false; cv._ink = false; const pt = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    cv.addEventListener("pointerdown", e => { down = true; cv.setPointerCapture(e.pointerId); const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(x, y); });
+    cv.addEventListener("pointermove", e => { if (!down) return; const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke(); cv._ink = true; });
+    cv.addEventListener("pointerup", () => down = false); cv.addEventListener("pointercancel", () => down = false);
+  });
+}
+async function saveSig(who) {
+  const cv = document.querySelector(`canvas[data-sig="${who}"]`); if (!cv || !cv._ink) { toast("Sign in the box first."); return; }
+  const nm = ((document.querySelector(`[data-signame="${who}"]`) || {}).value || "").trim(); if (!nm) { toast("Add your name first."); return; }
+  const w = 480, h = Math.round(w * cv.height / cv.width); const out = document.createElement("canvas"); out.width = w; out.height = h;
+  const o = out.getContext("2d"); o.fillStyle = "#fff"; o.fillRect(0, 0, w, h); o.drawImage(cv, 0, 0, w, h);
+  const dataUrl = out.toDataURL("image/png");
+  const so = { ...(S.job.signoff || {}) };
+  if (who === "tech") Object.assign(so, { techName: nm, techSig: true, techAt: Date.now(), techSigData: dataUrl }); else Object.assign(so, { revName: nm, revSig: true, revAt: Date.now(), revSigData: dataUrl });
+  save({ signoff: so }, true); toast("Signature saved");
+  api("uploadFile", { jobId: S.job.id, kind: who === "tech" ? "techSig" : "revSig", data: dataUrl.split(",")[1], filename: `${S.job.hin || "boat"}-${who}-signature.png` }).catch(() => {});
+}
+
+/* ============================================================
+   CRM
+   ============================================================ */
+async function crmSearch() {
+  const q = S.crm.q.trim(); if (!q) return;
+  Object.assign(S.crm, { loading: true, err: null, results: null, cust: null, boats: null }); render();
+  try { S.crm.results = (await api("searchCustomers", { q })).customers; }
+  catch (e) { S.crm.err = e.offline ? "You're offline. Customer search needs signal; you can enter them by hand." : "Search failed: " + e.message; }
+  S.crm.loading = false; render();
+}
+async function crmPick(c) {
+  Object.assign(S.crm, { cust: c, boats: null, err: null });
+  if (!c.boats.length) { S.crm.boats = []; render(); return; }
+  S.crm.loading = true; render();
+  try { S.crm.boats = (await api("customerBoats", { ids: c.boats })).boats; } catch (e) { S.crm.err = "Couldn't load boats: " + e.message; S.crm.boats = []; }
+  S.crm.loading = false; render();
+}
+function guessType(b) {
+  const s = ((b.type || "") + " " + (b.drive || "") + " " + (b.name || "")).toLowerCase();
+  if (/v-?drive|wake|surf/.test(s)) return "VD"; if (/direct/.test(s)) return "DD"; if (/i\/o|sterndrive|stern drive|inboard\/outboard/.test(s)) return "IO";
+  if (/pontoon|tritoon/.test(s)) return "PT"; if (/pwc|jet ski|sea-doo|waverunner|sit-down|stand-up/.test(s)) return "PWC"; if (/outboard/.test(s)) return "OB"; return "";
+}
+function applyCrm(job, c, b) {
+  job.customer = { id: c.id, name: c.name, phone: c.phone, email: c.email, address: c.address, src: "crm" };
+  job.boat = b ? { id: b.id, name: b.name, type: b.type, drive: b.drive } : null;
+  if (b) { if (!job.makeModel && b.mmc) job.makeModel = b.mmc; if (!job.length && b.length) job.length = b.length; if (!job.type) { const t = guessType(b); if (t) job.type = t; } }
+}
+function linkBoat(b) {
+  const c = S.crm.cust; const f = {}; applyCrm(f, c, b);
+  const j = S.job; ["makeModel", "length", "type"].forEach(k => { if (j[k]) delete f[k]; });
+  S.crm = blankCrm(); if (f.type) Object.assign(j, { type: f.type });
+  save({ ...f, parts: seedParts({ ...j, ...f }) }, true);
+  if (b && b.hin && j.hin && b.hin !== j.hin) toast(`Heads up: Airtable has HIN ${b.hin} for this boat. Saving replaces it with ${j.hin}.`, 6000);
+  else toast(b ? "Linked to " + c.name + "'s " + b.name : "Linked to " + c.name);
+}
+
+/* ============================================================
+   JOBS
+   ============================================================ */
+async function loadJobs() {
+  S.jobsErr = null;
+  try { S.jobs = (await api("listJobs")).jobs; }
+  catch (e) { if (e.status === 401) return; S.jobsErr = e.offline ? "You're offline. Jobs will load when you have signal." : "Couldn't load jobs: " + e.message; }
+  if (S.view === "home") render();
+}
+async function createJob() {
+  const hin = normHin(S.newHin); const p = parseHin(hin); S.busy = true; render();
+  let pre;
+  try { pre = await api("prefill", { hin }); }
+  catch (e) { S.busy = false; render(); toast(e.offline ? "You need signal to start a job." : "Couldn't look up the boat: " + e.message, 4500); return; }
+  if (pre.openJobId && confirm("This boat already has an open job. Open it instead of starting a new one?")) { S.busy = false; openJob(pre.openJobId); return; }
+  const prev = pre.prev || {};
+  const keep = ["customer", "boat", "type", "cooling", "profile", "block", "engine", "serial", "year", "makeModel", "length"];
+  const job = { hin, status: "in_progress", dateIn: today(), technician: S.tech, checks: {}, parts: [], recs: [], notEquipped: {}, signoff: {}, createdAt: Date.now() };
+  keep.forEach(k => { if (prev[k]) job[k] = prev[k]; });
+  if (!job.year && p.ok) job.year = p.year;
+  if (!job.customer && pre.crm) applyCrm(job, pre.crm.customer, pre.crm.boat);
+  job.parts = seedParts(job);
+  try {
+    S.photos = []; const r = await api("createJob", { state: job, summary: summaryOf(job) });
+    job.id = r.id;
+  } catch (e) { S.busy = false; render(); toast("Couldn't create the job: " + e.message, 4500); return; }
+  S.busy = false; S.newHin = ""; S.job = job; S.history = []; S.view = "job"; S.tab = job.customer && job.type ? "check" : "info"; S.open = new Set(["intake"]); S.crm = blankCrm();
+  render(); window.scrollTo(0, 0); flush();
+  toast(pre.prev ? "Returning boat: details filled from last season" : pre.crm ? `Found in Airtable: ${pre.crm.customer.name}` : "Job started", 3500);
+  api("getJob", { id: job.id }).then(r => { if (S.job && S.job.id === job.id) { S.history = r.history || []; } }).catch(() => {});
+}
+async function openJob(id) {
+  S.view = "job"; S.tab = "info"; $app.innerHTML = topbar(true, "Loading\u2026") + `<main class="wrap"><p class="empty">Opening job\u2026</p></main>`;
+  let r;
+  try { r = await api("getJob", { id }); }
+  catch (e) {
+    const local = lsGet("wl_job_" + id);
+    if (e.offline && local) { r = { id, state: JSON.parse(local), photos: [], history: [] }; toast("Offline: showing the copy saved on this phone.", 4000); }
+    else { S.view = "home"; render(); toast(e.offline ? "You need signal to open this job." : "Couldn't open the job: " + e.message, 4500); return; }
+  }
+  let state = r.state || {}; const local = lsGet("wl_job_" + id);
+  if (local) { try { const l = JSON.parse(local); if ((l.updatedAt || 0) > (state.updatedAt || 0)) { state = l; setTimeout(flush, 500); } } catch (e) {} }
+  state.id = id; if (!state.status) state.status = "in_progress";
+  S.job = state; S.photos = r.photos || []; S.history = r.history || []; S.saved = null; S.crm = blankCrm();
+  S.tab = state.type && state.customer ? "check" : "info"; S.open = new Set(); const next = liveItems(state).find(i => !st(state, i.id)); if (next) S.open.add(next.sec);
+  render(); window.scrollTo(0, 0);
+}
+function setCheck(id, patch) {
+  const checks = { ...(S.job.checks || {}) }; const cur = { ...(checks[id] || {}) }; Object.assign(cur, patch);
+  if (patch.s !== undefined) { cur.by = S.tech; cur.at = Date.now(); } checks[id] = cur; save({ checks });
+}
+function rerenderItem(id) {
+  const el = document.getElementById("it_" + id); const it = liveItems(S.job).find(i => i.id === id);
+  if (el && it) { const secEl = el.closest("details.sec"); const s = sectionsFor(S.job).find(x => x.id === it.sec); if (secEl && s) { const tmp = document.createElement("div"); tmp.innerHTML = secHtml(S.job, s); secEl.replaceWith(tmp.firstElementChild); } }
+  const p = progress(S.job); const bar = document.querySelector(".rule i"); if (bar) bar.style.width = p.pct + "%";
+  const b = document.querySelector('[data-tab="photos"] .badge'); const m = missingPhotos(S.job).length; if (b) { if (m) b.textContent = m; else b.remove(); }
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "loginf") return; e.preventDefault();
+  const pin = document.getElementById("pin").value.trim(); if (!pin) return;
+  lsSet("wl_pin", pin); S.busy = true; S.loginErr = ""; render();
+  try { const r = await api("login"); S.tech = r.tech; lsSet("wl_tech", r.tech); S.busy = false; S.view = "home"; render(); loadJobs(); drainPhotoQueue(); }
+  catch (err) { lsDel("wl_pin"); S.busy = false; S.loginErr = err.offline ? "No connection. Sign in once you have signal." : err.status === 401 ? "That PIN isn't recognized." : err.message; render(); }
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("button,summary"); if (!t) return; const d = t.dataset;
+  if (t.tagName === "SUMMARY") { const box = t.parentElement; const sec = box.dataset.sec; if (sec) setTimeout(() => { box.open ? S.open.add(sec) : S.open.delete(sec); }); return; }
+  if (d.a === "signout") { if (confirm("Sign out on this device?")) signOut(); return; }
+  if (d.a === "home") { if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } S.view = "home"; S.job = null; S.sheet = null; render(); loadJobs(); window.scrollTo(0, 0); return; }
+  if (d.a === "reload") { S.jobs = null; render(); loadJobs(); return; }
+  if (d.a === "retryphotos") { S.pendingPhotos.forEach(p => { delete p.failed; }); drainPhotoQueue(); return; }
+  if (d.a === "new") { S.view = "new"; render(); setTimeout(() => { const h = document.getElementById("hin"); h && h.focus(); }, 50); return; }
+  if (d.a === "create") { createJob(); return; }
+  if (d.open) { openJob(d.open); return; }
+  if (d.filter) { S.filter = d.filter; render(); return; }
+  if (d.a === "closesheet") { S.sheet = null; render(); return; }
+  if (d.tab) { S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (!S.job) return;
+  if (d.tick) { setCheck(d.tick, { s: st(S.job, d.tick) === "done" ? "" : "done" }); rerenderItem(d.tick); return; }
+  if (d.more) { S.openItems.has(d.more) ? S.openItems.delete(d.more) : S.openItems.add(d.more); rerenderItem(d.more); return; }
+  if (d.na) { setCheck(d.na, { s: st(S.job, d.na) === "na" ? "" : "na" }); rerenderItem(d.na); return; }
+  if (d.flag) { setCheck(d.flag, { s: st(S.job, d.flag) === "flag" ? "" : "flag" }); S.openItems.delete(d.flag); rerenderItem(d.flag); return; }
+  if (d.naSec) { const ne = { ...(S.job.notEquipped || {}) }; ne[d.naSec] = !ne[d.naSec]; save({ notEquipped: ne }, true); return; }
+  if (d.jump) { const it = liveItems(S.job).find(i => i.id === d.jump); S.tab = "check"; S.open.add(it.sec); render(); setTimeout(() => { const el = document.getElementById("it_" + d.jump); el && el.scrollIntoView({ block: "center" }); }, 60); return; }
+  if (d.a === "crmsearch") { S.crm.q = (document.getElementById("crmq") || {}).value || ""; crmSearch(); return; }
+  if (d.cust !== undefined) { crmPick(S.crm.results[+d.cust]); return; }
+  if (d.boat !== undefined) { linkBoat(+d.boat >= 0 ? S.crm.boats[+d.boat] : null); return; }
+  if (d.a === "relink") { S.crm = { ...blankCrm(), relink: true }; render(); return; }
+  if (d.a === "crmcancel") { S.crm = blankCrm(); render(); return; }
+  if (d.a === "manual") { S.crm.manual = true; render(); return; }
+  if (d.a === "crmback") { S.crm = { ...blankCrm(), relink: true }; render(); return; }
+  if (d.a === "savemanual") { const g = k => ((document.querySelector(`[data-m="${k}"]`) || {}).value || "").trim(); if (!g("name")) { toast("Add the customer's name."); return; }
+    S.crm = blankCrm(); save({ customer: { name: g("name"), phone: g("phone"), email: g("email"), src: "manual" }, boat: null }, true); return; }
+  if (d.a === "addpart") { save({ parts: [...(S.job.parts || []), { name: "", qty: "", part: "" }] }, true); return; }
+  if (d.a === "seedparts") { save({ parts: seedParts(S.job) }, true); return; }
+  if (d.delpart !== undefined) { const ps = [...S.job.parts]; ps.splice(+d.delpart, 1); save({ parts: ps }, true); return; }
+  if (d.a === "addrec") { save({ recs: [...(S.job.recs || []), { id: "rc_" + Date.now().toString(36), text: "", pri: "Before spring launch" }] }, true); return; }
+  if (d.delrec !== undefined) { const rs = [...S.job.recs]; rs.splice(+d.delrec, 1); save({ recs: rs }, true); return; }
+  if (d.delphoto) { removePhoto(d.delphoto); return; }
+  if (d.sigsave) { saveSig(d.sigsave); return; }
+  if (d.sigwipe) { render(); return; }
+  if (d.sigclear) { const so = { ...S.job.signoff }; if (d.sigclear === "tech") { delete so.techSig; delete so.techSigData; } else { delete so.revSig; delete so.revSigData; } save({ signoff: so }, true); return; }
+  if (d.a === "submit") { save({ status: "awaiting_review", submittedAt: Date.now() }, true); clearTimeout(saveTimer); flush(); toast("Submitted for review"); return; }
+  if (d.a === "complete") { save({ status: "complete", dateCompleted: today() }, true); clearTimeout(saveTimer); flush(); toast("Job complete. Boat record updated in Airtable."); return; }
+  if (d.a === "reopen") { if (!confirm("Send this job back to in progress?")) return; const so = { ...S.job.signoff }; delete so.revSig; delete so.revSigData; save({ status: "in_progress", signoff: so }, true); return; }
+  if (d.a === "pdf-customer") { makePdf("customer"); return; }
+  if (d.a === "pdf-full") { makePdf("full"); return; }
+  if (d.a === "sharepdf") { sharePdf(); return; }
+});
+document.addEventListener("input", e => {
+  const t = e.target, d = t.dataset;
+  if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; renderHome(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); return; }
+  if (t.id === "hin") { S.newHin = t.value; const p = parseHin(t.value); const m = document.getElementById("hinmsg"); m.textContent = p.msg; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; document.querySelector('[data-a="create"]').disabled = p.hin.length < 5; return; }
+  if (t.id === "crmq") { S.crm.q = t.value; return; }
+  if (!S.job) return;
+  if (d.f && t.tagName !== "SELECT") { let v = t.value; if (d.f === "hin") v = normHin(v); save({ [d.f]: v });
+    if (d.f === "overrideNote") { const b = document.querySelector('[data-a="submit"]'); if (b) b.disabled = !((S.job.signoff || {}).techSig && v.trim()); } return; }
+  if (d.iv && t.tagName !== "SELECT") { const c = (S.job.checks && S.job.checks[d.iv]) || {}; setCheck(d.iv, { v: { ...(c.v || {}), [d.k]: t.value } }); if (d.job) save({ [d.job]: t.value }); return; }
+  if (d.fnote) { setCheck(d.fnote, { note: t.value }); return; }
+  if (d.part !== undefined) { save({ parts: S.job.parts.map((p, i) => i === +d.part ? { ...p, [d.k]: t.value } : p) }); return; }
+  if (d.rec !== undefined && t.tagName === "TEXTAREA") { save({ recs: S.job.recs.map((r, i) => i === +d.rec ? { ...r, text: t.value } : r) }); return; }
+});
+document.addEventListener("change", e => {
+  const t = e.target, d = t.dataset; if (!S.job) return;
+  if (t.type === "file" && d.photo !== undefined) { const files = [...t.files]; t.value = ""; if (files.length) addPhotos(files, d.photo || ""); return; }
+  if (d.cap) { const id = d.cap, v = t.value; S.photos = S.photos.map(p => p.id === id ? { ...p, cap: v } : p); api("updatePhoto", { id, caption: v }).catch(() => toast("Caption didn't save.")); return; }
+  if (d.f && t.tagName === "SELECT") { const f = { [d.f]: t.value }; if (d.f === "type" && !["DD", "VD", "IO"].includes(t.value)) f.cooling = "";
+    Object.assign(S.job, f); if (["type", "profile", "block", "cooling"].includes(d.f)) f.parts = seedParts(S.job); save(f, true); return; }
+  if (d.iv && t.tagName === "SELECT") { const c = (S.job.checks && S.job.checks[d.iv]) || {}; setCheck(d.iv, { v: { ...(c.v || {}), [d.k]: t.value } });
+    if (/Needs replacement|Milky|Metal/.test(t.value) && st(S.job, d.iv) !== "flag") { setCheck(d.iv, { s: "flag", note: c.note || t.value }); rerenderItem(d.iv); toast("Flagged for the customer's recommendations"); } return; }
+  if (d.rec !== undefined && t.tagName === "SELECT") { save({ recs: S.job.recs.map((r, i) => i === +d.rec ? { ...r, pri: t.value } : r) }); return; }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.id === "crmq") { e.preventDefault(); S.crm.q = e.target.value; crmSearch(); }
+  if (e.key === "Enter" && e.target.id === "hin" && normHin(e.target.value).length >= 5 && !S.busy) { e.preventDefault(); createJob(); }
+});
+
+/* ============================================================
+   PDF (built on the phone; customer report also saved to Airtable)
+   ============================================================ */
+const pdfTxt = s => String(s == null ? "" : s).replace(/[\u201c\u201d]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/[\u2013\u2014\u2212]/g, "-").replace(/\u2026/g, "...").replace(/[^\x00-\xFF]/g, "");
+async function imgFromData(url, max) {
+  const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  const sc = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)); const c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc);
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+  return { url: c.toDataURL("image/jpeg", 0.72), w: c.width, h: c.height };
+}
+async function photoForPdf(p) {
+  if (p.qid && p.blob) return imgFromData(URL.createObjectURL(p.blob), 800);
+  if (p.thumb && p.thumb.startsWith("blob:")) return imgFromData(p.thumb, 800);
+  const r = await api("photoData", { id: p.id }); return imgFromData(`data:${r.type};base64,${r.data}`, 800);
+}
+let lastPdf = null;
+async function makePdf(mode) {
+  if (!window.jspdf) { toast("The PDF tool didn't load. Check your connection and reload."); return; }
+  const j = S.job; S.sheet = sheetHtml("Building PDF\u2026", "Gathering photos from Airtable. This can take a minute on a slow connection.", false); render();
+  try {
+    const blob = await buildPdf(j, mode);
+    const c = j.customer || {};
+    const name = `Waterline-${(c.name || "customer").replace(/[^A-Za-z0-9]+/g, "-")}-${j.hin || "boat"}-${mode === "full" ? "work-order" : "winterization-report"}${j.status !== "complete" ? "-DRAFT" : ""}.pdf`;
+    lastPdf = new File([blob], name, { type: "application/pdf" });
+    let note = "";
+    if (mode === "customer") {
+      save({ reportAt: Date.now() });
+      if (blob.size < 4 * 1024 * 1024) {
+        try { await api("uploadFile", { jobId: j.id, kind: "report", data: await blobToB64(blob), filename: name }); note = "Saved to this job in Airtable. "; }
+        catch (e) { note = e.offline ? "Not saved to Airtable (offline). " : "Couldn't save to Airtable: " + e.message + ". "; }
+      } else note = "Too large to attach in Airtable (over 4 MB). ";
+    }
+    S.sheet = sheetHtml("PDF ready", note + (navigator.canShare && navigator.canShare({ files: [lastPdf] }) ? "Share it by text or email, or save it to Files." : "Tap below to open or download it."), true); render();
+  } catch (e) { S.sheet = null; render(); toast("Couldn't build the PDF: " + (e.message || e), 5000); }
+}
+function sheetHtml(title, body, ready) {
+  return `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="panel"><h2>${esc(title)}</h2><p class="muted">${esc(body)}</p>
+    ${ready ? `<div style="display:grid;gap:10px;margin-top:14px"><button class="btn" data-a="sharepdf">${navigator.canShare && lastPdf && navigator.canShare({ files: [lastPdf] }) ? "Share or save PDF" : "Open PDF"}</button><button class="btn sec" data-a="closesheet">Done</button></div>` : ""}</div></div>`;
+}
+async function sharePdf() {
+  if (!lastPdf) return;
+  if (navigator.canShare && navigator.canShare({ files: [lastPdf] })) { try { await navigator.share({ files: [lastPdf], title: lastPdf.name }); } catch (e) {} return; }
+  const url = URL.createObjectURL(lastPdf); const a = document.createElement("a"); a.href = url; a.download = lastPdf.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+async function buildPdf(j, mode) {
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const W = 612, H = 792, M = 42; let y = 0;
+  const DEEP = [19, 78, 94], DEEPD = [12, 57, 68], PINE = [47, 93, 80], GLACIER = [140, 199, 214], SUN = [231, 162, 76], INK = [22, 35, 43], MUTED = [106, 116, 128], LINE = [220, 227, 230];
+  const draft = j.status !== "complete";
+  const footer = () => { doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(pdfTxt(`Waterline Lake Services LLC  |  (317) 258-8269  |  service@waterlinelakeservices.com  |  HIN ${j.hin || "-"}${draft ? "  |  DRAFT" : ""}`), M, H - 22); };
+  const page = () => { doc.addPage(); y = M; footer(); };
+  const need = h => { if (y + h > H - 44) page(); };
+  const h2 = t => { need(40); y += 10; doc.setFont("times", "normal"); doc.setFontSize(15); doc.setTextColor(...DEEP); doc.text(pdfTxt(t), M, y); y += 7; doc.setDrawColor(...GLACIER); doc.setLineWidth(2); doc.line(M, y, M + 34, y); y += 15; };
+  const para = (t, o = {}) => { doc.setFont("helvetica", o.bold ? "bold" : "normal"); doc.setFontSize(o.size || 10); doc.setTextColor(...(o.color || INK)); doc.splitTextToSize(pdfTxt(t), W - 2 * M).forEach(l => { need(14); doc.text(l, M, y); y += 13; }); };
+  const bullet = (t, mark, color) => { doc.setFont("helvetica", "normal"); doc.setFontSize(10); const lines = doc.splitTextToSize(pdfTxt(t), W - 2 * M - 18); need(lines.length * 13);
+    doc.setTextColor(...(color || PINE)); doc.setFont("helvetica", "bold"); doc.text(mark || "-", M, y); doc.setFont("helvetica", "normal"); doc.setTextColor(...INK); lines.forEach(l => { doc.text(l, M + 18, y); y += 13; }); };
+
+  // header band in brand gradient colors
+  doc.setFillColor(...DEEP); doc.rect(0, 0, W, 104, "F"); doc.setFillColor(...DEEPD); doc.rect(0, 70, W, 34, "F");
+  doc.setDrawColor(...GLACIER); doc.setLineWidth(1.6); doc.circle(M + 16, 40, 13, "S"); doc.setDrawColor(...GLACIER); doc.line(M - 2, 40, M + 34, 40); doc.setFillColor(...GLACIER); doc.circle(M + 16, 40, 2, "F");
+  doc.setTextColor(255, 255, 255); doc.setFont("times", "normal"); doc.setFontSize(22); doc.text("Waterline", M + 42, 47);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.text(mode === "full" ? "Winterization work order" : "Winterization service report", M, 91);
+  doc.setTextColor(...GLACIER); doc.text(pdfTxt(draft ? "DRAFT: job not yet complete" : "Completed " + fmtDate(j.dateCompleted)), W - M, 91, { align: "right" });
+  doc.setDrawColor(...GLACIER); doc.roundedRect(W - M - 180, 20, 180, 42, 5, 5, "S"); doc.setFontSize(7.5); doc.text("HULL ID", W - M - 170, 33);
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.text(pdfTxt(j.hin || "-"), W - M - 170, 54);
+  y = 132; footer();
+
+  const c = j.customer || {}; const so = j.signoff || {};
+  const facts = [["Customer", c.name], ["Phone / email", [c.phone, c.email].filter(Boolean).join("  /  ")], ["Boat", [j.year, j.makeModel].filter(Boolean).join(" ") || (j.boat && j.boat.name)],
+    ["Service type", TYPES[j.type] && TYPES[j.type].label + (j.cooling ? (j.cooling === "raw" ? ", raw-water cooled" : ", closed cooled") : "")], ["Engine", j.engine], ["Engine serial #", j.serial],
+    ["Engine hours", j.engineHours], ["Storage location", j.storageLocation], ["Technician", so.techName || j.technician], ["Date in / completed", [fmtDate(j.dateIn), fmtDate(j.dateCompleted)].filter(Boolean).join("  /  ")]];
+  const colW = (W - 2 * M) / 2;
+  facts.forEach((f, i) => { const x = M + (i % 2) * colW; if (i % 2 === 0 && i) y += 27; need(27);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...MUTED); doc.text(pdfTxt(f[0]), x, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...INK); doc.text(doc.splitTextToSize(pdfTxt(f[1] || "-"), colW - 12)[0], x, y + 13); });
+  y += 36;
+
+  const rd = [["Battery voltage", j.batteryVoltage && j.batteryVoltage + " V"], ["Coolant freeze point", j.coolantF && j.coolantF + " \u00b0F"], ["Antifreeze used", j.antifreezeGal && j.antifreezeGal + " gal"],
+    ["Fuel added", j.checks && j.checks.fu_top && j.checks.fu_top.v && j.checks.fu_top.v.gal && j.checks.fu_top.v.gal + " gal"], ["Impeller", impellerOf(j)]].filter(r => r[1]);
+  const lube = ["od_lube", "lu_lube"].find(id => j.checks && j.checks[id] && j.checks[id].v && j.checks[id].v.cond); if (lube) rd.push(["Gear lube", j.checks[lube].v.cond]);
+  if (rd.length) { h2("Readings"); rd.forEach(r => bullet(r[0] + ": " + r[1], "\u2022", DEEP)); }
+
+  h2(mode === "full" ? "Checklist" : "Work performed");
+  sectionsFor(j).forEach(s => {
+    const na = s.equip && j.notEquipped && j.notEquipped[s.id];
+    const rows = mode === "full" ? s.items : s.items.filter(i => st(j, i.id) === "done");
+    if (na) { if (mode === "full") { need(30); para(s.title, { bold: true, size: 10.5, color: DEEP }); para("Not equipped", { color: MUTED }); y += 4; } return; }
+    if (!rows.length) return; need(30); para(s.title, { bold: true, size: 10.5, color: DEEP }); y += 1;
+    rows.forEach(i => { const ck = (j.checks && j.checks[i.id]) || {};
+      const vals = i.inputs ? i.inputs.map(inp => ck.v && ck.v[inp.k] ? inp.label + ": " + ck.v[inp.k] : "").filter(Boolean).join("; ") : "";
+      let t = i.t + (vals ? "  (" + vals + ")" : "");
+      if (mode === "full") { const mk = ck.s === "done" ? "[x]" : ck.s === "na" ? "[NA]" : ck.s === "flag" ? "[!]" : "[ ]"; if (ck.s === "flag" && ck.note) t += "  Note: " + ck.note; if (ck.by) t += "  - " + ck.by; bullet(t, mk, ck.s === "flag" ? SUN : ck.s ? PINE : MUTED); }
+      else bullet(t, "\u2713", PINE); });
+    y += 4;
+  });
+  if (mode === "full" && j.overrideNote) { h2("Submitted with open items"); para(j.overrideNote); }
+  const parts = (j.parts || []).filter(p => p.name && (mode === "full" || p.qty));
+  if (parts.length) { h2("Parts and fluids used"); parts.forEach(p => bullet(p.name + (p.qty ? "  |  Qty " + p.qty : "") + (p.part ? "  |  Part # " + p.part : ""), "\u2022", DEEP)); }
+  const recs = recList(j);
+  h2("Recommended before spring");
+  if (recs.length) recs.forEach(r => bullet(r.pri + ": " + r.text, "!", SUN)); else para("Nothing found that needs repair.", { color: MUTED });
+  const sp = springList(j); if (sp.length) { h2("At spring launch, we will"); sp.forEach(t => bullet(t, "\u2022", DEEP)); }
+  if (j.removed) { h2("Items removed or stored"); para(j.removed); }
+
+  let ph = [...S.photos, ...S.pendingPhotos.filter(p => p.jobId === j.id)].sort((a, b) => a.at - b.at);
+  if (mode === "customer") { const recIds = new Set((j.recs || []).map(r => r.id)); ph = ph.filter(p => { const it = liveItems(j).find(i => i.id === p.item); return !p.item || recIds.has(p.item) || (it && (it.photo === "req" || st(j, it.id) === "flag")); }).slice(0, 24); }
+  if (ph.length) {
+    page(); h2("Photos"); const gw = (W - 2 * M - 14) / 2; let col = 0, rowH = 0;
+    for (const p of ph) {
+      let im; try { im = await photoForPdf(p); } catch (e) { continue; }
+      const hgt = Math.min(gw * im.h / im.w, 220); const wid = hgt * im.w / im.h;
+      if (col === 0) need(hgt + 34); const x = M + col * (gw + 14);
+      doc.addImage(im.url, "JPEG", x, y, wid, hgt);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...INK); doc.text(doc.splitTextToSize(pdfTxt(p.cap || p.caption || ""), gw)[0] || "", x, y + hgt + 11);
+      doc.setTextColor(...MUTED); doc.text(pdfTxt(fmtTime(p.at)), x, y + hgt + 22);
+      rowH = Math.max(rowH, hgt + 30); if (col === 1) { y += rowH; rowH = 0; col = 0; } else col = 1;
+    }
+    if (col === 1) y += rowH;
+  }
+  h2("Sign-off"); need(84); const sy = y;
+  [["Technician", so.techName, so.techSigData, so.techAt], ["Reviewed by", so.revName, so.revSigData, so.revAt]].forEach(([lab, nm, data, at], k) => {
+    const x = M + k * colW;
+    if (data) { try { doc.addImage(data, "PNG", x, sy, 150, 48); } catch (e) {} }
+    doc.setDrawColor(...LINE); doc.line(x, sy + 54, x + colW - 24, sy + 54);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...INK); doc.text(pdfTxt(nm || "-"), x, sy + 67);
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...MUTED); doc.text(pdfTxt(lab + (at ? "  |  " + new Date(at).toLocaleDateString("en-US") : "")), x, sy + 79);
+  });
+  y = sy + 96;
+  if (mode === "customer") para("Questions about your boat? Call or text us at (317) 258-8269, or email service@waterlinelakeservices.com. Thanks for trusting us with your boat this winter.", { color: MUTED, size: 9.5 });
+  return doc.output("blob");
+}
+
+/* ============================================================
+   START
+   ============================================================ */
+(function start() {
+  S.tech = lsGet("wl_tech") || "";
+  if (lsGet("wl_pin") && S.tech) { S.view = "home"; render(); loadJobs(); drainPhotoQueue(); }
+  else render();
+})();
+</script>
+</body>
+</html>
