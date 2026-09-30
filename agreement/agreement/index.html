@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Waterline — Storage Agreement</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#134E5E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --deep: #134E5E; --deep-dark: #0C3944; --pine: #2F5D50; --glacier: #8CC7D6;
+  --glacier-tint: rgba(140,199,214,0.18); --stone: #E8ECEF; --stone-2: #DCE3E6; --white: #FFFFFF;
+  --ink: #16232B; --paper: #FFFFFF; --muted: #6A7480; --wash: #F2F9FA; --sun: #E7A24C;
+  --sun-tint: #FBF0DE; --danger: #A8433A;
+  --grad: linear-gradient(160deg, var(--deep) 0%, var(--deep-dark) 60%, var(--pine) 130%);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--stone); color: var(--ink); font: 16px/1.6 'Work Sans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--glacier); outline-offset: 2px; }
+h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; line-height: 1.2; margin: 0; }
+.hero { background: var(--grad); color: #fff; padding: 26px 20px 34px; position: relative; overflow: hidden; }
+.hero .in { max-width: 760px; margin: 0 auto; position: relative; z-index: 1; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.brand svg { width: 34px; height: 34px; }
+.brand b { font: 500 21px 'Fraunces', Georgia, serif; }
+.hero h1 { font-size: clamp(28px, 7vw, 40px); }
+.hero p { color: #CFE6EC; margin: 10px 0 0; max-width: 560px; }
+.hero .etch { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; width: 100%; }
+.wrap { max-width: 760px; margin: -14px auto 0; padding: 0 16px 60px; position: relative; z-index: 2; }
+.card { background: #fff; border: 1px solid var(--stone-2); border-radius: 16px; padding: 20px; margin: 14px 0; }
+.label { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--pine); font-weight: 600; display: flex; align-items: center; gap: 7px; margin: 0 0 6px; }
+.label::before { content: ""; width: 6px; height: 6px; background: var(--glacier); border-radius: 50%; }
+.card h2 { font-size: 23px; color: var(--deep); margin-bottom: 12px; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.banner { border-radius: 12px; padding: 12px 14px; margin: 12px 0; font-size: 15px; background: var(--wash); border-left: 4px solid var(--glacier); }
+.banner.warn { background: var(--sun-tint); border-left-color: var(--sun); }
+.banner.err { background: #FBE9E7; border-left-color: var(--danger); }
+.boat { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1.5px solid var(--stone-2); border-radius: 12px; margin: 8px 0; cursor: pointer; }
+.boat input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--deep); flex: none; }
+.boat b { display: block; color: var(--deep); }
+.boat .hin { font-size: 13px; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+.boat.locked { background: var(--wash); cursor: default; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 30px; background: var(--glacier-tint); color: var(--deep); margin-left: 6px; }
+.extra { border: 1.5px dashed var(--stone-2); border-radius: 12px; padding: 12px; margin: 8px 0; }
+.row3 { display: grid; grid-template-columns: 2fr 1fr 1.4fr; gap: 10px; }
+@media (max-width: 560px) { .row3 { grid-template-columns: 1fr 1fr; } .row3 .f:first-child { grid-column: 1 / -1; } }
+label.f { display: block; margin: 0 0 12px; }
+label.f span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+.in-t { width: 100%; border: 1.5px solid var(--stone-2); border-radius: 10px; background: #fff; padding: 11px 13px; min-height: 48px; font-size: 16px; color: var(--ink); }
+.in-t:focus { border-color: var(--deep); outline: none; box-shadow: 0 0 0 3px var(--glacier-tint); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 30px; padding: 14px 28px; font-weight: 600; font-size: 16px; min-height: 52px; background: var(--deep); color: #fff; border-bottom: 2px solid var(--glacier); cursor: pointer; text-decoration: none; }
+.btn.sec { background: #fff; color: var(--deep); border: 1.5px solid var(--stone-2); }
+.btn.ghost { background: none; border: 0; color: var(--deep); text-decoration: underline; padding: 8px 4px; min-height: 40px; font-weight: 500; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.check { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; cursor: pointer; }
+.check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--deep); flex: none; }
+.agreement { max-height: 420px; overflow-y: auto; border: 1px solid var(--stone-2); border-radius: 12px; padding: 16px 18px; background: var(--wash); font-size: 14.5px; line-height: 1.6; }
+.agreement .t { font: 600 16px 'Work Sans', sans-serif; color: var(--deep); letter-spacing: .02em; }
+.agreement h3 { font: 600 15px 'Work Sans', sans-serif; color: var(--deep); margin: 16px 0 4px; }
+.agreement p { margin: 6px 0; }
+.ci { border: 1px solid var(--stone-2); border-radius: 12px; padding: 14px; margin: 10px 0; }
+.ci b { color: var(--deep); }
+.ci dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0; font-size: 15px; }
+.ci dt { color: var(--muted); }
+.ci dd { margin: 0; }
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 10px; }
+.pgrid button { padding: 0; border: 0; background: none; cursor: zoom-in; }
+.pgrid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--stone-2); display: block; }
+.tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.tabs button { border: 1.5px solid var(--stone-2); background: #fff; border-radius: 30px; padding: 8px 16px; font-weight: 500; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--deep); color: #fff; border-color: var(--deep); }
+.typed { font: italic 500 30px 'Fraunces', Georgia, serif; color: var(--deep); min-height: 64px; }
+canvas.sig { border: 1.5px dashed var(--glacier); border-radius: 12px; background: #fff; width: 100%; height: 170px; touch-action: none; display: block; }
+.done { text-align: center; padding: 30px 20px; }
+.done .ok { width: 64px; height: 64px; border-radius: 50%; background: var(--pine); color: #fff; display: grid; place-items: center; margin: 0 auto 16px; }
+.lightbox { position: fixed; inset: 0; background: rgba(12,57,68,.92); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+.lightbox img { max-width: 100%; max-height: 82vh; border-radius: 10px; }
+.lightbox p { color: #fff; margin: 10px 0; }
+footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
+footer a { color: var(--deep); }
+.hide { display: none !important; }
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+  <div class="brand"><svg viewBox="0 0 80 80" fill="none" aria-hidden="true"><circle cx="40" cy="34" r="22" stroke="#FFFFFF" stroke-width="2.5"/><line x1="8" y1="34" x2="72" y2="34" stroke="#8CC7D6" stroke-width="3"/><circle cx="40" cy="34" r="3" fill="#8CC7D6"/></svg><b>Waterline</b></div>
+  <h1>Your storage agreement</h1>
+  <p id="lead">Review your boat details and the agreement, then sign. It takes about two minutes.</p>
+</div>
+<svg class="etch" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0,130 L85,65 L150,110 L250,38 L330,102 L420,52 L510,106 L600,32 L690,92 L780,56 L870,112 L960,46 L1050,98 L1140,64 L1200,102" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.3"/><path d="M0,138 Q30,132 60,138 T120,138 T180,138 T240,138 T300,138 T360,138 T420,138 T480,138 T540,138 T600,138 T660,138 T720,138 T780,138 T840,138 T900,138 T960,138 T1020,138 T1080,138 T1140,138 T1200,138" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.45"/></svg>
+</header>
+<main class="wrap" id="app"><div class="card"><p class="muted" style="margin:0">Loading your agreement…</p></div></main>
+<footer>Waterline Lake Services LLC · <a href="tel:+13172588269">(317) 258-8269</a> · <a href="mailto:service@waterlinelakeservices.com">service@waterlinelakeservices.com</a></footer>
+
+<script>
+const $app = document.getElementById('app');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const params = new URLSearchParams(location.search);
+const customerId = params.get('customerId') || params.get('c') || '';
+const ret = (params.get('return') || '').startsWith('/') && !(params.get('return') || '').startsWith('//') ? params.get('return') : '';
+let pin = null; try { pin = localStorage.getItem('wl_pin'); } catch (e) {}
+const S = { data: null, boats: new Set(), extras: [], sigMode: 'Typed', inked: false, busy: false, done: null, err: '' };
+const fmt = d => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+async function api(action, payload) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (pin && ret) headers['x-tech-pin'] = pin; // only when opened from the staff check-in app
+  let res;
+  try { res = await fetch('/api/agreement', { method: 'POST', headers, body: JSON.stringify({ action, ...payload }) }); }
+  catch (e) { throw new Error('No connection. Check your signal and try again.'); }
+  let d; try { d = await res.json(); } catch (e) { d = { ok: false, error: 'Unexpected response (' + res.status + ')' }; }
+  if (!d.ok) { const err = new Error(d.error || 'Something went wrong'); err.status = res.status; throw err; }
+  return d;
+}
+
+async function start() {
+  if (!/^rec[A-Za-z0-9]{14}$/.test(customerId)) {
+    $app.innerHTML = `<div class="card"><h2>This link is incomplete</h2><p>Please use the personal link Waterline sent you, or call us at <a href="tel:+13172588269">(317) 258-8269</a> and we'll send a new one.</p></div>`;
+    return;
+  }
+  try {
+    S.data = await api('load', { customerId });
+    const d = S.data;
+    const coveredIds = new Set(d.covered.flatMap(a => a.boats));
+    const withCheckin = new Set(d.checkins.map(c => c.boatId).filter(Boolean));
+    d.boats.forEach(b => { if (withCheckin.has(b.id) || !coveredIds.has(b.id)) S.boats.add(b.id); });
+    if (!d.boats.length) S.extras.push({ makeModel: '', length: '', hin: '' });
+    render();
+  } catch (e) {
+    $app.innerHTML = `<div class="card"><h2>We couldn't load your agreement</h2><p>${esc(e.message)}</p><p class="small muted">If this keeps happening, call us at <a href="tel:+13172588269">(317) 258-8269</a>.</p></div>`;
+  }
+}
+
+function render() {
+  if (S.done) return renderDone();
+  const d = S.data; const c = d.customer;
+  const coveredIds = new Set(d.covered.flatMap(a => a.boats));
+  const withCheckin = new Map(d.checkins.filter(x => x.boatId).map(x => [x.boatId, x]));
+  const allCovered = d.boats.length && d.boats.every(b => coveredIds.has(b.id)) && !d.checkins.length;
+  const photoCount = d.checkins.reduce((n, x) => n + x.photos.length, 0);
+  document.getElementById('lead').textContent = c.name ? `Hi ${c.name.split(' ')[0]}. Review your boat details and the agreement, then sign. It takes about two minutes.` : document.getElementById('lead').textContent;
+  $app.innerHTML = `
+  ${d.witness ? `<div class="banner">Signing in person with <b>${esc(d.witness)}</b> from Waterline. Your signature will be recorded as witnessed.</div>` : ''}
+  ${d.covered.length ? `<div class="banner">${allCovered ? `<b>You're already signed up for this season.</b> ` : ''}Signed ${d.covered.map(a => `${esc(fmt(a.signedAt))} (ref ${esc(a.ref)})`).join(', ')}. ${allCovered ? 'You only need to sign again to add another boat.' : ''}</div>` : ''}
+
+  <section class="card">
+    <p class="label">Step 1</p><h2>Your boat${d.boats.length === 1 ? '' : 's'}</h2>
+    <p class="small muted" style="margin-top:-6px">This agreement covers the boats you check below.</p>
+    ${d.boats.map(b => { const ci = withCheckin.get(b.id); const locked = !!ci; const cov = coveredIds.has(b.id);
+      return `<label class="boat${locked ? ' locked' : ''}"><input type="checkbox" data-boat="${b.id}" ${S.boats.has(b.id) ? 'checked' : ''} ${locked ? 'disabled' : ''}>
+        <span><b>${esc(b.label)}</b>${ci ? `<span class="tag">Checked in ${esc(fmt(ci.at).split(',').slice(0, 2).join(','))}</span>` : cov ? `<span class="tag">Already signed</span>` : ''}
+        <span class="hin">${b.hin ? 'HIN ' + esc(b.hin) : 'HIN not on file yet'}</span></span></label>`; }).join('')}
+    ${S.extras.map((v, i) => `<div class="extra"><div class="row3">
+      <label class="f"><span>Make / model</span><input class="in-t" data-x="${i}" data-k="makeModel" value="${esc(v.makeModel)}" placeholder="e.g. Cobalt R5"></label>
+      <label class="f"><span>Length</span><input class="in-t" data-x="${i}" data-k="length" value="${esc(v.length)}" placeholder="22 ft"></label>
+      <label class="f"><span>HIN (if known)</span><input class="in-t" data-x="${i}" data-k="hin" value="${esc(v.hin)}" autocapitalize="characters"></label></div>
+      <button class="btn ghost" data-rmx="${i}">Remove</button></div>`).join('')}
+    <button class="btn ghost" data-a="addx">+ Add a boat that isn't listed</button>
+  </section>
+
+  ${d.checkins.length ? `<section class="card">
+    <p class="label">Step 2</p><h2>Condition at check-in</h2>
+    <p class="small muted" style="margin-top:-6px">We documented each boat when we received it. Please look this over.</p>
+    ${d.checkins.map(ci => { const b = d.boats.find(x => x.id === ci.boatId);
+      return `<div class="ci"><b>${esc(b ? b.label : 'Your boat')}</b><div class="small muted">Checked in ${esc(fmt(ci.at))}${ci.by ? ' by ' + esc(ci.by) : ''}${ci.where ? ' · ' + esc(ci.where) : ''}</div>
+      <dl>${ci.hours ? `<dt>Engine hours</dt><dd>${esc(ci.hours)}</dd>` : ''}${ci.fuel ? `<dt>Fuel</dt><dd>${esc(ci.fuel)}</dd>` : ''}
+        <dt>Existing damage</dt><dd>${esc(ci.damage || 'None noted')}</dd>${ci.items ? `<dt>Items aboard</dt><dd>${esc(ci.items)}</dd>` : ''}${ci.keys ? `<dt>Keys</dt><dd>${esc(ci.keys)}</dd>` : ''}</dl>
+      ${ci.photos.length ? `<div class="pgrid">${ci.photos.map((p, i) => `<button data-photo="${ci.id}:${i}" aria-label="View photo: ${esc(p.cap)}"><img src="${esc(p.thumb)}" alt="${esc(p.cap)}" loading="lazy"></button>`).join('')}</div>` : ''}</div>`; }).join('')}
+    <label class="check"><input type="checkbox" id="condAck" ${S.condAck ? 'checked' : ''}><span>${esc(d.agreement.conditionText)}${photoCount ? ` (${photoCount} photo${photoCount === 1 ? '' : 's'})` : ''}</span></label>
+  </section>` : ''}
+
+  <section class="card">
+    <p class="label">Step ${d.checkins.length ? 3 : 2}</p><h2>Review the agreement</h2>
+    <div class="agreement" tabindex="0" aria-label="Agreement text">
+      <div class="t">${esc(d.agreement.doc.title)}</div><div class="small muted">${esc(d.agreement.doc.subtitle)}</div>
+      ${d.agreement.doc.sections.map(s => `<h3>${esc(s.h)}</h3>${s.p.map(p => `<p>${p.label ? `<b>${esc(p.label)}</b> ` : ''}${esc(p.text)}</p>`).join('')}`).join('')}
+    </div>
+    <p class="small muted" style="margin:8px 0 0">Version ${esc(d.agreement.version)}. You'll get a PDF copy of exactly this text once you sign.</p>
+  </section>
+
+  <section class="card">
+    <p class="label">Step ${d.checkins.length ? 4 : 3}</p><h2>Your information</h2>
+    <div class="grid2">
+      <label class="f"><span>Full legal name</span><input class="in-t" id="name" autocomplete="name" value="${esc(S.name ?? c.name)}"></label>
+      <label class="f"><span>Email</span><input class="in-t" id="email" type="email" autocomplete="email" value="${esc(S.email ?? c.email)}"></label>
+      <label class="f"><span>Phone</span><input class="in-t" id="phone" type="tel" autocomplete="tel" value="${esc(S.phone ?? c.phone)}"></label>
+      <label class="f"><span>Quote / invoice # (if you have one)</span><input class="in-t" id="quoteRef" value="${esc(S.quoteRef ?? '')}"></label>
+    </div>
+    <label class="f"><span>Mailing address</span><input class="in-t" id="address" autocomplete="street-address" value="${esc(S.address ?? c.address)}"></label>
+  </section>
+
+  <section class="card">
+    <p class="label">Step ${d.checkins.length ? 5 : 4}</p><h2>Sign</h2>
+    <div class="tabs" role="tablist"><button role="tab" data-mode="Typed" aria-selected="${S.sigMode === 'Typed'}">Type</button><button role="tab" data-mode="Drawn" aria-selected="${S.sigMode === 'Drawn'}">Draw</button></div>
+    ${S.sigMode === 'Typed' ? `<label class="f"><span>Type your full name</span><input class="in-t" id="typed" value="${esc(S.typed || '')}" autocomplete="off"></label><div class="typed" id="typedPreview">${esc(S.typed || '')}</div>`
+      : `<canvas class="sig" id="sig" aria-label="Draw your signature with your finger"></canvas><button class="btn ghost" data-a="clearsig">Clear signature</button>`}
+    <label class="check"><input type="checkbox" id="agree" ${S.agree ? 'checked' : ''}><span>${esc(d.agreement.agreeText)}</span></label>
+    <label class="check"><input type="checkbox" id="consent" ${S.consent ? 'checked' : ''}><span>${esc(d.agreement.consentText)}</span></label>
+    ${S.err ? `<div class="banner err">${esc(S.err)}</div>` : ''}
+    <button class="btn block" id="submit" data-a="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Signing…' : 'Sign agreement'}</button>
+    <p class="small muted" style="margin:10px 0 0">We record the date, time, and device with your signature. Questions first? Call <a href="tel:+13172588269">(317) 258-8269</a>.</p>
+  </section>`;
+  if (S.sigMode === 'Drawn') initSig();
+  validate();
+}
+
+function validate() {
+  const b = document.getElementById('submit'); if (!b || S.busy) return;
+  const hasBoat = S.boats.size || S.extras.some(v => v.makeModel || v.hin || v.length);
+  const sigOk = S.sigMode === 'Typed' ? (S.typed || '').trim().length > 1 : S.inked;
+  const needAck = S.data.checkins.length > 0;
+  const ok = hasBoat && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
+  b.disabled = !ok;
+}
+
+let cv, ctx, drawing = false;
+function initSig() {
+  cv = document.getElementById('sig'); const r = cv.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr; ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#134E5E'; S.inked = false;
+  const pt = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  cv.addEventListener('pointerdown', e => { drawing = true; cv.setPointerCapture(e.pointerId); const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(x, y); });
+  cv.addEventListener('pointermove', e => { if (!drawing) return; const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke(); if (!S.inked) { S.inked = true; validate(); } });
+  cv.addEventListener('pointerup', () => drawing = false); cv.addEventListener('pointercancel', () => drawing = false);
+}
+function sigPng() {
+  const w = Math.min(700, cv.width), h = Math.round(w * cv.height / cv.width);
+  const out = document.createElement('canvas'); out.width = w; out.height = h;
+  out.getContext('2d').drawImage(cv, 0, 0, w, h); return out.toDataURL('image/png');
+}
+
+// One ID per visit to this page: if Sign is retried after a dropped connection,
+// the server returns the agreement it already saved instead of creating a second one.
+const SUBMISSION_ID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+async function submit() {
+  S.err = ''; S.busy = true; const b = document.getElementById('submit'); b.disabled = true; b.textContent = 'Signing…';
+  const signature = S.sigMode === 'Typed' ? S.typed.trim() : sigPng();
+  const d = S.data;
+  try {
+    const r = await api('submit', {
+      customerId, sha: d.agreement.sha, boatIds: [...S.boats], extraVessels: S.extras.filter(v => v.makeModel || v.hin || v.length),
+      signer: { name: (S.name ?? d.customer.name).trim(), email: (S.email ?? d.customer.email).trim(), phone: (S.phone ?? d.customer.phone).trim(), address: (S.address ?? d.customer.address).trim(), quoteRef: (S.quoteRef || '').trim() },
+      sigType: S.sigMode, signature, agree: !!S.agree, consent: !!S.consent, conditionAck: !!S.condAck, submissionId: SUBMISSION_ID,
+    });
+    S.done = r; S.busy = false; render(); window.scrollTo(0, 0);
+    api('driveCopy', { id: r.id }).catch(() => {}); // Google Drive copy; retried from the check-in app if this misses
+  } catch (e) {
+    S.busy = false; S.err = e.message + (e.status === 409 ? '' : ' You can try again. If it already went through, trying again won\u2019t sign it twice.'); render();
+    if (e.status === 409) setTimeout(() => location.reload(), 2500);
+  }
+}
+
+function renderDone() {
+  const r = S.done;
+  $app.innerHTML = `<section class="card done">
+    <div class="ok"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2>You're all set${S.data.customer.name ? ', ' + esc(S.data.customer.name.split(' ')[0]) : ''}.</h2>
+    <p>Your agreement was signed ${esc(fmt(r.signedAt))}.<br>Reference <b>${esc(r.ref)}</b></p>
+    <p class="small muted">It's saved to your boat's record with us. Keep a copy for yourself:</p>
+    <p><button class="btn" data-a="download">Download your signed copy (PDF)</button></p>
+    ${ret ? `<p><a class="btn sec" href="${esc(ret)}">Back to check-in</a></p>` : `<p class="small muted">Thanks for trusting us with your boat. We're neighbors tending to neighbors.</p>`}
+  </section>`;
+}
+function download() {
+  const r = S.done; if (!r.pdf) { alert('Your signed copy is being emailed to you. You can also ask us for a copy.'); return; }
+  const bin = atob(r.pdf); const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function lightbox(ciId, i) {
+  const ci = S.data.checkins.find(x => x.id === ciId); const p = ci && ci.photos[i]; if (!p) return;
+  const el = document.createElement('div'); el.className = 'lightbox'; el.setAttribute('role', 'dialog');
+  el.innerHTML = `<img src="${esc(p.url || p.thumb)}" alt="${esc(p.cap)}"><p>${esc(p.cap)}${p.at ? ' · ' + esc(fmt(p.at)) : ''}</p><button class="btn sec">Close</button>`;
+  el.addEventListener('click', () => el.remove()); document.body.appendChild(el);
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
+  if (d.a === 'addx') { S.extras.push({ makeModel: '', length: '', hin: '' }); render(); return; }
+  if (d.rmx !== undefined) { S.extras.splice(+d.rmx, 1); render(); return; }
+  if (d.mode) { S.sigMode = d.mode; render(); return; }
+  if (d.a === 'clearsig') { initSig(); validate(); return; }
+  if (d.a === 'submit') { submit(); return; }
+  if (d.a === 'download') { download(); return; }
+  if (d.photo) { const [id, i] = d.photo.split(':'); lightbox(id, +i); return; }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.x !== undefined) { S.extras[+t.dataset.x][t.dataset.k] = t.value; validate(); return; }
+  if (['name', 'email', 'phone', 'address', 'quoteRef'].includes(t.id)) { S[t.id] = t.value; validate(); return; }
+  if (t.id === 'typed') { S.typed = t.value; document.getElementById('typedPreview').textContent = t.value; validate(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.boat) { t.checked ? S.boats.add(t.dataset.boat) : S.boats.delete(t.dataset.boat); validate(); return; }
+  if (['agree', 'consent', 'condAck'].includes(t.id)) { S[t.id] = t.checked; validate(); }
+});
+start();
+</script>
+</body>
+</html>
