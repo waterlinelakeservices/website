@@ -111,6 +111,26 @@
   .boat-mini-summary .s-total .label { font-size: 12px; color: var(--pine); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
   .boat-mini-summary .s-total .amt { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; color: var(--deep); }
 
+  /* NOTES */
+  .notes-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--stone-2); }
+  .customer-notes-box {
+    font-size: 13.5px; line-height: 1.5; color: var(--ink); background: var(--glacier-tint);
+    border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; margin-bottom: 4px;
+  }
+  .customer-notes-box.empty { color: var(--muted); font-style: italic; background: var(--stone); }
+  textarea[data-field="internalNotes"] {
+    font-family: 'Work Sans', sans-serif; font-size: 14px; padding: 10px 12px; width: 100%;
+    min-height: 90px; resize: vertical; border: 1.5px solid var(--stone-2); border-radius: 8px;
+    background: var(--white); color: var(--ink);
+  }
+  .notes-actions { margin-top: 8px; }
+  .insert-summary-btn {
+    background: #fff; border: 1.5px dashed var(--glacier); color: var(--deep);
+    font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 12.5px; padding: 7px 12px;
+    border-radius: 20px; cursor: pointer;
+  }
+  .insert-summary-btn:hover { background: var(--glacier-tint); }
+
   .savings-box {
     margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;
     background: var(--glacier-tint); color: var(--pine); display: none;
@@ -457,6 +477,16 @@
         '<div class="s-line"><span>Add-ons subtotal</span><b data-role="s-addsub">—</b></div>' +
         '<div class="s-line"><span>Discount</span><b data-role="s-discount">—</b></div>' +
         '<div class="s-total"><span class="label">Boat total</span><span class="amt" data-role="s-total">$0</span></div>' +
+      '</div>' +
+
+      '<div class="notes-section">' +
+        '<p class="field-label">Customer\'s notes (from their request)</p>' +
+        '<div class="customer-notes-box empty" data-role="customerNotesBox">No notes submitted with this request.</div>' +
+        '<p class="field-label" style="margin-top:14px;">Internal notes (staff only)</p>' +
+        '<textarea data-field="internalNotes" placeholder="Notes for this quote — pricing rationale, special instructions, follow-up reminders, etc. Saved to Airtable and safe to keep adding to over time."></textarea>' +
+        '<div class="notes-actions">' +
+          '<button type="button" class="insert-summary-btn" data-role="insertSummaryBtn">+ Insert pricing summary</button>' +
+        '</div>' +
       '</div>';
   }
 
@@ -537,6 +567,13 @@
     });
 
     q(card, 'removeBtn').addEventListener('click', () => removeBoatCard(card));
+
+    q(card, 'insertSummaryBtn').addEventListener('click', () => {
+      const idx = boatCards.indexOf(card);
+      const textarea = q(card, 'internalNotes', true);
+      const summary = boatQuoteText(card, idx);
+      textarea.value = textarea.value ? (textarea.value.replace(/\s+$/, '') + '\n\n' + summary) : summary;
+    });
   }
 
   function computeCardPrice(card) {
@@ -1038,7 +1075,7 @@
         discount: m.discount,
         overrideOn: m.overrideOn,
         total: m.total,
-        quoteText: boatQuoteText(card, i),
+        internalNotes: q(card, 'internalNotes', true).value,
       };
     });
 
@@ -1183,6 +1220,14 @@
       if (boatData.quotedTotal) q(card, 'overrideAmt', true).value = boatData.quotedTotal;
     } else if (boatData.discount) {
       q(card, 'discountAmt', true).value = boatData.discount;
+    }
+    if (boatData.customerNotes) {
+      const box = q(card, 'customerNotesBox');
+      box.textContent = boatData.customerNotes;
+      box.classList.remove('empty');
+    }
+    if (boatData.internalNotes) {
+      q(card, 'internalNotes', true).value = boatData.internalNotes;
     }
     updateCardUI(card);
   }
