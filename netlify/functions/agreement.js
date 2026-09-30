@@ -244,15 +244,54 @@ const actions = {
     }
 
     const d = await loadCustomer(token, p.customerId);
+
+    // A retried Sign (the connection dropped after it went through) returns the agreement
+    // already created from this page instead of making a second one.
+    const submissionId = W.str(p.submissionId, 64).replace(/[^A-Za-z0-9-]/g, '');
+    if (submissionId) {
+      const prior = await W.list(token, T.agreements, { formula: `{Submission ID}="${submissionId}"`, fields: [AGR.ref, AGR.customer, AGR.signedAt, AGR.via, AGR.pdf], max: 1 });
+      if (prior.length && (prior[0].fields[AGR.customer] || []).includes(d.customer.id)) {
+        const f = prior[0].fields; const att = (f[AGR.pdf] || [])[0];
+        let pdf = null;
+        if (att) { try { pdf = Buffer.from(await (await fetch(att.url)).arrayBuffer()).toString('base64'); } catch (e) { pdf = null; } }
+        return { ref: f[AGR.ref], id: prior[0].id, signedAt: f[AGR.signedAt], pdf, filename: (att && att.filename) || `Waterline-Agreement-${f[AGR.ref]}.pdf`, pdfSaved: !!att, via: W.sel(f[AGR.via]), already: true };
+      }
+    }
+
     const ownBoats = new Map(d.boats.map((b) => [b.id, b]));
     const chosen = (p.boatIds || []).filter((id) => ownBoats.has(id));
     // Boats with an open check-in are always covered: that's the point of signing now.
     d.checkins.forEach((c) => { if (c.boatId && ownBoats.has(c.boatId) && !chosen.includes(c.boatId)) chosen.push(c.boatId); });
     const extras = (p.extraVessels || []).slice(0, 10).map((v) => ({
+      mmc: W.str(v.makeModel, 80).trim(), len: W.str(v.length, 20).trim(),
       label: [W.str(v.makeModel, 80).trim(), W.str(v.length, 20).trim()].filter(Boolean).join(', '), hin: W.str(v.hin, 40).trim().toUpperCase(),
     })).filter((v) => v.label || v.hin);
     if (!chosen.length && !extras.length) throw W.fail(400, 'Please include at least one boat.');
-    const vessels = [...chosen.map((id) => ({ label: boatLabel(ownBoats.get(id)), hin: ownBoats.get(id).hin })), ...extras.map((v) => ({ label: v.label || 'Vessel (added by owner)', hin: v.hin }))];
+    // Boats the owner adds here become real Boat records on their customer record, so the
+    // agreement links to them (and a later check-in by HIN finds the same boat, not a new one).
+    const unlinked = [];
+    for (const v of extras) {
+      const hin = v.hin.replace(/^US[-\s]?/, '').replace(/[^A-Z0-9]/g, '');
+      const mm = v.mmc;
+      let boat = null;
+      if (hin.length >= 5) {
+        const hit = await W.list(token, T.boats, { formula: `{HIN}="${W.esc(hin)}"`, fields: W.BOAT_READ, max: 1 });
+        if (hit.length) {
+          const b = W.boatOut(hit[0]);
+          if (!b.custIds.length) { await W.patch(token, T.boats, b.id, { [BOAT.customer]: [d.customer.id] }); boat = b; }
+          else if (b.custIds.includes(d.customer.id)) boat = b;
+          else { unlinked.push({ label: v.label || 'Vessel (added by owner)', hin }); continue; } // HIN is on someone else's boat: keep as text for staff to sort out
+        }
+      }
+      if (!boat) {
+        const lenNum = W.num(v.len.replace(/[^0-9.]/g, ''));
+        const rec = await W.create(token, T.boats, { [BOAT.name]: mm || 'Boat', [BOAT.customer]: [d.customer.id], [BOAT.hin]: hin.length >= 5 ? hin : undefined, [BOAT.mmc]: mm || undefined, [BOAT.length]: lenNum });
+        boat = W.boatOut(rec);
+      }
+      if (!chosen.includes(boat.id)) chosen.push(boat.id);
+      ownBoats.set(boat.id, boat);
+    }
+    const vessels = [...chosen.map((id) => ({ label: boatLabel(ownBoats.get(id)), hin: ownBoats.get(id).hin })), ...unlinked];
 
     const checkins = d.checkins.filter((c) => !c.boatId || chosen.includes(c.boatId)).map((c) => ({
       ...c, photoCount: c.photoIds.length, boatLabel: c.boatId && ownBoats.get(c.boatId) ? boatLabel(ownBoats.get(c.boatId)) : (c.hin || 'Boat'),
@@ -274,7 +313,7 @@ const actions = {
       [AGR.vessels]: vessels.map((v, i) => `${i + 1}. ${v.label}${v.hin ? ' | HIN ' + v.hin : ''}`).join('\n'),
       [AGR.via]: via, [AGR.witness]: ctx.tech || '', [AGR.sigType]: sigType, [AGR.version]: VERSION, [AGR.sha]: AGREEMENT_SHA,
       [AGR.consent]: true, [AGR.conditionAck]: !!p.conditionAck && checkins.length > 0, [AGR.ip]: ctx.ip, [AGR.device]: device,
-      [AGR.checkins]: checkins.map((c) => c.id), [AGR.driveStatus]: 'Pending',
+      [AGR.checkins]: checkins.map((c) => c.id), [AGR.driveStatus]: 'Pending', [AGR.submissionId]: submissionId || undefined,
     });
     const filename = `Waterline-Agreement-${ref}-${signer.name.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`;
     const pdfB64 = Buffer.from(pdfBytes).toString('base64');

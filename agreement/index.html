@@ -242,6 +242,9 @@ function sigPng() {
   out.getContext('2d').drawImage(cv, 0, 0, w, h); return out.toDataURL('image/png');
 }
 
+// One ID per visit to this page: if Sign is retried after a dropped connection,
+// the server returns the agreement it already saved instead of creating a second one.
+const SUBMISSION_ID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
 async function submit() {
   S.err = ''; S.busy = true; const b = document.getElementById('submit'); b.disabled = true; b.textContent = 'Signing…';
   const signature = S.sigMode === 'Typed' ? S.typed.trim() : sigPng();
@@ -250,12 +253,12 @@ async function submit() {
     const r = await api('submit', {
       customerId, sha: d.agreement.sha, boatIds: [...S.boats], extraVessels: S.extras.filter(v => v.makeModel || v.hin || v.length),
       signer: { name: (S.name ?? d.customer.name).trim(), email: (S.email ?? d.customer.email).trim(), phone: (S.phone ?? d.customer.phone).trim(), address: (S.address ?? d.customer.address).trim(), quoteRef: (S.quoteRef || '').trim() },
-      sigType: S.sigMode, signature, agree: !!S.agree, consent: !!S.consent, conditionAck: !!S.condAck,
+      sigType: S.sigMode, signature, agree: !!S.agree, consent: !!S.consent, conditionAck: !!S.condAck, submissionId: SUBMISSION_ID,
     });
     S.done = r; S.busy = false; render(); window.scrollTo(0, 0);
     api('driveCopy', { id: r.id }).catch(() => {}); // Google Drive copy; retried from the check-in app if this misses
   } catch (e) {
-    S.busy = false; S.err = e.message + (e.status === 409 ? '' : ' Nothing was saved, so you can try again.'); render();
+    S.busy = false; S.err = e.message + (e.status === 409 ? '' : ' You can try again. If it already went through, trying again won\u2019t sign it twice.'); render();
     if (e.status === 409) setTimeout(() => location.reload(), 2500);
   }
 }
@@ -272,7 +275,8 @@ function renderDone() {
   </section>`;
 }
 function download() {
-  const r = S.done; const bin = atob(r.pdf); const bytes = new Uint8Array(bin.length);
+  const r = S.done; if (!r.pdf) { alert('Your signed copy is being emailed to you. You can also ask us for a copy.'); return; }
+  const bin = atob(r.pdf); const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
   const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();

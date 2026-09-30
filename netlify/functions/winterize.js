@@ -97,6 +97,20 @@ async function checkinForBoat(token, boatId, hin) {
   return { id: r.id, status: sel(r.fields[CHK.status]) || 'In Progress', at: r.fields[CHK.at] || '', by: r.fields[CHK.by] || '', title: r.fields[CHK.title] || '', signed: !!(r.fields[CHK.agreement] || []).length };
 }
 
+// Keep every photo of a check-in (and of its winterization jobs) on the
+// check-in's current boat, and the jobs on the same boat and customer.
+async function relinkPhotos(token, cur, boatId) {
+  const f = cur.fields || {};
+  let ids = [...(f[CHK.photos] || [])];
+  const jobIds = f[CHK.jobs] || [];
+  const jobs = jobIds.length ? await W.byIds(token, T.jobs, jobIds, [JOB.photos, JOB.boat]) : [];
+  jobs.forEach((j) => { ids = ids.concat(j.fields[JOB.photos] || []); });
+  // Only touch photos whose boat link is actually wrong.
+  const photos = ids.length ? await W.byIds(token, T.photos, ids, [PHOTO.boat]) : [];
+  const wrong = photos.filter((ph) => ((ph.fields[PHOTO.boat] || [])[0] || null) !== boatId).map((ph) => ph.id);
+  if (wrong.length) await W.patchMany(token, T.photos, wrong, { [PHOTO.boat]: boatId ? [boatId] : [] });
+}
+
 // ---------- field mapping ----------
 function jobSummaryFields(s, tech) {
   s = s || {};
@@ -167,6 +181,16 @@ const actions = {
   async createCustomer(token, tech, p) {
     const name = str(p.name, 120).trim();
     if (name.length < 2) throw W.fail(400, 'Customer name is required');
+    // Reuse an existing customer with the same email or phone instead of creating a duplicate.
+    const email = str(p.email, 160).trim().toLowerCase();
+    const digits = str(p.phone, 40).replace(/[^0-9]/g, '').slice(-10);
+    const tests = [];
+    if (/^\S+@\S+\.\S+$/.test(email)) tests.push(`LOWER(TRIM({Email}&""))="${esc(email)}"`);
+    if (digits.length === 10) tests.push(`RIGHT(REGEX_REPLACE({Phone}&"", "[^0-9]", ""), 10)="${digits}"`);
+    if (tests.length) {
+      const hit = await W.list(token, T.customers, { formula: tests.length > 1 ? `OR(${tests.join(', ')})` : tests[0], fields: W.CUST_READ, max: 1 });
+      if (hit.length) return { customer: W.customerOut(hit[0]), existing: true };
+    }
     const rec = await W.create(token, T.customers, {
       [CUST.name]: name, [CUST.phone]: str(p.phone, 40).trim() || undefined, [CUST.email]: str(p.email, 160).trim() || undefined, [CUST.address]: str(p.address, 250).trim(),
     });
@@ -224,6 +248,14 @@ const actions = {
   },
   async createCheckin(token, tech, p) {
     const st = p.state || {};
+    const hin = normHin(st.hin);
+    if (hin.length >= 5) {
+      const open = await W.list(token, T.checkins, {
+        formula: `AND({Season}="${esc(st.season || W.seasonFor())}", {HIN}="${esc(hin)}", OR({Status}="In Progress", {Status}="Awaiting Signature"))`,
+        fields: [CHK.status], max: 1,
+      });
+      if (open.length) return { id: open[0].id, existing: true };
+    }
     const rec = await W.create(token, T.checkins, {
       ...checkinFields(p.summary, st, tech), ...linkFields(st, CHK.boat, CHK.customer),
       [CHK.status]: 'In Progress', [CHK.state]: str(JSON.stringify(st)),
@@ -259,6 +291,10 @@ const actions = {
     });
     const boatId = st.boat && recId(st.boat.id);
     if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); }
+    // Re-point photos when the boat changes, and once more when the check-in is completed
+    // (catches a photo that uploaded in the moment before the boat was linked).
+    const prevBoat = (cur.fields[CHK.boat] || [])[0] || null;
+    if (prevBoat !== boatId || (st.completedAt && sel(cur.fields[CHK.status]) === 'In Progress')) await relinkPhotos(token, cur, boatId);
     const agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
     return { status, agreement, savedAt: Date.now() };
   },
@@ -382,6 +418,11 @@ const actions = {
   },
   async createJob(token, tech, p) {
     const st = p.state || {};
+    const hin = normHin(st.hin);
+    if (hin.length >= 5) {
+      const open = await W.list(token, T.jobs, { formula: `AND({HIN}="${esc(hin)}", {Status}!="Complete")`, fields: [JOB.status], max: 1 });
+      if (open.length) return { id: open[0].id, existing: true };
+    }
     const rec = await W.create(token, T.jobs, {
       ...jobSummaryFields(p.summary, tech), ...linkFields(st, JOB.boat, JOB.customer),
       [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)), [JOB.status]: 'In Progress',
@@ -408,10 +449,22 @@ const actions = {
     if (!p.data || p.data.length > MAX_B64) throw W.fail(413, 'Photo too large');
     const type = /^image\/(jpeg|png|webp)$/.test(p.contentType) ? p.contentType : 'image/jpeg';
     const at = Number(p.at) || Date.now();
-    const rec = await W.create(token, T.photos, {
+    const uploadId = str(p.uploadId, 60).replace(/[^A-Za-z0-9_-]/g, '');
+    const photoFrom = (id, f) => ({ id, item: f[PHOTO.stepId] || '', sec: f[PHOTO.section] || '', cap: f[PHOTO.caption] || 'Photo', by: f[PHOTO.by] || tech, at, thumb: W.attUrl((f[PHOTO.photo] || [])[0], 'large'), url: ((f[PHOTO.photo] || [])[0] || {}).url });
+    // A retried upload (signal dropped after the first one saved) returns the photo already saved.
+    let rec = null;
+    if (uploadId) {
+      const hit = await W.list(token, T.photos, { formula: `{Upload ID}="${uploadId}"`, fields: [PHOTO.photo, PHOTO.stepId, PHOTO.section, PHOTO.caption, PHOTO.by], max: 1 });
+      if (hit.length && (hit[0].fields[PHOTO.photo] || []).length) return { photo: photoFrom(hit[0].id, hit[0].fields), existing: true };
+      if (hit.length) rec = hit[0]; // saved but the image didn't attach: finish it below
+    }
+    // The photo belongs to the boat on its check-in or job (the parent also 404s if it was removed).
+    const parent = checkinId ? await W.getRec(token, T.checkins, checkinId) : await W.getRec(token, T.jobs, jobId);
+    const boatId = (parent.fields[checkinId ? CHK.boat : JOB.boat] || [])[0] || null;
+    if (!rec) rec = await W.create(token, T.photos, {
       [PHOTO.caption]: str(p.caption, 250) || 'Photo', [PHOTO.job]: jobId ? [jobId] : [], [PHOTO.checkin]: checkinId ? [checkinId] : [],
       [PHOTO.stepId]: str(p.item, 60), [PHOTO.step]: str(p.step, 250), [PHOTO.section]: str(p.sec, 120), [PHOTO.by]: tech,
-      [PHOTO.at]: new Date(at).toISOString(),
+      [PHOTO.at]: new Date(at).toISOString(), [PHOTO.boat]: boatId ? [boatId] : [], [PHOTO.uploadId]: uploadId || undefined,
     });
     try {
       const att = await W.uploadAttachment(token, rec.id, PHOTO.photo, {

@@ -48,12 +48,13 @@ const AGR = {
   signature: 'fld1faNN7tdvPKGTf', pdf: 'fldV8rJ5eWdnMa1Yx', driveLink: 'fldMKieN2go8gB7v3',
   driveStatus: 'fldDVa68Q0Zl4lvPP', version: 'fldbLvs6sJ3SKoJd7', sha: 'fldZ5OYjeCzULWU1K',
   consent: 'fldFEhlROqxXaoo4l', conditionAck: 'fldh8DbnvOCsXJ808', ip: 'fldi93IDjYs3hiBJS',
-  device: 'fldlWjpXgfbbbXQ7R', checkins: 'fldqjHGjU2tcBM2a8',
+  device: 'fldlWjpXgfbbbXQ7R', checkins: 'fldqjHGjU2tcBM2a8', submissionId: 'fldqAcmQvrZOtx3eq',
 };
 const PHOTO = {
   caption: 'fldcjijmoVEUTzTz6', photo: 'fldS7Qn1bwfhmfhsT', job: 'fldhy4nRjTx68NEt0',
   step: 'fld8j4yx9CXZ1MZ7m', stepId: 'fldRWPmksboZ2tap0', section: 'fld4cgCMl15cjBudc',
   by: 'fldpdzOa9jrumUGfe', at: 'fldNPoe2NzbnJjlk9', checkin: 'fldt6CQEn6LpoV6gZ',
+  boat: 'fldU60abeTw1H5pXZ', uploadId: 'fldupALvTQ87zyVXk',
 };
 
 const REC_RE = /^rec[A-Za-z0-9]{14}$/;
@@ -133,6 +134,16 @@ async function create(token, table, fields) {
   return r.records[0];
 }
 const del = (token, table, id) => airtableRequest(token, `/${table}/${id}`, { method: 'DELETE' });
+// Update many records with the same fields, 10 per request (Airtable's limit).
+async function patchMany(token, table, ids, fields) {
+  const list = [...new Set(ids)].filter(Boolean);
+  for (let i = 0; i < list.length; i += 10) {
+    await airtableRequest(token, `/${table}?returnFieldsByFieldId=true`, {
+      method: 'PATCH', body: JSON.stringify({ records: list.slice(i, i + 10).map((id) => ({ id, fields })), typecast: true }),
+    });
+  }
+  return list.length;
+}
 // Delete many records, 10 per request (Airtable's limit).
 async function delMany(token, table, ids) {
   const list = [...new Set(ids)].filter(Boolean);
@@ -182,6 +193,6 @@ const clientIp = (event) => {
 module.exports = {
   BASE_ID, T, CUST, BOAT, CHK, AGR, PHOTO, REC_RE,
   json, fail, esc, str, num, date, recId, pick, sel, seasonFor, techForPin,
-  list, byIds, getRec, patch, create, del, delMany, uploadAttachment, attUrl,
+  list, byIds, getRec, patch, patchMany, create, del, delMany, uploadAttachment, attUrl,
   customerOut, boatOut, BOAT_READ, CUST_READ, clientIp,
 };

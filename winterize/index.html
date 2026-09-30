@@ -660,11 +660,11 @@ async function drainPhotoQueue() {
     for (const p of [...S.pendingPhotos]) {
       if (p.failed) continue;
       try {
-        const r = await api("uploadPhoto", { ...(p.checkinId ? { checkinId: p.checkinId } : { jobId: p.jobId }), hin: p.hin, item: p.item, sec: p.sec, step: p.step, caption: p.caption, at: p.at, contentType: "image/jpeg", data: await blobToB64(p.blob) });
+        const r = await api("uploadPhoto", { ...(p.checkinId ? { checkinId: p.checkinId } : { jobId: p.jobId }), hin: p.hin, item: p.item, sec: p.sec, step: p.step, caption: p.caption, at: p.at, uploadId: p.qid, contentType: "image/jpeg", data: await blobToB64(p.blob) });
         S.pendingPhotos = S.pendingPhotos.filter(x => x.qid !== p.qid); IDB.del(p.qid);
         r.photo.thumb = p.thumb;
-        if (p.checkinId) { if (S.ck && S.ck.id === p.checkinId) { S.ckPhotos.push(r.photo); ckRefreshPhotos(); } }
-        else if (S.job && S.job.id === p.jobId) { S.photos.push(r.photo); refreshAfterPhoto(p.item); }
+        if (p.checkinId) { if (S.ck && S.ck.id === p.checkinId && !S.ckPhotos.some(x => x.id === r.photo.id)) { S.ckPhotos.push(r.photo); ckRefreshPhotos(); } }
+        else if (S.job && S.job.id === p.jobId && !S.photos.some(x => x.id === r.photo.id)) { S.photos.push(r.photo); refreshAfterPhoto(p.item); }
       } catch (e) {
         if (e.offline) { updateUploadLabel(); break; }
         if (e.status === 401) break;
@@ -1332,7 +1332,11 @@ async function ckCreateBoat() {
 async function ckCreateCustomer() {
   const g = k => ((document.querySelector(`[data-nc="${k}"]`) || {}).value || "").trim();
   if (g("name").length < 2) { toast("Add the customer's name."); return; }
-  try { const r = await api("createCustomer", { name: g("name"), phone: g("phone"), email: g("email"), address: g("address") }); await ckChooseCustomer({ ...r.customer, boats: [] }); toast("Customer added to Airtable"); }
+  try {
+    const r = await api("createCustomer", { name: g("name"), phone: g("phone"), email: g("email"), address: g("address") });
+    await ckChooseCustomer({ ...r.customer, boats: r.customer.boats || [] });
+    toast(r.existing ? `${r.customer.name} is already in Airtable (same ${g("email") ? "email" : "phone"}), so we used that record` : "Customer added to Airtable", r.existing ? 5000 : 2800);
+  }
   catch (e) { toast("Couldn't add the customer: " + e.message, 5000); }
 }
 // Start a check-in for a HIN. From an open job with no check-in, the new
@@ -1354,12 +1358,13 @@ async function startCheckin(hinIn, fromJob) {
   const cust = pre.customer ? pickCust(pre.customer) : j && j.customer && j.customer.id ? pickCust(j.customer) : null;
   const boat = pre.boat ? pickBoat(pre.boat) : j && j.boat && j.boat.id ? { id: j.boat.id, name: j.boat.name, mmc: j.makeModel, length: j.length, year: j.year, hin, type: j.boat.type, drive: j.boat.drive } : null;
   const c = { hin, season: pre.season, checkedInAt: Date.now(), checkedInBy: S.tech, customer: cust, boat, where: "", fuel: "", engineHours: j && j.engineHours || "", noDamage: false, damage: "", items: "", keys: "", notes: "" };
-  try { const r = await api("createCheckin", { state: c, summary: { title: `${pre.season.slice(0, 4)} Check-in - ${(cust && cust.name) || "No customer"} - ${boatLabel(boat) || hin}`, photoCount: 0 } }); c.id = r.id; }
+  let reused = false;
+  try { const r = await api("createCheckin", { state: c, summary: { title: `${pre.season.slice(0, 4)} Check-in - ${(cust && cust.name) || "No customer"} - ${boatLabel(boat) || hin}`, photoCount: 0 } }); c.id = r.id; reused = !!r.existing; }
   catch (e) { S.busy = false; render(); toast("Couldn't start the check-in: " + e.message, 4500); return; }
   S.busy = false; S.newHin = "";
   if (j) { save({ checkinId: c.id }); clearTimeout(saveTimer); await flush(); openWorkspace({ jobId: j.id }, "checkin"); }
   else openWorkspace({ checkinId: c.id }, "checkin");
-  toast(cust ? `Found in Airtable: ${cust.name}` : "New boat: link the customer on the Check-in tab", 3500);
+  toast(reused ? "This boat already has an open check-in. Opened it." : cust ? `Found in Airtable: ${cust.name}` : "New boat: link the customer on the Check-in tab", 3500);
 }
 
 /* ============================================================
@@ -1399,13 +1404,14 @@ async function createJob(overrideReason, fromCk) {
   if (fromCk) { const keepJob = S.job; S.job = job; syncJobFromCk(false); S.job = keepJob; }
   job.parts = seedParts(job);
   let id;
-  try { S.photos = []; id = (await api("createJob", { state: job, summary: summaryOf(job) })).id; }
+  let existing = false;
+  try { S.photos = []; const r = await api("createJob", { state: job, summary: summaryOf(job) }); id = r.id; existing = !!r.existing; }
   catch (e) { S.busy = false; render(); toast("Couldn't create the job: " + e.message, 4500); return; }
-  job.id = id; lsSet("wl_job_" + id, JSON.stringify(job));
+  job.id = id; if (!existing) lsSet("wl_job_" + id, JSON.stringify(job));
   S.busy = false; S.newHin = ""; S.gate = null;
   await openWorkspace({ jobId: id }, job.type ? "check" : "info");
   S.open = new Set(["intake"]); if (S.view === "job") render();
-  toast(pre.prev ? "Returning boat: details filled from last season" : "Winterization started", 3500);
+  toast(existing ? "This boat already has an open winterization job. Opened it." : pre.prev ? "Returning boat: details filled from last season" : "Winterization started", 3500);
 }
 function renderGate() {
   const g = S.gate;
