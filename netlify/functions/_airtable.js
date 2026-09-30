@@ -49,6 +49,12 @@ const QUOTE_FIELDS = {
   boatLength: 'fld6vyLQ02BR7vRMH',
   package: 'fldeBSzWondYxrmWG',
   comments: 'fldJkm9a942bDJhfc',
+  // Auto-generated pricing breakdown text from the internal quote tool.
+  // Deliberately a SEPARATE field from `comments` above — comments holds
+  // the customer's own free-text notes from the public quote request form,
+  // and internal quote saves must never touch that field (see
+  // save-internal-quote.js, where this is what quoteText writes to).
+  internalQuoteSummary: 'fldnnsP0gdbFklEc3',
   howHeard: 'fldgmem29M8L0IJ8j',
   status: 'fld5YYU6Sh9PvnxIK',
   address: 'fldKSV2EQMXZHls5l',
