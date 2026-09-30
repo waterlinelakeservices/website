@@ -126,7 +126,7 @@ exports.handler = async function (event) {
         quoteId = boat.existingQuoteId;
         await updateQuote(token, quoteId, {
           [QUOTE_FIELDS.package]: boat.package || undefined,
-          [QUOTE_FIELDS.internalQuoteSummary]: boat.quoteText || '',
+          [QUOTE_FIELDS.internalNotes]: boat.internalNotes || '',
           [QUOTE_FIELDS.pickupDate]: boat.pickupDate || undefined,
           [QUOTE_FIELDS.status]: 'Quoted',
           [QUOTE_FIELDS.quoteSource]: 'Internal quote tool',
@@ -144,7 +144,7 @@ exports.handler = async function (event) {
           [QUOTE_FIELDS.boatType]: boatType,
           [QUOTE_FIELDS.boatLength]: boat.boatLength ? Number(boat.boatLength) : undefined,
           [QUOTE_FIELDS.package]: boat.package || undefined,
-          [QUOTE_FIELDS.internalQuoteSummary]: boat.quoteText || '',
+          [QUOTE_FIELDS.internalNotes]: boat.internalNotes || '',
           [QUOTE_FIELDS.pickupDate]: boat.pickupDate || undefined,
           [QUOTE_FIELDS.submittedAt]: new Date().toISOString(),
           [QUOTE_FIELDS.status]: 'Quoted',
