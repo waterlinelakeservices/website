@@ -157,7 +157,7 @@ function checkinFields(s, st, tech) {
     [CHK.damage]: st.noDamage ? 'None visible at check-in' : str(st.damage), [CHK.items]: str(st.items), [CHK.keys]: str(st.keys, 250),
     [CHK.notes]: str(st.notes), [CHK.photoCount]: num(s.photoCount),
     [CHK.overrideReason]: str(st.override && st.override.reason, 250), [CHK.overrideBy]: str(st.override && st.override.by, 120),
-    [CHK.synced]: new Date().toISOString(),
+    [CHK.synced]: new Date().toISOString(), [CHK.package]: pick(st.package, W.PKG_NAMES) || null,
   };
   if (st.checkedInAt) f[CHK.at] = new Date(st.checkedInAt).toISOString();
   return f;
@@ -192,7 +192,7 @@ const actions = {
       if (hit.length) return { customer: W.customerOut(hit[0]), existing: true };
     }
     const rec = await W.create(token, T.customers, {
-      [CUST.name]: name, [CUST.phone]: str(p.phone, 40).trim() || undefined, [CUST.email]: str(p.email, 160).trim() || undefined, [CUST.address]: str(p.address, 250).trim(),
+      [CUST.name]: name, [CUST.phone]: str(p.phone, 40).trim() || undefined, [CUST.email]: str(p.email, 160).trim() || undefined, [CUST.address]: str(p.address, 250).trim(), [CUST.portalKey]: W.newPortalKey(),
     });
     return { customer: W.customerOut(rec) };
   },
@@ -244,7 +244,34 @@ const actions = {
     const customer = boat && boat.custIds[0] ? await customerById(token, boat.custIds[0]) : null;
     const last = await checkinForBoat(token, boat && boat.id, hin);
     const coverage = boat && customer ? await coverageFor(token, customer.id, boat.id) : null;
-    return { boat, customer, openCheckin: last && ['In Progress', 'Awaiting Signature'].includes(last.status) ? last : null, lastCheckin: last, coverage, season: W.seasonFor() };
+    const packageGuess = customer ? await W.packageGuess(token, customer.quotes, boat && boat.id).catch(() => '') : '';
+    return { boat, customer, openCheckin: last && ['In Progress', 'Awaiting Signature'].includes(last.status) ? last : null, lastCheckin: last, coverage, season: W.seasonFor(), packageGuess };
+  },
+  // Every boat this customer has checked in this season that isn't signed for yet,
+  // i.e. the boats one signature will cover, plus their other boats in Airtable.
+  async visit(token, tech, p) {
+    const cid = recId(p.customerId); if (!cid) throw W.fail(400, 'Bad customer id');
+    const c = await W.getRec(token, T.customers, cid);
+    const f = c.fields || {};
+    const season = W.seasonFor();
+    const cks = (await W.byIds(token, T.checkins, f[CUST.checkins] || [], [CHK.title, CHK.status, CHK.hin, CHK.boat, CHK.season, CHK.package, CHK.photoCount, CHK.state, CHK.agreement]))
+      .filter((r) => r.fields[CHK.season] === season)
+      .map((r) => {
+        const x = r.fields; let st = {}; try { st = JSON.parse(x[CHK.state] || '{}') || {}; } catch (e) {}
+        return { id: r.id, status: sel(x[CHK.status]) || 'In Progress', hin: x[CHK.hin] || '', boatId: (x[CHK.boat] || [])[0] || null,
+          boat: st.boat ? { name: st.boat.name, mmc: st.boat.mmc, length: st.boat.length, year: st.boat.year } : null,
+          package: sel(x[CHK.package]), photos: x[CHK.photoCount] || 0, completed: !!st.completedAt, signed: !!(x[CHK.agreement] || []).length };
+      });
+    const boats = (await W.byIds(token, T.boats, f[CUST.boats] || [], W.BOAT_READ)).map(W.boatOut);
+    const packageGuess = await W.packageGuess(token, f[CUST.quotes] || [], null).catch(() => '');
+    return { checkins: cks, boats, packageGuess };
+  },
+  // The private link a customer uses to sign (and, later, to see their boat profile).
+  async customerLink(token, tech, p) {
+    const cid = recId(p.customerId); if (!cid) throw W.fail(400, 'Bad customer id');
+    const c = await W.getRec(token, T.customers, cid);
+    const key = await W.ensurePortalKey(token, cid, c.fields[CUST.portalKey]);
+    return { url: W.agreementUrl(key) };
   },
   async createCheckin(token, tech, p) {
     const st = p.state || {};
@@ -271,7 +298,7 @@ const actions = {
     const agrIds = f[CHK.agreement] || [];
     let agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
     if (!agreement && state && state.customer && state.boat) agreement = await coverageFor(token, recId(state.customer.id), recId(state.boat.id));
-    return { id, state, photos, status: sel(f[CHK.status]) || 'In Progress', agreement, jobId: (f[CHK.jobs] || []).slice(-1)[0] || null, stage: f[CHK.stage] || '' };
+    return { id, state, photos, status: sel(f[CHK.status]) || 'In Progress', agreement, jobId: (f[CHK.jobs] || []).slice(-1)[0] || null, stage: f[CHK.stage] || '', battery: f[CHK.battery] || '' };
   },
   async saveCheckin(token, tech, p) {
     const id = recId(p.id); if (!id) throw W.fail(400, 'Bad check-in id');
@@ -307,7 +334,7 @@ const actions = {
     const [cks, jobs] = await Promise.all([
       W.list(token, T.checkins, {
         formula: `{Season}="${season}"`,
-        fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.by, CHK.photoCount, CHK.jobs, CHK.stage, CHK.synced],
+        fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.by, CHK.photoCount, CHK.jobs, CHK.stage, CHK.synced, CHK.package],
         sort: [{ field: CHK.at, direction: 'desc' }], max: 300,
       }),
       W.list(token, T.jobs, {
@@ -332,7 +359,7 @@ const actions = {
       items.push({
         checkinId: c.id, jobId: job ? job.id : null, hin: f[CHK.hin] || '', stage: f[CHK.stage] || 'Checking in',
         customer: (job && job.customer) || part(f[CHK.title], 1), boat: part(f[CHK.title], 2) || (job && job.boat) || '',
-        checkin: { status: sel(f[CHK.status]) || 'In Progress', at: f[CHK.at] || '', by: f[CHK.by] || '', photos: f[CHK.photoCount] || 0 },
+        checkin: { status: sel(f[CHK.status]) || 'In Progress', at: f[CHK.at] || '', by: f[CHK.by] || '', photos: f[CHK.photoCount] || 0 }, package: sel(f[CHK.package]),
         job, updated: [f[CHK.synced], f[CHK.at], job && job.at].filter(Boolean).sort().pop() || '',
       });
     }

@@ -92,12 +92,23 @@ canvas.sig { border: 1.5px dashed var(--glacier); border-radius: 12px; backgroun
 footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
 footer a { color: var(--deep); }
 .hide { display: none !important; }
+.boatcard { border-radius: 14px; margin: 0 0 10px; }
+.boatcard.on { background: #f3f8f9; padding: 2px 10px 10px; }
+.boatcard .boat { margin-bottom: 0; }
+.answers { padding: 4px 4px 2px 34px; }
+fieldset.pk { border: 0; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+fieldset.pk legend { margin-bottom: 4px; }
+.pkopt { display: flex; gap: 10px; align-items: flex-start; border: 1.5px solid #d9e2e4; border-radius: 10px; padding: 8px 10px; background: #fff; cursor: pointer; }
+.pkopt input { margin-top: 3px; accent-color: #134E5E; width: 18px; height: 18px; flex: none; }
+.pkopt > span { display: grid; gap: 1px; }
+.pkopt.on { border-color: #134E5E; box-shadow: inset 3px 0 0 #134E5E; }
+@media (max-width: 480px) { .answers { padding-left: 4px; } }
 </style>
 </head>
 <body>
 <header class="hero"><div class="in">
   <div class="brand"><svg viewBox="0 0 80 80" fill="none" aria-hidden="true"><circle cx="40" cy="34" r="22" stroke="#FFFFFF" stroke-width="2.5"/><line x1="8" y1="34" x2="72" y2="34" stroke="#8CC7D6" stroke-width="3"/><circle cx="40" cy="34" r="3" fill="#8CC7D6"/></svg><b>Waterline</b></div>
-  <h1>Your storage agreement</h1>
+  <h1>Your boat check-in &amp; agreement</h1>
   <p id="lead">Review your boat details and the agreement, then sign. It takes about two minutes.</p>
 </div>
 <svg class="etch" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0,130 L85,65 L150,110 L250,38 L330,102 L420,52 L510,106 L600,32 L690,92 L780,56 L870,112 L960,46 L1050,98 L1140,64 L1200,102" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.3"/><path d="M0,138 Q30,132 60,138 T120,138 T180,138 T240,138 T300,138 T360,138 T420,138 T480,138 T540,138 T600,138 T660,138 T720,138 T780,138 T840,138 T900,138 T960,138 T1020,138 T1080,138 T1140,138 T1200,138" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity="0.45"/></svg>
@@ -110,9 +121,11 @@ const $app = document.getElementById('app');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const params = new URLSearchParams(location.search);
 const customerId = params.get('customerId') || params.get('c') || '';
+const key = (params.get('k') || '').replace(/[^A-Za-z0-9]/g, '');
+const who = key ? { k: key } : { customerId };
 const ret = (params.get('return') || '').startsWith('/') && !(params.get('return') || '').startsWith('//') ? params.get('return') : '';
 let pin = null; try { pin = localStorage.getItem('wl_pin'); } catch (e) {}
-const S = { data: null, boats: new Set(), extras: [], sigMode: 'Typed', inked: false, busy: false, done: null, err: '' };
+const S = { data: null, boats: new Set(), extras: [], sigMode: 'Typed', inked: false, busy: false, done: null, err: '', pkg: {}, bat: {} };
 const fmt = d => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 
 async function api(action, payload) {
@@ -127,21 +140,49 @@ async function api(action, payload) {
 }
 
 async function start() {
-  if (!/^rec[A-Za-z0-9]{14}$/.test(customerId)) {
+  if (key.length < 16 && !/^rec[A-Za-z0-9]{14}$/.test(customerId)) {
     $app.innerHTML = `<div class="card"><h2>This link is incomplete</h2><p>Please use the personal link Waterline sent you, or call us at <a href="tel:+13172588269">(317) 258-8269</a> and we'll send a new one.</p></div>`;
     return;
   }
   try {
-    S.data = await api('load', { customerId });
+    S.data = await api('load', who);
     const d = S.data;
+    d.boats.forEach(b => { if (b.package) S.pkg[b.id] = b.package; });
     const coveredIds = new Set(d.covered.flatMap(a => a.boats));
     const withCheckin = new Set(d.checkins.map(c => c.boatId).filter(Boolean));
-    d.boats.forEach(b => { if (withCheckin.has(b.id) || !coveredIds.has(b.id)) S.boats.add(b.id); });
-    if (!d.boats.length) S.extras.push({ makeModel: '', length: '', hin: '' });
+    // With boats checked in, sign for exactly those (others can be ticked). Without, every boat not yet covered.
+    d.boats.forEach(b => { if (withCheckin.has(b.id) || (!withCheckin.size && !coveredIds.has(b.id))) S.boats.add(b.id); });
+    if (!d.boats.length) addExtra();
     render();
   } catch (e) {
     $app.innerHTML = `<div class="card"><h2>We couldn't load your agreement</h2><p>${esc(e.message)}</p><p class="small muted">If this keeps happening, call us at <a href="tel:+13172588269">(317) 258-8269</a>.</p></div>`;
   }
+}
+
+function addExtra() { S.extras.push({ makeModel: '', length: '', hin: '' }); const k = 'x' + (S.extras.length - 1); if (S.data.packageGuess && !S.pkg[k]) S.pkg[k] = S.data.packageGuess; }
+const isStorage = pkg => (S.data.packages.find(p => p.name === pkg) || {}).storage;
+// Every boat being signed for, with the key its answers are stored under.
+function included() {
+  const d = S.data;
+  return [...d.boats.filter(b => S.boats.has(b.id)).map(b => ({ key: b.id, label: b.label, fixed: b.packageFixed })),
+    ...S.extras.map((v, i) => ({ key: 'x' + i, label: v.makeModel || 'the boat you added', extra: true, used: !!(v.makeModel || v.hin || v.length) })).filter(x => x.used)];
+}
+function combo() {
+  const pk = included().map(x => S.pkg[x.key]).filter(Boolean);
+  const st = pk.some(isStorage), an = pk.some(p => !isStorage(p));
+  return st && an ? 'both' : an ? 'anchor' : 'storage';
+}
+function boatAnswers(k, fixed) {
+  const d = S.data; const pkg = S.pkg[k]; const b = S.bat[k] || {};
+  const opts = d.battery.filter(o => !o.storageOnly || !pkg || isStorage(pkg));
+  const opt = d.battery.find(o => o.id === b.choice);
+  return `<div class="answers">
+    ${fixed ? `<p class="small" style="margin:0 0 8px"><b>Package:</b> ${esc(pkg)} <span class="muted">(${esc((d.packages.find(p => p.name === pkg) || {}).blurb || '')})</span></p>` : `
+    <fieldset class="pk"><legend class="small"><b>Package</b></legend>${d.packages.map(p => `<label class="pkopt${pkg === p.name ? ' on' : ''}"><input type="radio" name="pkg-${k}" data-pkg="${k}" value="${p.name}" ${pkg === p.name ? 'checked' : ''}><span><b>${esc(p.name)}</b><span class="small muted">${esc(p.blurb)}</span></span></label>`).join('')}</fieldset>`}
+    <label class="f" style="margin:8px 0 0"><span><b>Battery.</b> We'll disconnect it. Where should we keep it for the winter?</span>
+      <select class="in-t" data-bat="${k}"><option value="">Choose\u2026</option>${opts.map(o => `<option value="${o.id}" ${b.choice === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+    ${opt && opt.needsNote ? `<label class="f" style="margin:6px 0 0"><span>${b.choice === 'property' ? 'Where at your property? (garage, shed, basement\u2026)' : 'Tell us what you\u2019d like'}</span><input class="in-t" data-batnote="${k}" value="${esc(b.note || '')}"></label>` : ''}
+  </div>`;
 }
 
 function render() {
@@ -151,6 +192,7 @@ function render() {
   const withCheckin = new Map(d.checkins.filter(x => x.boatId).map(x => [x.boatId, x]));
   const allCovered = d.boats.length && d.boats.every(b => coveredIds.has(b.id)) && !d.checkins.length;
   const photoCount = d.checkins.reduce((n, x) => n + x.photos.length, 0);
+  const n = i => d.checkins.length ? i : i - 1; // step numbers (no condition step without a check-in)
   document.getElementById('lead').textContent = c.name ? `Hi ${c.name.split(' ')[0]}. Review your boat details and the agreement, then sign. It takes about two minutes.` : document.getElementById('lead').textContent;
   $app.innerHTML = `
   ${d.witness ? `<div class="banner">Signing in person with <b>${esc(d.witness)}</b> from Waterline. Your signature will be recorded as witnessed.</div>` : ''}
@@ -160,13 +202,15 @@ function render() {
     <p class="label">Step 1</p><h2>Your boat${d.boats.length === 1 ? '' : 's'}</h2>
     <p class="small muted" style="margin-top:-6px">This agreement covers the boats you check below.</p>
     ${d.boats.map(b => { const ci = withCheckin.get(b.id); const locked = !!ci; const cov = coveredIds.has(b.id);
-      return `<label class="boat${locked ? ' locked' : ''}"><input type="checkbox" data-boat="${b.id}" ${S.boats.has(b.id) ? 'checked' : ''} ${locked ? 'disabled' : ''}>
+      return `<div class="boatcard${S.boats.has(b.id) ? ' on' : ''}"><label class="boat${locked ? ' locked' : ''}"><input type="checkbox" data-boat="${b.id}" ${S.boats.has(b.id) ? 'checked' : ''} ${locked ? 'disabled' : ''}>
         <span><b>${esc(b.label)}</b>${ci ? `<span class="tag">Checked in ${esc(fmt(ci.at).split(',').slice(0, 2).join(','))}</span>` : cov ? `<span class="tag">Already signed</span>` : ''}
-        <span class="hin">${b.hin ? 'HIN ' + esc(b.hin) : 'HIN not on file yet'}</span></span></label>`; }).join('')}
+        <span class="hin">${b.hin ? 'HIN ' + esc(b.hin) : 'HIN not on file yet'}</span></span></label>
+        ${S.boats.has(b.id) ? boatAnswers(b.id, b.packageFixed) : ''}</div>`; }).join('')}
     ${S.extras.map((v, i) => `<div class="extra"><div class="row3">
       <label class="f"><span>Make / model</span><input class="in-t" data-x="${i}" data-k="makeModel" value="${esc(v.makeModel)}" placeholder="e.g. Cobalt R5"></label>
       <label class="f"><span>Length</span><input class="in-t" data-x="${i}" data-k="length" value="${esc(v.length)}" placeholder="22 ft"></label>
       <label class="f"><span>HIN (if known)</span><input class="in-t" data-x="${i}" data-k="hin" value="${esc(v.hin)}" autocapitalize="characters"></label></div>
+      ${boatAnswers('x' + i, false)}
       <button class="btn ghost" data-rmx="${i}">Remove</button></div>`).join('')}
     <button class="btn ghost" data-a="addx">+ Add a boat that isn't listed</button>
   </section>
@@ -183,16 +227,26 @@ function render() {
   </section>` : ''}
 
   <section class="card">
-    <p class="label">Step ${d.checkins.length ? 3 : 2}</p><h2>Review the agreement</h2>
+    <p class="label">Step ${n(3)}</p><h2>Where your boat${d.boats.length + S.extras.length === 1 ? ' is' : 's are'} kept</h2>
+    <p class="small muted" style="margin-top:-6px">We'll come to your lift or property to ${combo() === 'anchor' ? 'winterize your boat' : combo() === 'storage' ? 'pick up and later return your boat' : 'pick up or service your boats'}.</p>
+    <label class="f"><span>Address or location (lake, street, dock)</span><input class="in-t" id="accessAddress" value="${esc(S.accessAddress ?? c.address)}" autocomplete="street-address"></label>
+    <label class="f"><span>Anything we should know to get there? (gate code, dock location, pets, lift notes)</span><textarea class="in-t" id="accessNotes" rows="2">${esc(S.accessNotes || '')}</textarea></label>
+    <label class="check"><input type="checkbox" id="accessAck" ${S.accessAck ? 'checked' : ''}><span>${esc(d.agreement.accessText)}</span></label>
+  </section>
+
+  <section class="card">
+    <p class="label">Step ${n(4)}</p><h2>Review the agreement</h2>
+    ${(() => { const doc = d.agreement.docs[combo()].doc; return `
+    <p class="small muted" style="margin-top:-6px">${combo() === 'both' ? 'You have boats on both on-site and storage packages, so this includes both sets of terms, labeled for each package.' : combo() === 'anchor' ? 'On-site (Anchor) terms: your boat stays at your lift or property.' : 'Storage terms: your boat is stored at our facility.'}</p>
     <div class="agreement" tabindex="0" aria-label="Agreement text">
-      <div class="t">${esc(d.agreement.doc.title)}</div><div class="small muted">${esc(d.agreement.doc.subtitle)}</div>
-      ${d.agreement.doc.sections.map(s => `<h3>${esc(s.h)}</h3>${s.p.map(p => `<p>${p.label ? `<b>${esc(p.label)}</b> ` : ''}${esc(p.text)}</p>`).join('')}`).join('')}
-    </div>
+      <div class="t">${esc(doc.title)}</div><div class="small muted">${esc(doc.subtitle)}</div>
+      ${doc.sections.map(s => `<h3>${esc(s.h)}</h3>${s.p.map(p => `<p>${p.label ? `<b>${esc(p.label)}</b> ` : ''}${esc(p.text)}</p>`).join('')}`).join('')}
+    </div>`; })()}
     <p class="small muted" style="margin:8px 0 0">Version ${esc(d.agreement.version)}. You'll get a PDF copy of exactly this text once you sign.</p>
   </section>
 
   <section class="card">
-    <p class="label">Step ${d.checkins.length ? 4 : 3}</p><h2>Your information</h2>
+    <p class="label">Step ${n(5)}</p><h2>Your information</h2>
     <div class="grid2">
       <label class="f"><span>Full legal name</span><input class="in-t" id="name" autocomplete="name" value="${esc(S.name ?? c.name)}"></label>
       <label class="f"><span>Email</span><input class="in-t" id="email" type="email" autocomplete="email" value="${esc(S.email ?? c.email)}"></label>
@@ -203,7 +257,7 @@ function render() {
   </section>
 
   <section class="card">
-    <p class="label">Step ${d.checkins.length ? 5 : 4}</p><h2>Sign</h2>
+    <p class="label">Step ${n(6)}</p><h2>Sign</h2>
     <div class="tabs" role="tablist"><button role="tab" data-mode="Typed" aria-selected="${S.sigMode === 'Typed'}">Type</button><button role="tab" data-mode="Drawn" aria-selected="${S.sigMode === 'Drawn'}">Draw</button></div>
     ${S.sigMode === 'Typed' ? `<label class="f"><span>Type your full name</span><input class="in-t" id="typed" value="${esc(S.typed || '')}" autocomplete="off"></label><div class="typed" id="typedPreview">${esc(S.typed || '')}</div>`
       : `<canvas class="sig" id="sig" aria-label="Draw your signature with your finger"></canvas><button class="btn ghost" data-a="clearsig">Clear signature</button>`}
@@ -211,6 +265,7 @@ function render() {
     <label class="check"><input type="checkbox" id="consent" ${S.consent ? 'checked' : ''}><span>${esc(d.agreement.consentText)}</span></label>
     ${S.err ? `<div class="banner err">${esc(S.err)}</div>` : ''}
     <button class="btn block" id="submit" data-a="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Signing…' : 'Sign agreement'}</button>
+    <p class="small" id="hint" style="margin:8px 0 0;color:var(--sun-ink,#8a5a12)"></p>
     <p class="small muted" style="margin:10px 0 0">We record the date, time, and device with your signature. Questions first? Call <a href="tel:+13172588269">(317) 258-8269</a>.</p>
   </section>`;
   if (S.sigMode === 'Drawn') initSig();
@@ -222,7 +277,11 @@ function validate() {
   const hasBoat = S.boats.size || S.extras.some(v => v.makeModel || v.hin || v.length);
   const sigOk = S.sigMode === 'Typed' ? (S.typed || '').trim().length > 1 : S.inked;
   const needAck = S.data.checkins.length > 0;
-  const ok = hasBoat && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
+  const answersOk = included().every(x => { const b = S.bat[x.key] || {}; const o = S.data.battery.find(z => z.id === b.choice); return S.pkg[x.key] && o && (!o.needsNote || (b.note || '').trim().length > 1) && (!o.storageOnly || isStorage(S.pkg[x.key])); });
+  const accessOk = S.accessAck && (S.accessAddress ?? S.data.customer.address ?? '').trim().length >= 5;
+  const hint = document.getElementById('hint');
+  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where your boat is kept and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition photos.' : '';
+  const ok = hasBoat && answersOk && accessOk && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
   b.disabled = !ok;
 }
 
@@ -251,7 +310,9 @@ async function submit() {
   const d = S.data;
   try {
     const r = await api('submit', {
-      customerId, sha: d.agreement.sha, boatIds: [...S.boats], extraVessels: S.extras.filter(v => v.makeModel || v.hin || v.length),
+      ...who, sha: d.agreement.docs[combo()].sha, boatIds: [...S.boats], extraVessels: S.extras,
+      packages: Object.fromEntries(included().map(x => [x.key, S.pkg[x.key]])), battery: Object.fromEntries(included().map(x => [x.key, S.bat[x.key]])),
+      accessAck: !!S.accessAck, access: { address: (S.accessAddress ?? d.customer.address ?? '').trim(), notes: (S.accessNotes || '').trim() },
       signer: { name: (S.name ?? d.customer.name).trim(), email: (S.email ?? d.customer.email).trim(), phone: (S.phone ?? d.customer.phone).trim(), address: (S.address ?? d.customer.address).trim(), quoteRef: (S.quoteRef || '').trim() },
       sigType: S.sigMode, signature, agree: !!S.agree, consent: !!S.consent, conditionAck: !!S.condAck, submissionId: SUBMISSION_ID,
     });
@@ -291,8 +352,11 @@ function lightbox(ciId, i) {
 
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
-  if (d.a === 'addx') { S.extras.push({ makeModel: '', length: '', hin: '' }); render(); return; }
-  if (d.rmx !== undefined) { S.extras.splice(+d.rmx, 1); render(); return; }
+  if (d.a === 'addx') { addExtra(); render(); return; }
+  if (d.rmx !== undefined) { // shift the removed boat's answers out, keep the rest lined up
+    const i = +d.rmx; S.extras.splice(i, 1);
+    for (let j = i; j <= S.extras.length; j++) { S.pkg['x' + j] = S.pkg['x' + (j + 1)]; S.bat['x' + j] = S.bat['x' + (j + 1)]; }
+    render(); return; }
   if (d.mode) { S.sigMode = d.mode; render(); return; }
   if (d.a === 'clearsig') { initSig(); validate(); return; }
   if (d.a === 'submit') { submit(); return; }
@@ -302,13 +366,16 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.x !== undefined) { S.extras[+t.dataset.x][t.dataset.k] = t.value; validate(); return; }
-  if (['name', 'email', 'phone', 'address', 'quoteRef'].includes(t.id)) { S[t.id] = t.value; validate(); return; }
+  if (['name', 'email', 'phone', 'address', 'quoteRef', 'accessAddress', 'accessNotes'].includes(t.id)) { S[t.id] = t.value; validate(); return; }
+  if (t.dataset.batnote) { S.bat[t.dataset.batnote] = { ...(S.bat[t.dataset.batnote] || {}), note: t.value }; validate(); return; }
   if (t.id === 'typed') { S.typed = t.value; document.getElementById('typedPreview').textContent = t.value; validate(); }
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.dataset.boat) { t.checked ? S.boats.add(t.dataset.boat) : S.boats.delete(t.dataset.boat); validate(); return; }
-  if (['agree', 'consent', 'condAck'].includes(t.id)) { S[t.id] = t.checked; validate(); }
+  if (t.dataset.boat) { t.checked ? S.boats.add(t.dataset.boat) : S.boats.delete(t.dataset.boat); render(); return; }
+  if (t.dataset.pkg) { S.pkg[t.dataset.pkg] = t.value; const b = S.bat[t.dataset.pkg]; if (b && b.choice === 'waterline' && !isStorage(t.value)) b.choice = ''; render(); return; }
+  if (t.dataset.bat) { S.bat[t.dataset.bat] = { ...(S.bat[t.dataset.bat] || {}), choice: t.value }; render(); return; }
+  if (['agree', 'consent', 'condAck', 'accessAck'].includes(t.id)) { S[t.id] = t.checked; validate(); }
 });
 start();
 </script>

@@ -19,8 +19,10 @@ const T = {
 const CUST = {
   name: 'fldccNfTV7yngmo06', phone: 'fldGNp1Ih0RnXCr2R', email: 'fldDTtalpZJuau9dN',
   address: 'fldjKCMHICPwupgft', boats: 'fld9cDE3Sy54fv2g3', checkins: 'fld3uFE6w3BSqlzR4',
-  agreements: 'fldTNMPKVZOmZOv85',
+  agreements: 'fldTNMPKVZOmZOv85', quotes: 'fld7UZA3ky2vwVELK', portalKey: 'fldssjvtStbyZJ2xG',
 };
+// Quote Requests fields used to guess a boat's package.
+const QUOTE = { customer: 'fld1mf7XzL2ujVeSE', boat: 'fldgPck8s39xsFFtx', package: 'fldeBSzWondYxrmWG', status: 'fld5YYU6Sh9PvnxIK', submitted: 'fld7BNRJ0pXjLrVhn' };
 const BOAT = {
   name: 'fldbDa8WOuSa1VTjV', customer: 'fldlqKc6mmAfB5SuP', type: 'fldqNu6yhurVfBsLO',
   length: 'fldI7KFd1RLfo32CD', style: 'fldLXDHIo7R5ElIjB', mmc: 'fldAF9DehpYQWIvnv',
@@ -38,6 +40,7 @@ const CHK = {
   notes: 'fldUqgLRGR8a5Ebq8', photoCount: 'fldXt41zUXszi9vB7', overrideReason: 'fldjgLyCuLVxXqcdE',
   overrideBy: 'fldwUXbSxelupitLV', synced: 'fld92NDhlOiMsgwCK', state: 'fldLSTQqjFIZjLhGs',
   photos: 'fldBQKoxqnYd0X3LT', jobs: 'fldJ2gA5FhShXUJuc', stage: 'fldx3iFg1PgyppmEd',
+  package: 'fldeViIsb3l9Mkkp5', battery: 'fldf4VGYOj322ZAC9',
 };
 const AGR = {
   ref: 'fldfv4QgeLGdDJJIW', customer: 'fldQR4G3GSBl1hPpm', boats: 'fldgyDe790nfU1vVk',
@@ -49,6 +52,7 @@ const AGR = {
   driveStatus: 'fldDVa68Q0Zl4lvPP', version: 'fldbLvs6sJ3SKoJd7', sha: 'fldZ5OYjeCzULWU1K',
   consent: 'fldFEhlROqxXaoo4l', conditionAck: 'fldh8DbnvOCsXJ808', ip: 'fldi93IDjYs3hiBJS',
   device: 'fldlWjpXgfbbbXQ7R', checkins: 'fldqjHGjU2tcBM2a8', submissionId: 'fldqAcmQvrZOtx3eq',
+  packages: 'fld8ZucoBE0ORCVMo', accessAck: 'fldoGmEX0DhMnfwQE', accessNotes: 'fld26o54NGzsyZWKi', battery: 'fldUxSJzKBTkZTyuZ',
 };
 const PHOTO = {
   caption: 'fldcjijmoVEUTzTz6', photo: 'fldS7Qn1bwfhmfhsT', job: 'fldhy4nRjTx68NEt0',
@@ -171,7 +175,7 @@ function customerOut(r) {
   const f = r.fields || {};
   return {
     id: r.id, name: f[CUST.name] || '(no name)', phone: f[CUST.phone] || '', email: f[CUST.email] || '',
-    address: f[CUST.address] || '', boats: f[CUST.boats] || [],
+    address: f[CUST.address] || '', boats: f[CUST.boats] || [], quotes: f[CUST.quotes] || [], portalKey: f[CUST.portalKey] || '',
   };
 }
 function boatOut(r) {
@@ -183,7 +187,39 @@ function boatOut(r) {
   };
 }
 const BOAT_READ = [BOAT.name, BOAT.customer, BOAT.type, BOAT.length, BOAT.style, BOAT.mmc, BOAT.hin, BOAT.year];
-const CUST_READ = [CUST.name, CUST.phone, CUST.email, CUST.address, CUST.boats];
+const CUST_READ = [CUST.name, CUST.phone, CUST.email, CUST.address, CUST.boats, CUST.portalKey, CUST.quotes];
+
+// ---- customer links (agreement now, boat profile later) ----
+const SITE = 'https://waterlinelakeservices.com';
+const newPortalKey = () => require('crypto').randomBytes(15).toString('base64').replace(/[+/=]/g, '').slice(0, 20);
+// Each customer gets a private random key for their links. Creates one if missing.
+async function ensurePortalKey(token, customerId, current) {
+  if (current) return current;
+  const key = newPortalKey();
+  await patch(token, T.customers, customerId, { [CUST.portalKey]: key });
+  return key;
+}
+const agreementUrl = (key) => `${SITE}/agreement/?k=${encodeURIComponent(key)}`;
+async function customerByKey(token, key) {
+  const k = String(key || '').replace(/[^A-Za-z0-9]/g, '');
+  if (k.length < 16) return null;
+  const hit = await list(token, T.customers, { formula: `{Portal Key}="${k}"`, max: 1 });
+  return hit[0] || null;
+}
+
+// ---- package guess from the customer's quotes ----
+const PKG_NAMES = ['Anchor', 'Harbor', 'Flagship'];
+const QUOTE_RANK = { 'Paid': 6, 'Invoiced': 5, 'Quote Accepted': 5, 'Booked': 4, 'Quoted': 3, 'Contacted': 2, 'New': 1, 'Lost': 0 };
+// Best guess at a boat's package: its own most-advanced quote, else the customer's.
+async function packageGuess(token, quoteIds, boatId) {
+  if (!quoteIds || !quoteIds.length) return '';
+  const qs = (await byIds(token, 'tblm3InsiBnTS1bqg', quoteIds, [QUOTE.boat, QUOTE.package, QUOTE.status, QUOTE.submitted]))
+    .map((q) => ({ boats: q.fields[QUOTE.boat] || [], pkg: sel(q.fields[QUOTE.package]), rank: QUOTE_RANK[sel(q.fields[QUOTE.status])] ?? 1, at: q.fields[QUOTE.submitted] || '' }))
+    .filter((q) => PKG_NAMES.includes(q.pkg) && q.rank > 0)
+    .sort((a, b) => b.rank - a.rank || String(b.at).localeCompare(String(a.at)));
+  const own = boatId ? qs.find((q) => q.boats.includes(boatId)) : null;
+  return (own || qs[0] || {}).pkg || '';
+}
 
 const clientIp = (event) => {
   const h = event.headers || {};
@@ -193,6 +229,7 @@ const clientIp = (event) => {
 module.exports = {
   BASE_ID, T, CUST, BOAT, CHK, AGR, PHOTO, REC_RE,
   json, fail, esc, str, num, date, recId, pick, sel, seasonFor, techForPin,
+  QUOTE, ensurePortalKey, newPortalKey, agreementUrl, customerByKey, packageGuess, PKG_NAMES,
   list, byIds, getRec, patch, patchMany, create, del, delMany, uploadAttachment, attUrl,
   customerOut, boatOut, BOAT_READ, CUST_READ, clientIp,
 };

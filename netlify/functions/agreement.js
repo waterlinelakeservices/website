@@ -19,27 +19,41 @@
 
 const crypto = require('crypto');
 const W = require('./_wl');
-const { VERSION, SEASON, AGREEMENT } = require('./_agreement-text');
+const AT = require('./_agreement-text');
+const { VERSION, SEASON } = AT;
 const { PDFDocument, StandardFonts, rgb } = require('./lib/pdf-lib.min.js');
 
 const { T, CUST, BOAT, CHK, AGR, PHOTO } = W;
-const AGREEMENT_SHA = crypto.createHash('sha256').update(VERSION + '\n' + JSON.stringify(AGREEMENT)).digest('hex');
+// One fingerprint per version of the text: storage terms, Anchor terms, or both.
+const DOCS = {};
+['storage', 'anchor', 'both'].forEach((c) => { const doc = AT.compose(c); DOCS[c] = { doc, sha: crypto.createHash('sha256').update(VERSION + '\n' + c + '\n' + JSON.stringify(doc)).digest('hex') }; });
+const ACCESS_TEXT = 'I authorize Waterline Lake Services to access my property, dock, and lift where my boat(s) are kept, as described above, to pick up, deliver, and/or service my boat(s) as this agreement describes.';
+// Where the customer wants each battery kept after we disconnect it.
+const BATTERY = {
+  boat: 'Leave it in the boat, disconnected',
+  property: 'Take it out and leave it at my property',
+  waterline: 'Take it out and keep it at Waterline with my boat',
+  other: 'Other',
+};
+const batteryText = (b) => b && BATTERY[b.choice] ? BATTERY[b.choice] + (b.note ? ': ' + b.note : '') : '';
 const CONSENT_TEXT = 'I agree to sign this Agreement electronically and to receive it and related records electronically (U.S. ESIGN Act; Indiana Uniform Electronic Transactions Act).';
-const AGREE_TEXT = 'I have read and agree to the Waterline Lake Services Storage Agreement above, and I am authorized to sign on behalf of the vessel(s) listed.';
+const AGREE_TEXT = 'I have read and agree to the Waterline Lake Services agreement above, and I am authorized to sign on behalf of the vessel(s) listed.';
 const CONDITION_TEXT = 'I have reviewed the condition of my vessel(s) as documented at check-in, including the photos shown.';
 
 const OPEN = ['In Progress', 'Awaiting Signature'];
 
 // ---------- data for the page ----------
-async function loadCustomer(token, customerId) {
-  const id = W.recId(customerId);
-  if (!id) throw W.fail(400, 'This link is missing its customer ID.');
-  let c;
-  try { c = await W.getRec(token, T.customers, id); } catch (e) { throw W.fail(404, 'We couldn\u2019t find this agreement link. Please contact us.'); }
+async function loadCustomer(token, p) {
+  // Links carry the customer's private key (?k=). Older links used the record ID.
+  let c = null;
+  if (p.k) c = await W.customerByKey(token, p.k);
+  else if (W.recId(p.customerId)) { try { c = await W.getRec(token, T.customers, W.recId(p.customerId)); } catch (e) { c = null; } }
+  if (!c) throw W.fail(404, 'We couldn\u2019t find this agreement link. Please contact us for a new one.');
   const f = c.fields || {};
+  if (!f[CUST.portalKey]) { try { f[CUST.portalKey] = await W.ensurePortalKey(token, c.id, ''); } catch (e) { /* link still works this time */ } }
   const boats = (await W.byIds(token, T.boats, f[CUST.boats] || [], W.BOAT_READ)).map(W.boatOut);
   const checkinRecs = await W.byIds(token, T.checkins, f[CUST.checkins] || [], [
-    CHK.title, CHK.boat, CHK.status, CHK.season, CHK.at, CHK.by, CHK.where, CHK.hours, CHK.fuel, CHK.damage, CHK.items, CHK.keys, CHK.photos, CHK.hin,
+    CHK.title, CHK.boat, CHK.status, CHK.season, CHK.at, CHK.by, CHK.where, CHK.hours, CHK.fuel, CHK.damage, CHK.items, CHK.keys, CHK.photos, CHK.hin, CHK.package,
   ]);
   const season = W.seasonFor();
   const checkins = checkinRecs
@@ -49,10 +63,20 @@ async function loadCustomer(token, customerId) {
       return {
         id: r.id, status: W.sel(x[CHK.status]), boatId: (x[CHK.boat] || [])[0] || null, hin: x[CHK.hin] || '', at: x[CHK.at] || '', by: x[CHK.by] || '',
         where: W.sel(x[CHK.where]), hours: x[CHK.hours] || '', fuel: W.sel(x[CHK.fuel]), damage: x[CHK.damage] || '',
-        items: x[CHK.items] || '', keys: x[CHK.keys] || '', photoIds: x[CHK.photos] || [],
+        items: x[CHK.items] || '', keys: x[CHK.keys] || '', photoIds: x[CHK.photos] || [], package: W.sel(x[CHK.package]),
       };
     });
-  return { rec: c, customer: W.customerOut(c), boats, checkins, signedIds: f[CUST.agreements] || [] };
+  // Each boat's package: from its check-in, else its (or the customer's) most advanced quote.
+  const quotes = (f[CUST.quotes] || []).length ? (await W.byIds(token, 'tblm3InsiBnTS1bqg', f[CUST.quotes], [W.QUOTE.boat, W.QUOTE.package, W.QUOTE.status, W.QUOTE.submitted])) : [];
+  const RANK = { 'Paid': 6, 'Invoiced': 5, 'Quote Accepted': 5, 'Booked': 4, 'Quoted': 3, 'Contacted': 2, 'New': 1 };
+  const qs = quotes.map((q) => ({ boats: q.fields[W.QUOTE.boat] || [], pkg: W.sel(q.fields[W.QUOTE.package]), rank: RANK[W.sel(q.fields[W.QUOTE.status])] || 0, at: q.fields[W.QUOTE.submitted] || '' }))
+    .filter((q) => W.PKG_NAMES.includes(q.pkg) && q.rank > 0).sort((a, b) => b.rank - a.rank || String(b.at).localeCompare(String(a.at)));
+  boats.forEach((b) => {
+    const ci = checkins.find((x) => x.boatId === b.id && x.package);
+    b.package = ci ? ci.package : ((qs.find((q) => q.boats.includes(b.id)) || qs[0] || {}).pkg || '');
+    b.packageFixed = !!ci;
+  });
+  return { rec: c, customer: W.customerOut(c), boats, checkins, signedIds: f[CUST.agreements] || [], guess: (qs[0] || {}).pkg || '' };
 }
 
 async function photosFor(token, ids) {
@@ -112,7 +136,7 @@ async function buildPdf(p) {
   newPage();
   page.drawRectangle({ x: 0, y: H_ - 86, width: W_, height: 86, color: DEEP });
   page.drawText('Waterline', { x: M, y: H_ - 44, size: 22, font: serif, color: rgb(1, 1, 1) });
-  page.drawText('Signed Storage Agreement', { x: M, y: H_ - 66, size: 11, font, color: rgb(1, 1, 1) });
+  page.drawText('Signed Service Agreement', { x: M, y: H_ - 66, size: 11, font, color: rgb(1, 1, 1) });
   page.drawText(safe(`Reference ${p.ref}`), { x: W_ - M - bold.widthOfTextAtSize(safe(`Reference ${p.ref}`), 11), y: H_ - 44, size: 11, font: bold, color: rgb(1, 1, 1) });
   page.drawText(safe(`Season ${SEASON}`), { x: W_ - M - font.widthOfTextAtSize(safe(`Season ${SEASON}`), 9.5), y: H_ - 62, size: 9.5, font, color: GLACIER });
   y = H_ - 112;
@@ -123,8 +147,17 @@ async function buildPdf(p) {
   if (p.signer.address) text(`Mailing address: ${p.signer.address}`);
   if (p.signer.quoteRef) text(`Quote / invoice reference: ${p.signer.quoteRef}`);
 
-  heading('Vessel(s) covered');
-  p.vessels.forEach((v, i) => text(`${i + 1}. ${v.label}${v.hin ? `   HIN: ${v.hin}` : '   HIN: not recorded'}`));
+  heading('Schedule of Vessels');
+  p.vessels.forEach((v, i) => {
+    rich([[`${i + 1}. ${v.label}`, bold], [`${v.hin ? `   HIN: ${v.hin}` : '   HIN: not recorded'}`, font]]);
+    text(`Package: ${v.package || 'not stated'}${v.package ? ' (' + (AT.ANCHOR_PACKAGES.includes(v.package) ? 'serviced at Owner\'s lift or property' : 'stored at Waterline\'s facility') + ')' : ''}`, { indent: 12 });
+    text(`Battery: ${v.battery || 'not stated'}`, { indent: 12 });
+  });
+
+  heading('Where the vessel(s) are kept; property access');
+  text(`Location: ${p.access.address || 'as on file'}`);
+  if (p.access.notes) text(`Access notes: ${p.access.notes}`);
+  text(`[x] ${ACCESS_TEXT}`, { size: 8.5, lh: 11.5 });
 
   if (p.checkins.length) {
     heading('Condition documented at check-in');
@@ -140,6 +173,7 @@ async function buildPdf(p) {
   }
 
   heading('Agreement (as presented and agreed to at signing)');
+  const AGREEMENT = DOCS[p.combo].doc;
   rich([[AGREEMENT.title, bold]], { size: 10 });
   rich([[AGREEMENT.subtitle, ital]], { size: 9, color: MUTED });
   y -= 4;
@@ -168,10 +202,10 @@ async function buildPdf(p) {
     `IP address: ${p.ip || 'not available'}`,
     `Device / browser: ${p.device || 'not available'}`,
     `Agreement version: ${VERSION}`,
-    `Agreement fingerprint (SHA-256): ${AGREEMENT_SHA}`,
+    `Agreement fingerprint (SHA-256): ${DOCS[p.combo].sha}  (terms: ${p.combo})`,
   ].forEach((l) => text(l, { size: 8.5, lh: 11.5 }));
   y -= 4;
-  [`[x] ${CONSENT_TEXT}`, `[x] ${AGREE_TEXT}`].concat(p.conditionAck ? [`[x] ${CONDITION_TEXT}`] : []).forEach((l) => text(l, { size: 8.5, lh: 11.5 }));
+  [`[x] ${CONSENT_TEXT}`, `[x] ${AGREE_TEXT}`, `[x] ${ACCESS_TEXT}`].concat(p.conditionAck ? [`[x] ${CONDITION_TEXT}`] : []).forEach((l) => text(l, { size: 8.5, lh: 11.5 }));
   return doc.save();
 }
 
@@ -206,7 +240,7 @@ async function driveCopy(token, agreementId) {
 // ---------- actions ----------
 const actions = {
   async load(token, p, ctx) {
-    const d = await loadCustomer(token, p.customerId);
+    const d = await loadCustomer(token, p);
     const photoIds = d.checkins.flatMap((c) => c.photoIds);
     const photos = photoIds.length ? await photosFor(token, photoIds) : [];
     // Which of this customer's boats are already covered by a signed agreement this season?
@@ -215,17 +249,21 @@ const actions = {
       .map((a) => ({ ref: a.fields[AGR.ref], signedAt: a.fields[AGR.signedAt], boats: a.fields[AGR.boats] || [] }));
     return {
       customer: { name: d.customer.name, email: d.customer.email, phone: d.customer.phone, address: d.customer.address },
-      boats: d.boats.map((b) => ({ id: b.id, label: boatLabel(b), hin: b.hin })),
-      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, at: c.at, by: c.by, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photos: photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) })),
-      covered,
-      agreement: { version: VERSION, season: SEASON, sha: AGREEMENT_SHA, doc: AGREEMENT, consentText: CONSENT_TEXT, agreeText: AGREE_TEXT, conditionText: CONDITION_TEXT },
+      boats: d.boats.map((b) => ({ id: b.id, label: boatLabel(b), hin: b.hin, package: b.package, packageFixed: b.packageFixed })),
+      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, package: c.package, at: c.at, by: c.by, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photos: photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) })),
+      covered, packageGuess: d.guess,
+      packages: AT.PACKAGES.map((name) => ({ name, blurb: AT.PACKAGE_BLURB[name], storage: AT.STORAGE_PACKAGES.includes(name) })),
+      battery: Object.entries(BATTERY).map(([id, label]) => ({ id, label, storageOnly: id === 'waterline', needsNote: id === 'property' || id === 'other' })),
+      agreement: { version: VERSION, season: SEASON, docs: DOCS, consentText: CONSENT_TEXT, agreeText: AGREE_TEXT, conditionText: CONDITION_TEXT, accessText: ACCESS_TEXT },
       witness: ctx.tech || null,
     };
   },
 
   async submit(token, p, ctx) {
-    if (p.sha !== AGREEMENT_SHA) throw W.fail(409, 'The agreement was updated since this page loaded. Please reload the page and review it again.');
     if (!p.consent || !p.agree) throw W.fail(400, 'Please check the boxes to agree and consent to signing electronically.');
+    if (!p.accessAck) throw W.fail(400, 'Please confirm we may access your property to pick up, deliver, or service your boat.');
+    const access = { address: W.str(p.access && p.access.address, 250).trim(), notes: W.str(p.access && p.access.notes, 1000).trim() };
+    if (access.address.length < 5) throw W.fail(400, 'Please tell us where your boat is kept (address, lake, or dock).');
     const signer = {
       name: W.str(p.signer && p.signer.name, 120).trim(), email: W.str(p.signer && p.signer.email, 160).trim(),
       phone: W.str(p.signer && p.signer.phone, 40).trim(), address: W.str(p.signer && p.signer.address, 250).trim(),
@@ -243,7 +281,7 @@ const actions = {
       if (sigTyped.length < 2) throw W.fail(400, 'Please type your full name as your signature.');
     }
 
-    const d = await loadCustomer(token, p.customerId);
+    const d = await loadCustomer(token, p);
 
     // A retried Sign (the connection dropped after it went through) returns the agreement
     // already created from this page instead of making a second one.
@@ -262,14 +300,31 @@ const actions = {
     const chosen = (p.boatIds || []).filter((id) => ownBoats.has(id));
     // Boats with an open check-in are always covered: that's the point of signing now.
     d.checkins.forEach((c) => { if (c.boatId && ownBoats.has(c.boatId) && !chosen.includes(c.boatId)) chosen.push(c.boatId); });
-    const extras = (p.extraVessels || []).slice(0, 10).map((v) => ({
+    const extras = (p.extraVessels || []).slice(0, 10).map((v, i) => ({ key: 'x' + i,
       mmc: W.str(v.makeModel, 80).trim(), len: W.str(v.length, 20).trim(),
       label: [W.str(v.makeModel, 80).trim(), W.str(v.length, 20).trim()].filter(Boolean).join(', '), hin: W.str(v.hin, 40).trim().toUpperCase(),
     })).filter((v) => v.label || v.hin);
     if (!chosen.length && !extras.length) throw W.fail(400, 'Please include at least one boat.');
+    // Package and battery answers per boat. A check-in's package is the one we agreed on at the boat.
+    const answers = (key) => ({ pkg: W.str((p.packages || {})[key], 20), bat: (p.battery || {})[key] || null });
+    const ciPkg = new Map(d.checkins.filter((c) => c.boatId && c.package).map((c) => [c.boatId, c.package]));
+    const vessel = (label, hin, key, boatId) => {
+      const a = answers(key); const pkg = (boatId && ciPkg.get(boatId)) || a.pkg;
+      if (!AT.PACKAGES.includes(pkg)) throw W.fail(400, `Please choose a package for ${label}.`);
+      const choice = a.bat && BATTERY[a.bat.choice] ? a.bat.choice : '';
+      const note = W.str(a.bat && a.bat.note, 200).trim();
+      if (!choice || ((choice === 'property' || choice === 'other') && note.length < 2)) throw W.fail(400, `Please tell us where to keep the battery for ${label}.`);
+      if (choice === 'waterline' && !AT.STORAGE_PACKAGES.includes(pkg)) throw W.fail(400, `We can only keep the battery for boats stored with us. Please choose another option for ${label}.`);
+      return { label, hin, package: pkg, battery: batteryText({ choice, note }), boatId };
+    };
+    // Check every answer before creating anything, so a missed question never leaves a half-saved boat.
+    const pre = [...chosen.map((id) => vessel(boatLabel(ownBoats.get(id)), ownBoats.get(id).hin, id, id)), ...extras.map((v) => vessel(v.label || 'the boat you added', v.hin, v.key, null))];
+    const combo = AT.comboFor(pre.map((v) => v.package));
+    if (p.sha !== DOCS[combo].sha) throw W.fail(409, 'The agreement was updated since this page loaded. Please reload the page and review it again.');
     // Boats the owner adds here become real Boat records on their customer record, so the
     // agreement links to them (and a later check-in by HIN finds the same boat, not a new one).
     const unlinked = [];
+    const keyOf = new Map(); // boat id -> key used for its answers ('x0' for an added boat)
     for (const v of extras) {
       const hin = v.hin.replace(/^US[-\s]?/, '').replace(/[^A-Z0-9]/g, '');
       const mm = v.mmc;
@@ -280,7 +335,7 @@ const actions = {
           const b = W.boatOut(hit[0]);
           if (!b.custIds.length) { await W.patch(token, T.boats, b.id, { [BOAT.customer]: [d.customer.id] }); boat = b; }
           else if (b.custIds.includes(d.customer.id)) boat = b;
-          else { unlinked.push({ label: v.label || 'Vessel (added by owner)', hin }); continue; } // HIN is on someone else's boat: keep as text for staff to sort out
+          else { unlinked.push({ key: v.key, label: v.label || 'Vessel (added by owner)', hin }); continue; } // HIN is on someone else's boat: keep as text for staff to sort out
         }
       }
       if (!boat) {
@@ -289,9 +344,14 @@ const actions = {
         boat = W.boatOut(rec);
       }
       if (!chosen.includes(boat.id)) chosen.push(boat.id);
+      if (!keyOf.has(boat.id)) keyOf.set(boat.id, v.key);
       ownBoats.set(boat.id, boat);
     }
-    const vessels = [...chosen.map((id) => ({ label: boatLabel(ownBoats.get(id)), hin: ownBoats.get(id).hin })), ...unlinked];
+    const vessels = [
+      ...chosen.map((id) => vessel(boatLabel(ownBoats.get(id)), ownBoats.get(id).hin, keyOf.get(id) || id, id)),
+      ...unlinked.map((u) => vessel(u.label, u.hin, u.key, null)),
+    ];
+
 
     const checkins = d.checkins.filter((c) => !c.boatId || chosen.includes(c.boatId)).map((c) => ({
       ...c, photoCount: c.photoIds.length, boatLabel: c.boatId && ownBoats.get(c.boatId) ? boatLabel(ownBoats.get(c.boatId)) : (c.hin || 'Boat'),
@@ -302,7 +362,7 @@ const actions = {
     const via = ctx.tech ? 'In person on staff device' : "Customer's own device";
     const device = W.str(ctx.ua, 500);
     const pdfBytes = await buildPdf({
-      ref, signer, vessels, checkins, sigType, sigPng, sigTyped, signedAt, signedAtIso: signedAt.toISOString(),
+      ref, signer, vessels, checkins, sigType, sigPng, sigTyped, signedAt, signedAtIso: signedAt.toISOString(), combo, access,
       via, witness: ctx.tech, ip: ctx.ip, device, conditionAck: !!p.conditionAck && checkins.length > 0,
     });
 
@@ -310,8 +370,11 @@ const actions = {
       [AGR.ref]: ref, [AGR.customer]: [d.customer.id], [AGR.boats]: chosen, [AGR.status]: 'Signed', [AGR.season]: SEASON,
       [AGR.signedAt]: signedAt.toISOString(), [AGR.name]: signer.name, [AGR.email]: signer.email, [AGR.phone]: signer.phone || undefined,
       [AGR.address]: signer.address, [AGR.quoteRef]: signer.quoteRef,
-      [AGR.vessels]: vessels.map((v, i) => `${i + 1}. ${v.label}${v.hin ? ' | HIN ' + v.hin : ''}`).join('\n'),
-      [AGR.via]: via, [AGR.witness]: ctx.tech || '', [AGR.sigType]: sigType, [AGR.version]: VERSION, [AGR.sha]: AGREEMENT_SHA,
+      [AGR.vessels]: vessels.map((v, i) => `${i + 1}. ${v.label}${v.hin ? ' | HIN ' + v.hin : ''} | ${v.package}`).join('\n'),
+      [AGR.packages]: [...new Set(vessels.map((v) => v.package))],
+      [AGR.battery]: vessels.map((v) => `${v.label}: ${v.battery}`).join('\n'),
+      [AGR.accessAck]: true, [AGR.accessNotes]: [access.address, access.notes].filter(Boolean).join('\n'),
+      [AGR.via]: via, [AGR.witness]: ctx.tech || '', [AGR.sigType]: sigType, [AGR.version]: VERSION, [AGR.sha]: DOCS[combo].sha,
       [AGR.consent]: true, [AGR.conditionAck]: !!p.conditionAck && checkins.length > 0, [AGR.ip]: ctx.ip, [AGR.device]: device,
       [AGR.checkins]: checkins.map((c) => c.id), [AGR.driveStatus]: 'Pending', [AGR.submissionId]: submissionId || undefined,
     });
@@ -325,6 +388,8 @@ const actions = {
     for (const c of checkins) {
       const fields = { [CHK.agreement]: [rec.id] };
       if (c.status === 'Awaiting Signature') fields[CHK.status] = 'Signed';
+      const v = vessels.find((x) => x.boatId && x.boatId === c.boatId);
+      if (v) { fields[CHK.battery] = v.battery; if (!c.package) fields[CHK.package] = v.package; }
       await W.patch(token, T.checkins, c.id, fields).catch((e) => console.error('agreement checkin patch', c.id, e.message));
     }
     // Check-ins still being filled out stay "In Progress" but carry the agreement link;

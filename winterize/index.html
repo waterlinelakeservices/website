@@ -259,6 +259,22 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .tabs.six .in { grid-template-columns: repeat(6, 1fr); }
 .tabs.six button { font-size: 11.5px; }
 .tabs button.locked { opacity: .45; }
+
+/* packages + visit */
+.pkgs { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .pkgs { grid-template-columns: repeat(3, 1fr); } }
+.pkg { text-align: left; border: 1.5px solid var(--stone-2); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--ink); display: grid; gap: 2px; }
+.pkg b { font-size: 15px; } .pkg span { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.pkg[aria-pressed="true"] { border-color: var(--deep); background: var(--deep); color: #fff; }
+.pkg[aria-pressed="true"] span { color: #d7ecf1; }
+.vboats { display: grid; gap: 8px; margin-bottom: 12px; }
+.vboat { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1.5px solid var(--stone-2); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--ink); }
+.vboat > span { display: grid; min-width: 0; } .vboat b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vboat.on { border-color: var(--deep); box-shadow: inset 4px 0 0 var(--deep); cursor: default; }
+.vboat .chip { flex: none; }
+.addboat { border: 1.5px dashed var(--stone-2); border-radius: 12px; padding: 12px; }
+.addboat .res { display: block; }
+.covers { margin: 0 0 10px; padding-left: 18px; } .covers li { margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -470,7 +486,9 @@ const SECTIONS = [
 const S = { view: "login", filter: "active", q: "", board: null, boardErr: null, season: "", job: null, photos: [], pendingPhotos: [], history: [],
   tab: "check", open: new Set(), openItems: new Set(), crm: blankCrm(), tech: "", newHin: "", newMode: "ck", busy: false, saved: null, sheet: null,
   // check-in for the boat that's open (null if the boat has no check-in yet)
-  ck: null, ckPhotos: [], ckStatus: "In Progress", agreement: null, ckCrm: blankCkCrm(), ckSaved: null, del: null };
+  ck: null, ckPhotos: [], ckStatus: "In Progress", agreement: null, ckCrm: blankCkCrm(), ckSaved: null, del: null,
+  // the customer's visit: every boat checked in this season that one signature covers
+  visit: null, ckLink: "", ckBattery: "", addBoat: null };
 function blankCrm() { return { q: "", results: null, err: null, loading: false, cust: null, boats: null, manual: false, relink: false }; }
 function blankCkCrm() { return { q: "", results: null, cust: null, boats: null, loading: false, err: null, newCust: false, newBoat: false, edit: null }; }
 let saveTimer = null, saving = false, saveAgain = false;
@@ -771,7 +789,7 @@ function cardHtml(it, idx) {
   const job = it.job; let ringPct = null;
   if (job) { const [d, t] = (job.steps || "0/0").split("/").map(Number); ringPct = t ? Math.round(d / t * 100) : 0; }
   const boat = it.boat && it.boat !== it.hin && !/^\d{4}$/.test(it.boat) ? it.boat : "";
-  const sub = [boat, job && job.svc].filter(Boolean).join(", ");
+  const sub = [boat, it.package, job && job.svc].filter(Boolean).join(", ");
   const when = it.updated ? fmtTime(Date.parse(it.updated)) : "";
   const icon = ringPct === null ? `<span class="ckicon" aria-hidden="true">${I.clip}</span>` : ring(ringPct);
   return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div><div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
@@ -1087,6 +1105,11 @@ const CK_POINTS = [
 ];
 const CK_WHERE = ["Customer's lift or dock", "Customer's property", "Picked up by Waterline", "Dropped off by owner"];
 const CK_FUEL = ["Empty", "1/4", "1/2", "3/4", "Full"];
+const CK_PACKAGES = [
+  ["Anchor", "Serviced at their lift or property. Boat stays there."],
+  ["Harbor", "We pick it up and store it at our facility."],
+  ["Flagship", "Harbor, plus shrink wrap, lift cover, and spring detail."]
+];
 const boatLabel = b => b ? [b.year, b.mmc || b.name, b.length ? b.length + " ft" : ""].filter(Boolean).join(" ") : "";
 const pickCust = x => ({ id: x.id, name: x.name, phone: x.phone, email: x.email, address: x.address });
 const pickBoat = b => ({ id: b.id, name: b.name, mmc: b.mmc, length: b.length, year: b.year, hin: b.hin, type: b.type, drive: b.drive });
@@ -1097,6 +1120,7 @@ const ckMissing = () => CK_POINTS.filter(p => p.req && !ckPhotosAt(p.id).length)
 function ckReadiness() {
   const c = S.ck, out = [];
   out.push([!!(c.customer && c.boat), c.customer && c.boat ? `${c.customer.name}: ${boatLabel(c.boat)}` : "Link the customer and boat"]);
+  out.push([!!c.package, c.package ? c.package + " package" : "Choose the package"]);
   out.push([!!c.where, c.where ? c.where : "Choose where the boat was checked in"]);
   const m = ckMissing(); out.push([!m.length, m.length ? `${m.length} required photo${m.length > 1 ? "s" : ""} still needed` : "All required photos taken"]);
   out.push([!!(c.noDamage || (c.damage || "").trim()), c.noDamage || (c.damage || "").trim() ? "Existing damage recorded" : "Record existing damage, or confirm there's none"]);
@@ -1185,6 +1209,11 @@ function tabCheckin() {
   return `<div class="card" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Check-in</h2>${ckChip(S.ckStatus)}</div>
       <p class="small muted" style="margin:6px 0 0">${c.checkedInAt ? "Started " + esc(fmtTime(c.checkedInAt)) + (c.checkedInBy ? " by " + esc(c.checkedInBy) : "") : ""}. Customer, boat, HIN, and engine hours are recorded here and copied to the winterization job.</p></div>
     ${ckCrmCard()}
+    ${c.customer ? ckVisitCard() : ""}
+    <div class="card"><h2>Package</h2>
+      <div class="pkgs">${CK_PACKAGES.map(([name, blurb]) => `<button class="pkg" data-pkg="${name}" aria-pressed="${c.package === name}"><b>${name}</b><span>${esc(blurb)}</span></button>`).join("")}</div>
+      ${c.package ? "" : `<p class="small muted" style="margin:8px 0 0">Sets which agreement terms the customer signs for this boat.</p>`}
+    </div>
     <div class="card"><h2>Where and readings</h2>
       <label class="f"><span>Where the boat was checked in</span><select class="in-t" data-cf="where"><option value="">Choose\u2026</option>${CK_WHERE.map(w => `<option ${c.where === w ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label>
       <div class="grid2"><label class="f"><span>Engine hours</span><input class="in-t" type="number" inputmode="decimal" step="any" data-cf="engineHours" value="${esc(c.engineHours || "")}"></label>
@@ -1264,16 +1293,23 @@ function ckAgreementCard() {
   const c = S.ck, a = S.agreement;
   if (a) {
     const driveOk = a.driveStatus === "OK" && a.driveLink;
-    return `<div class="card" style="border-top:4px solid var(--pine)"><h2>Agreement signed</h2>
+    return `<div class="card" id="ckSig" style="border-top:4px solid var(--pine)"><h2>Agreement signed</h2>
       <p style="margin:0"><b>${esc(a.signer)}</b> signed ${esc(fmtTime(a.signedAt))} \u00b7 ref ${esc(a.ref)}</p>
       <p class="small muted" style="margin:4px 0 0">${esc(a.via || "")}${a.witness ? ", witnessed by " + esc(a.witness) : ""}</p>
+      ${S.ckBattery ? `<p class="small" style="margin:8px 0 0"><b>Battery:</b> ${esc(S.ckBattery)}</p>` : ""}
       <p class="small" style="margin:8px 0 0">${a.pdfUrl ? `<a href="${esc(a.pdfUrl)}" target="_blank" rel="noopener">Open signed PDF</a>` : "PDF saving\u2026"}${driveOk ? ` \u00b7 <a href="${esc(a.driveLink)}" target="_blank" rel="noopener">Google Drive copy</a>` : a.driveStatus && a.driveStatus !== "Pending" ? ` \u00b7 <span class="muted">Drive: ${esc(a.driveStatus)}</span> <button class="btn ghost" data-a="ckdrive">Retry</button>` : ` \u00b7 <span class="muted">Copying to Drive\u2026</span>`}</p></div>`;
   }
-  if (!c.customer || !c.boat) return `<div class="card"><h2>Agreement</h2><p class="muted" style="margin:0">Link the customer and boat first.</p></div>`;
-  const link = `${location.origin}/agreement/?customerId=${c.customer.id}`;
-  const msg = `Hi ${c.customer.name.split(" ")[0]}, it's Waterline Lake Services. We've checked in your ${boatLabel(c.boat) || "boat"}. Please review the condition photos and sign your storage agreement here: ${link}`;
-  return `<div class="card" style="border-top:4px solid var(--sun)"><h2>Customer signature</h2>
-    <p class="small muted" style="margin-top:-6px">One signature covers all of ${esc(c.customer.name.split(" ")[0])}'s boats for the season. Take the condition photos first so the customer sees them when signing.</p>
+  if (!c.customer || !c.boat) return `<div class="card" id="ckSig"><h2>Agreement</h2><p class="muted" style="margin:0">Link the customer and boat first.</p></div>`;
+  const link = S.ckLink || `${location.origin}/agreement/?customerId=${c.customer.id}`;
+  const v = visitCheckins(); const unsigned = v.filter(x => !x.signed);
+  const notDone = unsigned.filter(x => x.id === c.id ? !c.completedAt : !x.completed);
+  const first = c.customer.name.split(" ")[0];
+  const what = unsigned.length > 1 ? `${unsigned.length} boats` : `your ${boatLabel(c.boat) || "boat"}`;
+  const msg = `Hi ${first}, it's Waterline Lake Services. We've checked in ${what}. Please review the condition photos and sign your agreement here: ${link}`;
+  return `<div class="card" id="ckSig" style="border-top:4px solid var(--sun)"><h2>Customer signature</h2>
+    <p class="small muted" style="margin-top:-6px">One signature covers ${unsigned.length > 1 ? `all ${unsigned.length} of ${esc(first)}'s boats checked in this visit` : `${esc(first)}'s boats for the season`}. They'll see each boat's condition photos when they sign.</p>
+    ${unsigned.length > 1 ? `<ul class="covers">${unsigned.map(x => `<li><b>${esc(visitLabel(x))}</b> <span class="small muted">${esc(x.package || "no package yet")} \u00b7 ${(x.id === c.id ? c.completedAt : x.completed) ? "check-in done" : "still checking in"}</span></li>`).join("")}</ul>` : ""}
+    ${notDone.length ? `<p class="banner small">${notDone.length === 1 && notDone[0].id === c.id ? "Finish this check-in" : `Finish ${notDone.length === 1 ? "the check-in for " + esc(visitLabel(notDone[0])) : "every boat's check-in"}`} before sending, so the customer signs for all of them at once.</p>` : ""}
     <div style="display:grid;gap:10px">
       <button class="btn" data-a="cksignhere">Customer signs on this device</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1288,6 +1324,81 @@ function ckAgreementCard() {
       <button class="btn sec" data-a="ckoverride">${c.override && c.override.reason ? "Update override" : "Save override"}</button>
       ${c.override && c.override.reason ? `<button class="btn ghost" data-a="ckclearoverride">Remove override</button>` : ""}
     </details></div>`;
+}
+
+/* ---------- the customer's visit (several boats, one signature) ---------- */
+const visitLabel = x => (x.boat && boatLabel(x.boat)) || (x.hin ? "HIN " + x.hin : "Boat");
+// This season's check-ins for the customer, with the open one always included.
+function visitCheckins() {
+  const c = S.ck; const list = (S.visit && S.visit.checkins) || [];
+  const here = { id: c.id, hin: c.hin, boat: c.boat, package: c.package, completed: !!c.completedAt, signed: !!S.agreement, status: S.ckStatus };
+  const out = list.filter(x => x.id !== c.id && x.status !== "Override");
+  return [here, ...out].sort((a, b) => a.id === c.id ? -1 : b.id === c.id ? 1 : 0);
+}
+async function loadVisit() {
+  const c = S.ck; if (!c || !c.customer) return;
+  const cid = c.customer.id;
+  try {
+    const [v, l] = await Promise.all([api("visit", { customerId: cid }), api("customerLink", { customerId: cid }).catch(() => null)]);
+    if (!S.ck || !S.ck.customer || S.ck.customer.id !== cid) return;
+    S.visit = v; S.ckLink = (l && l.url) || "";
+    let full = false;
+    if (!S.ck.package && v.packageGuess) { ckSave({ package: v.packageGuess }); full = true; }
+    if (S.view === "job" && S.tab === "checkin") {
+      const ae = document.activeElement; const typing = ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName);
+      if (full && !typing) render();
+      else { const el = document.getElementById("ckVisit"); if (el) el.outerHTML = ckVisitCard(); const sig = document.getElementById("ckSig"); if (sig) sig.outerHTML = ckAgreementCard(); ckRefreshFinish(); }
+    }
+  } catch (e) { /* the visit card just stays minimal offline */ }
+}
+function ckVisitCard() {
+  const c = S.ck, a = S.addBoat; const v = visitCheckins();
+  const inVisit = new Set(v.map(x => x.boatId || (x.id === c.id && c.boat && c.boat.id)).filter(Boolean));
+  const others = ((S.visit && S.visit.boats) || []).filter(b => !inVisit.has(b.id) && b.id !== (c.boat && c.boat.id));
+  const st = x => x.signed ? `<span class="chip done">Signed</span>` : (x.id === c.id ? c.completedAt : x.completed) ? `<span class="chip ready">Checked in</span>` : `<span class="chip ckin">Checking in</span>`;
+  return `<div class="card" id="ckVisit"><h2>${esc(c.customer.name.split(" ")[0])}'s boats this visit</h2>
+    <div class="vboats">${v.map(x => `<button class="vboat${x.id === c.id ? " on" : ""}" ${x.id === c.id ? 'aria-current="true"' : `data-ckgo="${x.id}"`}><span><b>${esc(visitLabel(x))}</b><span class="small muted">${esc(x.package || "Package not set")}${x.hin ? " \u00b7 " + esc(x.hin) : ""}</span></span>${st(x)}</button>`).join("")}</div>
+    ${!a ? `<button class="btn sec block" data-a="ckaddboat" ${c.customer && c.boat ? "" : "disabled"}>+ Check in another boat for ${esc(c.customer.name.split(" ")[0])}</button>
+      ${c.customer && c.boat ? "" : `<p class="small muted" style="margin:6px 0 0">Link this boat first.</p>`}` : `
+    <div class="addboat"><h3 style="margin:0 0 6px">Add another boat</h3>
+      ${others.length ? `<p class="small muted" style="margin:0 0 6px">${esc(c.customer.name.split(" ")[0])}'s other boats in Airtable:</p>
+        ${others.map(b => `<div class="res"><div><b>${esc(boatLabel(b) || b.name)}</b><span>${b.hin ? "HIN " + esc(b.hin) : "No HIN on file yet"}</span></div>
+          ${b.hin ? `<button class="btn" data-ckaddexisting="${b.id}" ${a.busy ? "disabled" : ""}>Check in</button>` : `<div style="display:flex;gap:6px;margin-top:6px"><input class="in-t" data-addhin="${b.id}" placeholder="HIN from the transom" autocapitalize="characters" style="text-transform:uppercase"><button class="btn" data-ckaddexisting="${b.id}" ${a.busy ? "disabled" : ""}>Check in</button></div>`}</div>`).join("")}
+        <p class="small muted" style="margin:12px 0 6px">Or a boat that isn't in Airtable yet:</p>` : `<p class="small muted" style="margin:0 0 6px">New boat for ${esc(c.customer.name)}:</p>`}
+      <label class="f"><span>HIN</span><input class="in-t" id="nbHin" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.1em" placeholder="ABC12345D606"></label>
+      <label class="f"><span>Make, model, and color</span><input class="in-t" id="nbMmc" placeholder="Sea-Doo GTX, white"></label>
+      <div class="grid2"><label class="f"><span>Length (ft)</span><input class="in-t" id="nbLen" type="number" inputmode="decimal"></label><label class="f"><span>Model year</span><input class="in-t" id="nbYear" type="number" inputmode="numeric"></label></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="ckaddnew" ${a.busy ? "disabled" : ""}>${a.busy ? "Adding\u2026" : "Add and check it in"}</button><button class="btn ghost" data-a="ckaddcancel">Cancel</button></div>
+      <p class="small muted" style="margin:8px 0 0">The new check-in starts with this visit's package (${esc(c.package || "not set")}) and location. You can change them for that boat.</p>
+    </div>`}
+  </div>`;
+}
+// Start a check-in for another of this customer's boats, in the same visit.
+async function addVisitBoat(boat, hinIn) {
+  const c = S.ck; const hin = normHin(hinIn || boat.hin || "");
+  if (hin.length < 5) { toast("Enter the boat's HIN first."); return; }
+  S.addBoat.busy = true; render();
+  try {
+    if (!boat.hin) boat = (await api("setBoatHin", { boatId: boat.id, hin })).boat;
+    const st = { hin, season: c.season || S.season, checkedInAt: Date.now(), checkedInBy: S.tech, customer: c.customer, boat: pickBoat(boat),
+      package: c.package || "", where: c.where || "", fuel: "", engineHours: "", noDamage: false, damage: "", items: "", keys: "", notes: "" };
+    const r = await api("createCheckin", { state: st, summary: { title: `${String(st.season || "").slice(0, 4)} Check-in - ${c.customer.name} - ${boatLabel(st.boat) || hin}`, photoCount: 0 } });
+    clearTimeout(ckTimer); await ckFlush();
+    await openWorkspace({ checkinId: r.id }, "checkin");
+    toast(r.existing ? "That boat already had a check-in open. Opened it." : `Checking in ${boatLabel(st.boat) || hin} for ${c.customer.name}`, 3500);
+  } catch (e) { if (S.addBoat) { S.addBoat.busy = false; render(); } toast(e.message, 6000); }
+}
+async function addVisitNewBoat() {
+  const g = id => ((document.getElementById(id) || {}).value || "").trim();
+  const hin = normHin(g("nbHin"));
+  if (hin.length < 5) { toast("Enter the boat's HIN."); return; }
+  if (!g("nbMmc")) { toast("Add the make and model."); return; }
+  S.addBoat.busy = true; render();
+  try {
+    const r = await api("ensureBoat", { customerId: S.ck.customer.id, hin, name: g("nbMmc").split(",")[0], mmc: g("nbMmc"), length: g("nbLen"), year: g("nbYear") });
+    S.addBoat.busy = false;
+    await addVisitBoat(r.boat, hin);
+  } catch (e) { if (S.addBoat) { S.addBoat.busy = false; render(); } toast(e.message, 6000); }
 }
 
 /* ---------- check-in actions ---------- */
@@ -1317,7 +1428,7 @@ async function ckChooseBoat(b) {
     let boat = b;
     if (!b.hin) boat = (await api("setBoatHin", { boatId: b.id, hin: S.ck.hin })).boat;
     S.ckCrm = blankCkCrm(); ckSave({ boat: pickBoat(boat) }, true);
-    toast("HIN saved on " + (boatLabel(boat) || boat.name)); ckFlush();
+    toast("HIN saved on " + (boatLabel(boat) || boat.name)); ckFlush(); loadVisit();
   } catch (e) { toast(e.message, 6000); }
 }
 async function ckCreateBoat() {
@@ -1326,7 +1437,7 @@ async function ckCreateBoat() {
   try {
     const r = await api("ensureBoat", { customerId: S.ck.customer.id, hin: S.ck.hin, name: g("mmc").split(",")[0], mmc: g("mmc"), length: g("length"), year: g("year") });
     S.ckCrm = blankCkCrm(); ckSave({ boat: pickBoat(r.boat) }, true);
-    toast(r.created ? "Boat added to Airtable" : "Found this boat in Airtable"); ckFlush();
+    toast(r.created ? "Boat added to Airtable" : "Found this boat in Airtable"); ckFlush(); loadVisit();
   } catch (e) { toast(e.message, 6000); }
 }
 async function ckCreateCustomer() {
@@ -1357,7 +1468,7 @@ async function startCheckin(hinIn, fromJob) {
   const j = fromJob ? S.job : null;
   const cust = pre.customer ? pickCust(pre.customer) : j && j.customer && j.customer.id ? pickCust(j.customer) : null;
   const boat = pre.boat ? pickBoat(pre.boat) : j && j.boat && j.boat.id ? { id: j.boat.id, name: j.boat.name, mmc: j.makeModel, length: j.length, year: j.year, hin, type: j.boat.type, drive: j.boat.drive } : null;
-  const c = { hin, season: pre.season, checkedInAt: Date.now(), checkedInBy: S.tech, customer: cust, boat, where: "", fuel: "", engineHours: j && j.engineHours || "", noDamage: false, damage: "", items: "", keys: "", notes: "" };
+  const c = { hin, season: pre.season, checkedInAt: Date.now(), checkedInBy: S.tech, customer: cust, boat, package: pre.packageGuess || "", where: "", fuel: "", engineHours: j && j.engineHours || "", noDamage: false, damage: "", items: "", keys: "", notes: "" };
   let reused = false;
   try { const r = await api("createCheckin", { state: c, summary: { title: `${pre.season.slice(0, 4)} Check-in - ${(cust && cust.name) || "No customer"} - ${boatLabel(boat) || hin}`, photoCount: 0 } }); c.id = r.id; reused = !!r.existing; }
   catch (e) { S.busy = false; render(); toast("Couldn't start the check-in: " + e.message, 4500); return; }
@@ -1451,14 +1562,16 @@ async function openWorkspace({ jobId, checkinId }, tab) {
   // check-in
   if (cr && checkinId) {
     let cs = cr.state || {}; const l = newer(cs, "wl_ck_" + checkinId); if (l) { cs = l; setTimeout(ckFlush, 500); }
-    cs.id = checkinId; S.ck = cs; S.ckPhotos = cr.photos || []; S.ckStatus = cr.status || "In Progress"; S.agreement = cr.agreement || null;
-  } else { S.ck = null; S.ckPhotos = []; S.ckStatus = "In Progress"; S.agreement = null; }
+    cs.id = checkinId; S.ck = cs; S.ckPhotos = cr.photos || []; S.ckStatus = cr.status || "In Progress"; S.agreement = cr.agreement || null; S.ckBattery = cr.battery || "";
+  } else { S.ck = null; S.ckPhotos = []; S.ckStatus = "In Progress"; S.agreement = null; S.ckBattery = ""; }
+  S.visit = null; S.ckLink = ""; S.addBoat = null;
   if (!S.job && !S.ck) { S.view = "home"; render(); loadBoard(); toast("That job or check-in isn't in Airtable anymore.", 4500); return; }
   S.saved = null; S.ckSaved = null; S.crm = blankCrm(); S.ckCrm = blankCkCrm();
   if (S.job && S.ck) syncJobFromCk(true);
   S.tab = tab || (S.job ? (S.job.type ? "check" : "info") : "checkin");
   history.replaceState(null, "", "/winterize/?" + (S.job ? "job=" + S.job.id : "checkin=" + S.ck.id));
   render(); window.scrollTo(0, 0);
+  if (S.ck && S.ck.customer) loadVisit();
   if (S.agreement && S.agreement.pdfUrl && S.agreement.driveStatus !== "OK") ckDriveRetry(true);
   if (S.ck && S.agreement && S.ck.completedAt && S.ckStatus === "In Progress") ckFlush(); // back from signing: let the server mark it Signed
 }
@@ -1553,12 +1666,20 @@ document.addEventListener("click", e => {
 function ckClick(t, d) {
   if (d.ckcam !== undefined) { pickKind = "ck"; pickFor = d.ckcam; document.getElementById("filepick").click(); return true; }
   if (d.fuel) { ckSave({ fuel: S.ck.fuel === d.fuel ? "" : d.fuel }, true); return true; }
+  if (d.pkg) { // Anchor boats stay put, so they're never "picked up by Waterline"
+    const w = S.ck.where; const anchorWhere = !w || w === "Picked up by Waterline" ? { where: "Customer's lift or dock" } : {};
+    ckSave({ package: d.pkg, ...(d.pkg === "Anchor" ? anchorWhere : {}) }, true); return true; }
+  if (d.ckgo) { clearTimeout(ckTimer); ckFlush().then(() => openWorkspace({ checkinId: d.ckgo }, "checkin")); return true; }
+  if (d.ckaddexisting) { const b = ((S.visit && S.visit.boats) || []).find(x => x.id === d.ckaddexisting); const inp = document.querySelector(`[data-addhin="${d.ckaddexisting}"]`); if (b) addVisitBoat(b, inp ? inp.value : b.hin); return true; }
   if (d.ckdel) { removeCkPhoto(d.ckdel); return true; }
   if (d.ckcust !== undefined) { ckChooseCustomer(S.ckCrm.results[+d.ckcust]); return true; }
   if (d.ckboat !== undefined) { ckChooseBoat(S.ckCrm.boats[+d.ckboat]); return true; }
   const a = d.a; if (!a || !a.startsWith("ck")) return false;
   const c = S.ck;
   switch (a) {
+    case "ckaddboat": S.addBoat = { busy: false }; if (!S.visit) loadVisit(); render(); setTimeout(() => { const el = document.getElementById("ckVisit"); el && el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
+    case "ckaddcancel": S.addBoat = null; render(); break;
+    case "ckaddnew": addVisitNewBoat(); break;
     case "ckcrmsearch": S.ckCrm.q = (document.getElementById("ckcrmq") || {}).value || ""; ckCrmSearch(); break;
     case "cknewcust": S.ckCrm.newCust = true; render(); break;
     case "ckcancelnew": S.ckCrm.newCust = false; render(); break;
@@ -1568,9 +1689,9 @@ function ckClick(t, d) {
     case "ckeditcrm": S.ckCrm = { ...blankCkCrm(), edit: "cust" }; render(); break;
     case "ckcrmcancel": S.ckCrm = blankCkCrm(); render(); break;
     case "ckchangecust": S.ckCrm = { ...blankCkCrm(), edit: "cust" }; ckSave({ customer: null, boat: null }, true); break;
-    case "cksignhere": clearTimeout(ckTimer); ckFlush().then(() => { location.href = `/agreement/?customerId=${c.customer.id}&return=${encodeURIComponent("/winterize/?checkin=" + c.id + "&tab=checkin")}`; }); break;
+    case "cksignhere": clearTimeout(ckTimer); ckFlush().then(() => { const u = new URL(S.ckLink || `${location.origin}/agreement/?customerId=${c.customer.id}`); u.searchParams.set("return", "/winterize/?checkin=" + c.id + "&tab=checkin"); location.href = u.pathname + u.search; }); break;
     case "ckcopylink": (navigator.clipboard ? navigator.clipboard.writeText(d.link) : Promise.reject()).then(() => toast("Link copied"), () => prompt("Copy this link:", d.link)); break;
-    case "ckrecheck": clearTimeout(ckTimer); ckFlush().then(() => toast(S.agreement ? "Signed!" : "Not signed yet")); break;
+    case "ckrecheck": clearTimeout(ckTimer); ckFlush().then(() => { loadVisit(); toast(S.agreement ? "Signed!" : "Not signed yet"); }); break;
     case "ckoverride": { const v = (document.getElementById("ckovr") || {}).value || ""; if (v.trim().length < 5) { toast("Give a short reason."); break; } ckSave({ override: { reason: v.trim(), by: S.tech, at: Date.now() } }, true); toast("Override saved"); break; }
     case "ckclearoverride": ckSave({ override: null }, true); break;
     case "ckdrive": ckDriveRetry(false); break;

@@ -48,6 +48,27 @@ Everything hangs off the **Boat** record (keyed by HIN): Boats → Check-ins →
 
 **Removing:** the trash button can delete a winterization job and/or a check-in, with their photos. It never deletes customers, boats, or signed agreements. A signed check-in is left unchecked by default, since its photos document the boat's condition at drop-off.
 
+### Visits: several boats, one signature
+
+A customer's **visit** is every boat checked in for them this season that isn't signed for yet. On the Check-in tab, the "boats this visit" card lists them and has **+ Check in another boat**, which offers the customer's other Boat records (asking for a HIN if one isn't on file) or adds a new boat. Each boat keeps its own Check-in record (its own HIN, hours, photos, damage, keys), so nothing is duplicated; one signature then covers all of them.
+
+Each check-in has a **Package** (Anchor, Harbor, Flagship), prefilled from the customer's most advanced quote in Airtable.
+
+### The agreement (`_agreement-text.js`)
+
+One document per signing, assembled on the server from the packages of the boats being signed for:
+- shared terms for everyone (parties, packages, **property access**, **batteries**, **winterization & freeze protection**, condition at check-in, fees, insurance, liability, indemnity, general terms);
+- **storage terms** for Harbor/Flagship boats (facility, season, early/late charges, bailment, facility visits, hard deadline);
+- **on-site terms** for Anchor boats (no storage, owner keeps custody, lifts & site conditions, winter risks after service).
+
+A customer with both gets both sets, labeled. Each of the three versions has its own SHA-256 fingerprint, which is recorded on the Agreement row. On the signing page the customer also gives, per boat, where to keep the **battery** (the "keep it at Waterline" option is only offered for stored boats), plus **where the boats are kept** and access notes, and must check the **property access** authorization. These are saved on the Agreement (Packages, Battery Instructions, Access Notes, Property Access Acknowledged) and on each Check-in (Package, Battery Storage).
+
+**The v2 wording (Anchor terms, property access, batteries, freeze protection) is a draft and needs attorney review.**
+
+### Customer links and the future boat profile
+
+Each customer has a private **Portal Key** (Customers table), created automatically. Links look like `/agreement/?k=<key>`; the older `?customerId=` links still work. The same key is meant for the future customer **boat profile** (check-in photos, then service history), which will read from Check-ins, Winterization Photos, Agreements, and Winterization Jobs. A job appears there only when it's **Complete** and **Share with Customer** is checked.
+
 ### Airtable tables (Waterline Marketing base)
 
 - **Check-ins**: one row per boat per check-in. Status: In Progress → Awaiting Signature → Signed (or Override). `Winterization Status` (rollup) and `Stage` (formula) show where the boat is overall. Photos go in Winterization Photos, linked by `Check-in`.
