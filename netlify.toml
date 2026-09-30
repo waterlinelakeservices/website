@@ -58,3 +58,34 @@
     X-Robots-Tag = "noindex, nofollow, noarchive"
     Referrer-Policy = "no-referrer"
     Cache-Control = "no-cache"
+
+# --- Boat check-in (staff) and customer agreement ---
+[[redirects]]
+  from = "/api/agreement"
+  to = "/.netlify/functions/agreement"
+  status = 200
+
+# Check-in now lives inside /winterize (Check-in tab). Old links still work.
+[[redirects]]
+  from = "/checkin/*"
+  to = "/winterize/"
+  status = 301
+
+[[redirects]]
+  from = "/checkin"
+  to = "/winterize/"
+  status = 301
+
+[[headers]]
+  for = "/agreement"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/agreement/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-cache"

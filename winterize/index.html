@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Waterline — Winterization Checklist</title>
+<title>Check-in and winterization | Waterline Lake Services</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="googlebot" content="noindex, nofollow">
@@ -90,7 +90,7 @@ textarea.in-t { min-height: 84px; resize: vertical; }
 .login svg.mark { width: 64px; height: 64px; }
 .login h1 { font-size: 34px; margin: 14px 0 6px; }
 .login p { color: #CFE6EC; margin: 0 0 22px; }
-.login .in-t { font-size: 26px; letter-spacing: .4em; text-align: center; border: 0; }
+.login .in-t { font-size: 26px; letter-spacing: .4em; text-align: center; border: 0; color: var(--ink); background: #fff; caret-color: var(--deep); }
 .login .err { color: #FFD9A8; min-height: 24px; margin: 10px 0 0; font-size: 15px; }
 .login .etch { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; width: 100%; }
 
@@ -159,8 +159,8 @@ textarea.in-t { min-height: 84px; resize: vertical; }
 .itxt .hint { display: block; font-size: 14px; color: var(--muted); margin-top: 2px; }
 .iact { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0 50px; }
 .iact button, .iact label { border: 1.5px solid var(--stone-2); background: #fff; border-radius: 30px; padding: 7px 14px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; cursor: pointer; }
-.iact label.cam { border-color: var(--deep); color: var(--deep); }
-.iact label.cam.need { border-color: var(--sun); background: var(--sun-tint); color: var(--sun-ink); }
+.iact .cam { border-color: var(--deep); color: var(--deep); }
+.iact .cam.need { border-color: var(--sun); background: var(--sun-tint); color: var(--sun-ink); }
 .iact svg { width: 18px; height: 18px; }
 .ival { margin: 10px 0 0 50px; display: flex; gap: 10px; flex-wrap: wrap; }
 .ival label { flex: 1 1 150px; min-width: 0; }
@@ -216,12 +216,55 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--deep-dark); color: #fff; padding: 11px 18px; border-radius: 30px; font-size: 15px; z-index: 70; max-width: 92vw; text-align: center; box-shadow: 0 8px 26px rgba(12,57,68,.3); }
 .list-plain { margin: 0; padding-left: 20px; }
 .list-plain li { margin: 4px 0; }
+.check { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0; cursor: pointer; }
+.check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--deep); flex: none; }
+.th .del-ph { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--deep-dark); color: #fff; font-size: 16px; line-height: 24px; padding: 0; cursor: pointer; }
+.res[disabled] { opacity: .55; cursor: not-allowed; }
+.apps { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* boats board + check-in tab */
+.startbtns { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .startbtns { grid-template-columns: 1fr 1fr; } }
+.jobrow { padding: 0; gap: 0; align-items: stretch; }
+.jobrow .jobmain { flex: 1; min-width: 0; display: flex; gap: 12px; align-items: center; background: none; border: 0; padding: 13px 8px 13px 14px; text-align: left; color: inherit; font: inherit; cursor: pointer; border-radius: 12px 0 0 12px; }
+.jobrow .jobdel { flex: none; width: 48px; background: none; border: 0; border-left: 1px solid var(--stone); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 0 12px 12px 0; }
+.jobrow .jobdel svg { width: 20px; height: 20px; }
+.jobrow .jobdel:hover, .jobrow .jobdel:focus-visible { color: var(--danger); background: #FBEDEB; }
+.jobrow[data-stage="Checking in"], .jobrow[data-stage="Awaiting signature"] { border-left-color: var(--sun); }
+.jobrow[data-stage="Check-in complete"] { border-left-color: var(--deep); }
+.jobrow[data-stage="Needs review"] { border-left-color: var(--sun); }
+.jobrow[data-stage="Complete"] { border-left-color: var(--pine); }
+.ckicon { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--sun-tint); color: var(--sun-ink); display: flex; align-items: center; justify-content: center; }
+.jobrow[data-stage="Check-in complete"] .ckicon { background: var(--glacier-tint); color: var(--deep); }
+.ckicon svg { width: 24px; height: 24px; }
+.chip.ckin { background: var(--sun-tint); color: var(--sun-ink); }
+.chip.ready { background: var(--deep); color: #fff; }
+.jobhead .chip.ckin { background: var(--sun); color: var(--deep-dark); }
+.jobhead .chip.ready { background: #fff; color: var(--deep); }
+.btn.danger { background: var(--danger); color: #fff; border-bottom: 0; }
+.btn[disabled] { opacity: .5; }
+.sheet .panel.modal { border-radius: 20px; margin: auto 16px; align-self: center; max-width: 460px; }
+.modal .check { background: var(--wash); border-radius: 12px; padding: 12px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.modal-actions .btn { flex: 1 1 150px; }
+.jobrow .when { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.jobrow .jobmain, .jobrow .meta { overflow: hidden; }
+.jobs { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) { .jobs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.jobs > .jobrow { min-width: 0; }
+.jobrow .hin { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jobrow .meta .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jobrow .chip { flex: none; }
+.tabs.six .in { grid-template-columns: repeat(6, 1fr); }
+.tabs.six button { font-size: 11.5px; }
+.tabs button.locked { opacity: .45; }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="toast" class="toast hide" role="status" aria-live="polite"></div>
+<input type="file" id="filepick" accept="image/*" capture="environment" multiple hidden>
 <script>
 /* ============================================================
    PARTS & FLUIDS REFERENCE (from the shop's reference sheet)
@@ -257,16 +300,9 @@ const INB = ["DD","VD"], OUTB = ["PT","OB"], ALL = ["DD","VD","IO","PT","OB","PW
    spring: line added to the customer's spring launch list when done
    ============================================================ */
 const SECTIONS = [
- { id:"intake", title:"Intake and inspection", types:ALL, items:[
-   {id:"in_auth", t:"Work order signed; customer approved a spending limit for extra work found", inputs:[{k:"limit",label:"Approved limit ($)",type:"number"}], isNew:true},
-   {id:"in_hinphoto", t:"Photograph the HIN plate", photo:"req"},
-   {id:"in_serial", t:"Photograph the engine serial tag", photo:"req"},
-   {id:"in_hours", t:"Record engine hours", photo:"req", inputs:[{k:"hours",label:"Engine hours",type:"number",job:"engineHours"}]},
-   {id:"in_walk", t:"Walk-around photos: bow, both sides, stern, helm, and interior", photo:"req", minPhotos:4},
-   {id:"in_damage", t:"Photograph and note any existing damage (gelcoat, tubes, upholstery)", photo:"opt", inputs:[{k:"note",label:"Damage notes",type:"text"}]},
-   {id:"in_issues", t:"Note customer-reported issues on the work order", inputs:[{k:"note",label:"Customer-reported issues",type:"text"}]},
-   {id:"in_inventory", t:"Inventory gear left aboard (life jackets, electronics, tubes, covers)", inputs:[{k:"note",label:"Items aboard",type:"text"}], isNew:true},
-   {id:"in_run", t:"Run test before service: gauges, alarms, temperature, and any fault codes", inputs:[{k:"note",label:"Fault codes / findings",type:"text"}], isNew:true},
+ { id:"intake", title:"Before service", types:ALL, note:"Engine hours, condition photos, existing damage, items aboard, and the customer's signature are recorded on the Check-in tab.", items:[
+   {id:"in_issues", t:"Review customer-reported issues from check-in and the work order", inputs:[{k:"note",label:"Customer-reported issues",type:"text"}]},
+   {id:"in_run", t:"Run test before service: gauges, alarms, temperature, and any fault codes", inputs:[{k:"note",label:"Fault codes / findings",type:"text"}]},
    {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
@@ -419,8 +455,7 @@ const SECTIONS = [
  { id:"cover", title:"Cover and storage", types:ALL, items:[
    {id:"cv_grease", t:"Grease steering and control cables per manual"},
    {id:"cv_plugs", t:"Plug exhaust outlets and air intakes; tag the helm \u201cREMOVE PLUGS BEFORE START\u201d", photo:"req", types:BOATS, spring:"Remove exhaust and air intake plugs and the helm tag"},
-   {id:"cv_cover", t:"Install cover or shrink-wrap with vents; support frame so snow can\u2019t pool", photo:"req", spring:"Remove shrink-wrap or cover"},
-   {id:"cv_loc", t:"Record storage location", photo:"opt", inputs:[{k:"loc",label:"Storage location",type:"text",job:"storageLocation"}]}
+   {id:"cv_cover", t:"Install cover or shrink-wrap with vents; support frame so snow can\u2019t pool", photo:"req", spring:"Remove shrink-wrap or cover"}
  ]},
  { id:"final", title:"Final checks", types:ALL, items:[
    {id:"fc_tags", t:"All drains, plugs, and tags recorded on this work order"},
@@ -432,9 +467,12 @@ const SECTIONS = [
 /* ============================================================
    STATE
    ============================================================ */
-const S = { view: "login", filter: "active", q: "", jobs: null, jobsErr: null, job: null, photos: [], pendingPhotos: [], history: [],
-  tab: "check", open: new Set(), openItems: new Set(), crm: blankCrm(), tech: "", newHin: "", busy: false, saved: null, sheet: null };
+const S = { view: "login", filter: "active", q: "", board: null, boardErr: null, season: "", job: null, photos: [], pendingPhotos: [], history: [],
+  tab: "check", open: new Set(), openItems: new Set(), crm: blankCrm(), tech: "", newHin: "", newMode: "ck", busy: false, saved: null, sheet: null,
+  // check-in for the boat that's open (null if the boat has no check-in yet)
+  ck: null, ckPhotos: [], ckStatus: "In Progress", agreement: null, ckCrm: blankCkCrm(), ckSaved: null, del: null };
 function blankCrm() { return { q: "", results: null, err: null, loading: false, cust: null, boats: null, manual: false, relink: false }; }
+function blankCkCrm() { return { q: "", results: null, cust: null, boats: null, loading: false, err: null, newCust: false, newBoat: false, edit: null }; }
 let saveTimer = null, saving = false, saveAgain = false;
 const $app = document.getElementById("app");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -460,7 +498,7 @@ async function api(action, payload = {}) {
   if (!d.ok) throw new ApiError(d.error || "Request failed", res.status);
   return d;
 }
-function signOut(msg) { lsDel("wl_pin"); lsDel("wl_tech"); S.tech = ""; S.view = "login"; S.job = null; S.loginErr = msg || ""; render(); }
+function signOut(msg) { lsDel("wl_pin"); lsDel("wl_tech"); S.tech = ""; S.view = "login"; S.job = null; S.ck = null; S.loginErr = msg || ""; render(); }
 
 /* ============================================================
    HIN
@@ -485,7 +523,7 @@ function sectionsFor(job) {
 }
 function liveItems(job) { const out = []; sectionsFor(job).forEach(s => { if (s.equip && job.notEquipped && job.notEquipped[s.id]) return; s.items.forEach(i => out.push({ ...i, sec: s.id, secTitle: s.title })); }); return out; }
 function st(job, id) { return (job.checks && job.checks[id] && job.checks[id].s) || ""; }
-function photosOf(id) { return [...S.photos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => p.jobId === S.job.id && p.item === id)]; }
+function photosOf(id) { return [...S.photos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => S.job && p.jobId === S.job.id && p.item === id)]; }
 function progress(job) { const items = liveItems(job); if (!items.length) return { done: 0, total: 0, pct: 0 }; const done = items.filter(i => st(job, i.id)).length; return { done, total: items.length, pct: Math.round(done / items.length * 100) }; }
 function missingPhotos(job) { return liveItems(job).filter(i => i.photo === "req" && st(job, i.id) !== "na" && photosOf(i.id).length < (i.minPhotos || 1)); }
 function flagged(job) { return liveItems(job).filter(i => st(job, i.id) === "flag"); }
@@ -540,12 +578,12 @@ function summaryOf(j) {
     parts: (j.parts || []).filter(x => x.name).map(x => x.name + (x.qty ? " | Qty " + x.qty : "") + (x.part ? " | Part # " + x.part : "")).join("\n"),
     recs: recs.map(r => r.pri + ": " + r.text).join("\n"), quote: recs.length > 0,
     removed: j.removed || "", spring: springList(j).join("\n"), photoCount: S.photos.filter(p => p.id).length,
-    storage: j.storageLocation || "", report: !!j.reportAt
+    report: !!j.reportAt, checkinOverride: j.checkinOverride || ""
   };
 }
 function boatSummary(j) {
-  const b = { hin: j.hin, year: j.year, engine: j.engine, serial: j.serial, svc: j.type ? TYPES[j.type].label : "", cooling: COOL_AT[j.cooling] || "",
-    profile: j.profile, hours: j.engineHours, storage: j.storageLocation, mmc: j.makeModel };
+  const b = { hin: j.hin, year: j.year, engine: j.engine, svc: j.type ? TYPES[j.type].label : "", cooling: COOL_AT[j.cooling] || "",
+    profile: j.profile, hours: j.engineHours, mmc: j.makeModel, length: j.length };
   if (j.status === "complete") { b.lastWint = j.dateCompleted || today(); if (impellerOf(j) === "Replaced") b.impDate = b.lastWint; }
   return b;
 }
@@ -579,8 +617,8 @@ async function flush() {
   saving = false;
   if (saveAgain) { saveAgain = false; flush(); }
 }
-window.addEventListener("online", () => { if (S.job) flush(); drainPhotoQueue(); });
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && S.job && saveTimer) { clearTimeout(saveTimer); flush(); } });
+window.addEventListener("online", () => { if (S.job) flush(); if (S.ck) ckFlush(); drainPhotoQueue(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "hidden") return; if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); } });
 
 /* ============================================================
    PHOTOS: compress on the phone, queue on the device, upload to Airtable
@@ -601,6 +639,7 @@ async function compress(file, max = 1600, q = 0.8) {
 }
 const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(b); });
 async function addPhotos(files, item) {
+  if (pickKind === "ck") return addCkPhotos(files, item);
   const it = item ? liveItems(S.job).find(i => i.id === item) : null;
   const rec = !it && item ? (S.job.recs || []).find(r => r.id === item) : null;
   for (const f of files) {
@@ -621,25 +660,28 @@ async function drainPhotoQueue() {
     for (const p of [...S.pendingPhotos]) {
       if (p.failed) continue;
       try {
-        const r = await api("uploadPhoto", { jobId: p.jobId, hin: p.hin, item: p.item, sec: p.sec, step: p.step, caption: p.caption, at: p.at, contentType: "image/jpeg", data: await blobToB64(p.blob) });
+        const r = await api("uploadPhoto", { ...(p.checkinId ? { checkinId: p.checkinId } : { jobId: p.jobId }), hin: p.hin, item: p.item, sec: p.sec, step: p.step, caption: p.caption, at: p.at, contentType: "image/jpeg", data: await blobToB64(p.blob) });
         S.pendingPhotos = S.pendingPhotos.filter(x => x.qid !== p.qid); IDB.del(p.qid);
-        if (S.job && S.job.id === p.jobId) { r.photo.thumb = p.thumb; S.photos.push(r.photo); refreshAfterPhoto(p.item); }
+        r.photo.thumb = p.thumb;
+        if (p.checkinId) { if (S.ck && S.ck.id === p.checkinId) { S.ckPhotos.push(r.photo); ckRefreshPhotos(); } }
+        else if (S.job && S.job.id === p.jobId) { S.photos.push(r.photo); refreshAfterPhoto(p.item); }
       } catch (e) {
         if (e.offline) { updateUploadLabel(); break; }
         if (e.status === 401) break;
+        if (e.status === 404 || /not found/i.test(e.message)) { S.pendingPhotos = S.pendingPhotos.filter(x => x.qid !== p.qid); IDB.del(p.qid); continue; } // its job or check-in was removed
         p.failed = e.message; IDB.put({ ...p, thumb: undefined });
         toast("A photo didn't upload: " + e.message, 5000);
       }
     }
-  } finally { draining = false; updateUploadLabel(); if (S.job) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 800); } }
+  } finally { draining = false; updateUploadLabel(); if (S.job) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 800); } if (S.ck) { clearTimeout(ckTimer); ckTimer = setTimeout(ckFlush, 900); } }
 }
 function updateUploadLabel() {
-  const n = S.pendingPhotos.filter(p => S.job && p.jobId === S.job.id).length;
+  const n = S.pendingPhotos.filter(p => (S.job && p.jobId === S.job.id) || (S.ck && p.checkinId === S.ck.id)).length;
   const el = document.getElementById("savestate"); if (!el) return;
   if (n) el.textContent = navigator.onLine === false ? `${n} photo${n > 1 ? "s" : ""} waiting for signal` : `Uploading ${n} photo${n > 1 ? "s" : ""}\u2026`;
 }
 function refreshAfterPhoto(item) {
-  if (S.view !== "job") return;
+  if (S.view !== "job" || S.tab === "checkin") return;
   if (S.tab === "check" && item && document.getElementById("it_" + item)) rerenderItem(item); else if (S.tab !== "finish") render();
   updateUploadLabel();
 }
@@ -650,9 +692,12 @@ async function removePhoto(id) {
   try { await api("deletePhoto", { id, jobId: S.job.id }); S.photos = S.photos.filter(p => p.id !== id); render(); save({}); }
   catch (e) { toast(e.offline ? "You're offline. Delete it once you have signal." : "Couldn't delete: " + e.message, 4000); }
 }
+// One camera input that is never redrawn, so a photo can't be lost if the screen refreshes while the camera is open.
 function camBtn(item, need, label) {
-  return `<label class="cam${need ? " need" : ""}"><input type="file" accept="image/*" capture="environment" multiple hidden data-photo="${esc(item || "")}">${I.cam}${esc(label || "Photo")}</label>`;
+  return `<button type="button" class="cam${need ? " need" : ""}" data-cam="${esc(item || "")}">${I.cam}${esc(label || "Photo")}</button>`;
 }
+let pickFor = null, pickKind = "job";
+document.getElementById("filepick").addEventListener("change", e => { const files = [...e.target.files]; e.target.value = ""; if (!files.length || pickFor === null) return; if (pickKind === "ck" ? S.ck : S.job) addPhotos(files, pickFor); });
 const thumbHtml = p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(p.cap || p.caption || "")}" loading="lazy"></span>`;
 
 /* ============================================================
@@ -670,6 +715,8 @@ const I = {
   photo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg>`,
   wrench: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14.5 5.5a4 4 0 0 0 4.9 4.9L21 12l-9 9-3-3 9-9-1.6-1.6a4 4 0 0 1-4.9-4.9z"/></svg>`,
   flag: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>`,
+  clip: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM8.5 12.5l2 2 4.5-4.5"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>`,
   sign: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 19c3-4 5-12 8-12s-2 10 1 10 3-4 5-4 2 3 4 3M3 22h18"/></svg>`
 };
 function ring(pct) { const r = 19, c = 2 * Math.PI * r; return `<svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="${pct}% complete" style="flex:none"><circle cx="23" cy="23" r="${r}" stroke="#DCE3E6" stroke-width="5" fill="none"/><circle cx="23" cy="23" r="${r}" stroke="${pct === 100 ? "#2F5D50" : "#8CC7D6"}" stroke-width="5" fill="none" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct / 100)}" transform="rotate(-90 23 23)" stroke-linecap="round"/><text x="23" y="27.5" text-anchor="middle" font-family="Work Sans,Arial" font-weight="600" font-size="12.5" fill="#134E5E">${pct}</text></svg>`; }
@@ -684,62 +731,129 @@ function render() {
   if (S.view === "home") return renderHome();
   if (S.view === "new") return renderNew();
   if (S.view === "job") return renderJob();
+  if (S.view === "gate") return renderGate();
+}
+// Stage names match the Stage formula fields in Airtable.
+const STAGES = ["Checking in", "Awaiting signature", "Check-in complete", "In winterization", "Needs review", "Complete"];
+const STAGE_CLS = { "Checking in": "ckin", "Awaiting signature": "rev", "Check-in complete": "ready", "In winterization": "prog", "Needs review": "rev", "Complete": "done" };
+const stageChip = st => `<span class="chip ${STAGE_CLS[st] || "prog"}">${esc(st)}</span>`;
+function stageNow() {
+  if (S.job) return S.job.status === "complete" ? "Complete" : S.job.status === "awaiting_review" ? "Needs review" : "In winterization";
+  if (!S.ck) return "Checking in";
+  return S.ckStatus === "Signed" || S.ckStatus === "Override" ? "Check-in complete" : S.ckStatus === "Awaiting Signature" ? "Awaiting signature" : "Checking in";
 }
 function topbar(back, title) {
-  return `<header class="top"><div class="in">${back ? `<button class="back" data-a="home" aria-label="Back to jobs">\u2039</button><h1>${esc(title)}</h1>` :
-    `<div class="brand">${MARK}<div><b>Waterline</b><br><span>Winterization checklist</span></div></div><button class="who-btn" data-a="signout">${esc(S.tech)} \u00b7 Sign out</button>`}</div></header>`;
+  return `<header class="top"><div class="in">${back ? `<button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>${esc(title)}</h1>` :
+    `<div class="brand">${MARK}<div><b>Waterline</b><br><span>Check-in and winterization</span></div></div><button class="who-btn" data-a="signout">${esc(S.tech)} \u00b7 Sign out</button>`}</div></header>`;
 }
 function renderLogin() {
-  $app.innerHTML = `<main class="login"><div class="box">${MARK}<h1>Winterization checklist</h1><p>Staff only. Enter your tech PIN to start.</p>
+  $app.innerHTML = `<main class="login"><div class="box">${MARK}<h1>Check-in and winterization</h1><p>Staff only. Enter your tech PIN to start.</p>
     <form id="loginf" autocomplete="off"><label class="f"><span style="color:#CFE6EC">Tech PIN</span><input class="in-t" id="pin" type="password" inputmode="numeric" autocomplete="current-password" required></label>
     <button class="btn glacier block" type="submit" ${S.busy ? "disabled" : ""}>${S.busy ? "Checking\u2026" : "Sign in"}</button></form>
     <p class="err" role="alert">${esc(S.loginErr || "")}</p></div>${ETCH}</main>`;
   setTimeout(() => { const p = document.getElementById("pin"); p && p.focus(); }, 50);
 }
+const FILTERS = [
+  ["active", "Active", it => it.stage !== "Complete"],
+  ["checkin", "Checking in", it => it.stage === "Checking in" || it.stage === "Awaiting signature"],
+  ["ready", "Ready to winterize", it => it.stage === "Check-in complete"],
+  ["wint", "In winterization", it => it.stage === "In winterization"],
+  ["review", "Needs review", it => it.stage === "Needs review"],
+  ["complete", "Complete", it => it.stage === "Complete"],
+  ["all", "All", () => true]
+];
+function boardList() {
+  const q = S.q.trim().toLowerCase(); const items = S.board || [];
+  const f = (FILTERS.find(x => x[0] === S.filter) || FILTERS[0])[2];
+  return items.filter(f).filter(it => !q || [it.hin, it.customer, it.boat, it.stage, it.job && it.job.svc].join(" ").toLowerCase().includes(q));
+}
+function cardHtml(it, idx) {
+  const job = it.job; let ringPct = null;
+  if (job) { const [d, t] = (job.steps || "0/0").split("/").map(Number); ringPct = t ? Math.round(d / t * 100) : 0; }
+  const boat = it.boat && it.boat !== it.hin && !/^\d{4}$/.test(it.boat) ? it.boat : "";
+  const sub = [boat, job && job.svc].filter(Boolean).join(", ");
+  const when = it.updated ? fmtTime(Date.parse(it.updated)) : "";
+  const icon = ringPct === null ? `<span class="ckicon" aria-hidden="true">${I.clip}</span>` : ring(ringPct);
+  return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div><div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
+    <button class="jobdel" data-delcard="${idx}" aria-label="Remove ${esc(it.customer || "this job")}" title="Remove">${I.trash}</button></div>`;
+}
 function renderHome() {
-  const q = S.q.toLowerCase(); const jobs = S.jobs || [];
-  const f = S.filter;
-  const list = jobs.filter(j => f === "all" || (f === "active" ? j.status !== "Complete" : f === "review" ? j.status === "Awaiting Review" : j.status === "Complete"))
-    .filter(j => !q || [j.hin, j.customer, j.title, j.storage].join(" ").toLowerCase().includes(q));
-  const n = k => jobs.filter(j => j.status === k).length;
+  const items = S.board || []; const list = boardList(); S._list = list;
   const pend = S.pendingPhotos.length;
   $app.innerHTML = topbar(false) + `<main class="wrap">
-    <section class="hero"><h2>Winterization jobs</h2><p class="muted" style="margin:6px 0 16px">Start at the boat with its HIN. Everything you check, measure, and photograph saves to that boat in Airtable.</p>
-      <button class="btn block" data-a="new">Start a winterization</button></section>
+    <section class="hero"><h2>Boats in service${S.season ? ` <span class="muted" style="font-size:18px">${esc(S.season)}</span>` : ""}</h2><p class="muted" style="margin:6px 0 16px">Check each boat in first: condition photos and the customer's signature. Then run the winterization checklist from the same boat.</p>
+      <div class="startbtns"><button class="btn" data-a="new-ck">Check in a boat</button><button class="btn sec" data-a="new-job">Start a winterization</button></div></section>
     ${pend ? `<div class="banner">${pend} photo${pend > 1 ? "s" : ""} waiting to upload. ${navigator.onLine === false ? "They'll send when you have signal." : `<button class="btn ghost" data-a="retryphotos">Try now</button>`}</div>` : ""}
-    <label class="f" style="margin-top:20px"><span>Find a job</span><input class="in-t" id="q" type="search" placeholder="HIN, customer, or storage spot" value="${esc(S.q)}"></label>
-    <div class="filters" role="group" aria-label="Filter jobs">${[["active", "Open", n("In Progress") + n("Awaiting Review")], ["review", "Needs review", n("Awaiting Review")], ["complete", "Complete", n("Complete")], ["all", "All", jobs.length]].map(([k, l, c]) => `<button data-filter="${k}" aria-pressed="${f === k}">${l} (${c})</button>`).join("")}</div>
-    ${S.jobsErr ? `<div class="banner">${esc(S.jobsErr)} <button class="btn ghost" data-a="reload">Try again</button></div>` : ""}
-    ${S.jobs === null && !S.jobsErr ? `<p class="empty">Loading jobs\u2026</p>` : `<div class="jobs">${list.map(j => { const [d, t] = (j.steps || "0/0").split("/").map(Number); const pct = t ? Math.round(d / t * 100) : 0; const parts = (j.title || "").split(" - ");
-      return `<button class="jobrow" data-st="${esc(j.status)}" data-open="${esc(j.id)}">${ring(pct)}<div class="meta"><b>${esc(j.customer || parts[1] || "No customer yet")}</b><div class="small muted">${esc([parts[2], j.svc].filter(Boolean).join(", "))}</div><div class="hin">${esc(j.hin || "NO HIN")}</div></div>${chip(STATUS_FROM_AT[j.status])}</button>`; }).join("")}</div>
-      ${list.length ? "" : `<p class="empty">${jobs.length ? "No jobs match." : "No jobs yet. Start one at the first boat."}</p>`}`}
-  </main>`;
+    <label class="f" style="margin-top:20px"><span>Find a boat</span><input class="in-t" id="q" type="search" placeholder="HIN, customer, or boat" value="${esc(S.q)}"></label>
+    <div class="filters" role="group" aria-label="Filter by stage">${FILTERS.map(([key, label, fn]) => `<button data-filter="${key}" aria-pressed="${S.filter === key}">${label} (${items.filter(fn).length})</button>`).join("")}</div>
+    ${S.boardErr ? `<div class="banner">${esc(S.boardErr)} <button class="btn ghost" data-a="reload">Try again</button></div>` : ""}
+    <div id="boardlist">${S.board === null && !S.boardErr ? `<p class="empty">Loading boats\u2026</p>` : boardHtml(list, items)}</div>
+  </main>${S.del ? delModal() : ""}`;
+}
+function boardHtml(list, items) {
+  return `<div class="jobs">${list.map((it) => cardHtml(it, (S.board || []).indexOf(it))).join("")}</div>
+      ${list.length ? "" : `<p class="empty">${items.length ? "No boats match." : "No boats yet. Check in the first one."}</p>`}`;
+}
+function delModal() {
+  const it = S.del.item; const d = S.del;
+  const photos = n => n ? ` and its ${n} photo${n > 1 ? "s" : ""}` : "";
+  return `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="delh" data-a="delcancel-bg"><div class="panel modal">
+    <h2 id="delh">Remove this job?</h2>
+    <p style="margin:0 0 4px"><b>${esc(it.customer || "No customer")}</b>${it.boat ? " \u00b7 " + esc(it.boat) : ""}</p>
+    <p class="small muted" style="margin:0 0 12px;letter-spacing:.08em">HIN ${esc(it.hin || "none")}</p>
+    ${it.jobId ? `<label class="check"><input type="checkbox" data-delpick="job" ${d.job ? "checked" : ""}><span><b>Winterization job</b>${photos(it.job && it.job.photos)}<br><span class="small muted">${esc(it.job ? "Stage: " + (it.job.status === "Complete" ? "Complete" : it.job.status === "Awaiting Review" ? "Needs review" : "In progress") + (it.job.steps ? ", " + it.job.steps + " steps done" : "") : "")}</span></span></label>` : ""}
+    ${it.checkinId && it.checkin ? `<label class="check"><input type="checkbox" data-delpick="ck" ${d.ck ? "checked" : ""}><span><b>Check-in</b>${photos(it.checkin.photos)}<br><span class="small muted">${esc(it.checkin.status === "Awaiting Signature" ? "Needs signature" : it.checkin.status)}${it.checkin.at ? ", " + esc(fmtTime(Date.parse(it.checkin.at))) : ""}</span></span></label>` : ""}
+    ${d.ck && it.checkin && ["Signed", "Override"].includes(it.checkin.status) ? `<p class="banner small">This check-in is signed. Its condition photos are your record of the boat's condition when you received it. Only remove it if it's a duplicate or a mistake.</p>` : ""}
+    ${it.stage === "Complete" && d.job ? `<p class="banner small">This job is complete. Its service report may already be with the customer.</p>` : ""}
+    <p class="small" style="margin:10px 0 0">This permanently deletes what's checked from Airtable. The customer, the boat record, and any signed agreement are kept.</p>
+    <div class="modal-actions"><button class="btn sec" data-a="delcancel">Cancel</button><button class="btn danger" data-a="delconfirm" ${(d.job || d.ck) && !d.busy ? "" : "disabled"}>${d.busy ? "Removing\u2026" : "Remove from Airtable"}</button></div>
+  </div></div>`;
 }
 function renderNew() {
-  const p = parseHin(S.newHin);
-  $app.innerHTML = topbar(true, "New winterization") + `<main class="wrap"><div class="card" style="margin-top:20px">
+  const p = parseHin(S.newHin); const ck = S.newMode === "ck";
+  $app.innerHTML = topbar(true, ck ? "Check in a boat" : "Start a winterization") + `<main class="wrap"><div class="card" style="margin-top:20px">
     <h2>Boat identification</h2>
     <p class="small muted" style="margin-top:-6px">The HIN is on the upper right of the transom (starboard side). On PWCs it's usually at the rear of the hull, near the pump.</p>
     <label class="f"><span>Hull ID (HIN)</span><input class="in-t" id="hin" autocomplete="off" autocapitalize="characters" spellcheck="false" style="font-size:24px;font-weight:600;letter-spacing:.14em;text-transform:uppercase" value="${esc(S.newHin)}" placeholder="ABC12345D606"></label>
     <p class="small" id="hinmsg" style="margin:-6px 0 16px;color:${p.ok ? "var(--pine)" : "var(--muted)"}">${esc(p.msg)}</p>
-    <button class="btn block" data-a="create" ${p.hin.length < 5 || S.busy ? "disabled" : ""}>${S.busy ? "Looking up this boat\u2026" : "Start job for this boat"}</button>
-    <p class="small muted" style="margin:12px 0 0">If the boat is already in Airtable, the customer and boat fill in automatically.</p>
+    <button class="btn block" data-a="create" ${p.hin.length < 5 || S.busy ? "disabled" : ""}>${S.busy ? "Looking up this boat\u2026" : ck ? "Start check-in" : "Start winterization"}</button>
+    <p class="small muted" style="margin:12px 0 0">${ck ? "If the boat is already in Airtable, the customer and boat fill in automatically." : "Winterization needs a signed check-in for this boat this season."}</p>
   </div></main>`;
 }
 function renderJob() {
   const inked = {}; document.querySelectorAll("canvas.sig").forEach(cv => { if (cv._ink) inked[cv.dataset.sig] = cv.toDataURL("image/png"); });
-  const j = S.job; const p = progress(j); const miss = missingPhotos(j).length; const cust = j.customer && j.customer.name;
-  $app.innerHTML = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to jobs">\u2039</button><h1>${esc(TYPES[j.type] ? TYPES[j.type].label : "Winterization")}</h1><span class="saving" id="savestate">${S.saved ? "Saved" : ""}</span></div></header>
-  <div class="jobhead"><div class="in"><div class="plate"><small>HULL ID</small><b>${esc(j.hin || "NO HIN")}</b></div>
-    <div class="who"><b>${esc(cust || "Customer not linked")}</b><span>${esc([j.year, j.makeModel].filter(Boolean).join(" ") || "Add boat details")}</span></div>${chip(j.status)}</div></div>
+  const j = S.job, c = S.ck;
+  const p = j ? progress(j) : { pct: 0 }; const miss = j ? missingPhotos(j).length : 0;
+  const cust = (c && c.customer && c.customer.name) || (j && j.customer && j.customer.name);
+  const boatTxt = (c && boatLabel(c.boat)) || (j && [j.year, j.makeModel].filter(Boolean).join(" "));
+  const hin = (c && c.hin) || (j && j.hin);
+  const ckBadge = c ? (ckMissing().length || (!c.completedAt ? "" : S.ckStatus === "Awaiting Signature" ? "!" : "")) : "!";
+  const title = j && TYPES[j.type] ? TYPES[j.type].label : j ? "Winterization" : "Check-in";
+  const body = S.tab === "checkin" ? tabCheckin() : !j ? tabNoJob() : S.tab === "info" ? tabInfo(j) : S.tab === "check" ? tabCheck(j) : S.tab === "photos" ? tabPhotos(j) : S.tab === "parts" ? tabParts(j) : tabFinish(j);
+  $app.innerHTML = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>${esc(title)}</h1><span class="saving" id="savestate">${S.saved || S.ckSaved ? "Saved" : ""}</span></div></header>
+  <div class="jobhead"><div class="in"><div class="plate"><small>HULL ID</small><b>${esc(hin || "NO HIN")}</b></div>
+    <div class="who"><b>${esc(cust || "Customer not linked")}</b><span>${esc(boatTxt || "Boat not linked yet")}</span></div>${stageChip(stageNow())}</div></div>
   <div class="rule" title="${p.pct}% complete"><i style="width:${p.pct}%"></i></div>
-  <main class="wrap">${S.tab === "info" ? tabInfo(j) : S.tab === "check" ? tabCheck(j) : S.tab === "photos" ? tabPhotos(j) : S.tab === "parts" ? tabParts(j) : tabFinish(j)}</main>
-  <nav class="tabs" aria-label="Job sections"><div class="in" role="tablist">
-    ${[["info", "Boat", I.boat, !j.type || !cust ? "!" : ""], ["check", "Checklist", I.list, ""], ["photos", "Photos", I.photo, miss || ""], ["parts", "Parts", I.wrench, ""], ["finish", "Finish", I.sign, ""]]
-      .map(([k, l, ic, b]) => `<button role="tab" aria-selected="${S.tab === k}" data-tab="${k}">${ic}${l}${b ? `<span class="badge">${b}</span>` : ""}</button>`).join("")}
+  <main class="wrap">${body}</main>
+  <nav class="tabs six" aria-label="Boat sections"><div class="in" role="tablist">
+    ${[["checkin", "Check-in", I.clip, ckBadge], ["info", "Boat", I.boat, j && !j.type ? "!" : ""], ["check", "Checklist", I.list, ""], ["photos", "Photos", I.photo, miss || ""], ["parts", "Parts", I.wrench, ""], ["finish", "Finish", I.sign, ""]]
+      .map(([key, l, ic, b]) => `<button role="tab" aria-selected="${S.tab === key}" data-tab="${key}" ${!j && key !== "checkin" ? 'class="locked"' : ""}>${ic}${l}${b ? `<span class="badge">${b}</span>` : ""}</button>`).join("")}
   </div></nav>${S.sheet ? S.sheet : ""}`;
   updateUploadLabel();
-  if (S.tab === "finish") { initSig(); restoreInk(inked); }
+  if (S.tab === "finish" && j) { initSig(); restoreInk(inked); }
+}
+// Winterization tabs before a job exists for this boat.
+function tabNoJob() {
+  const c = S.ck; const cleared = S.ckStatus === "Signed" || S.ckStatus === "Override";
+  return `<div class="card" style="margin-top:20px;border-top:4px solid ${cleared ? "var(--pine)" : "var(--sun)"}"><h2>Winterization not started</h2>
+    ${cleared ? `<p>This boat is checked in${S.agreement ? " and the agreement is signed" : " (override recorded)"}. Start the winterization when you're ready.</p>
+      <button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>${S.busy ? "Starting\u2026" : "Start the winterization"}</button>`
+    : `<p>${c && c.completedAt ? "The check-in is done, but the customer hasn't signed the agreement yet." : "Finish the check-in first: condition photos, damage, and the customer's signature."}</p>
+      <button class="btn block" data-tab="checkin">Go to the check-in</button>
+      <details style="margin-top:16px"><summary class="small" style="cursor:pointer">Owner override: start without a signed check-in</summary>
+        <label class="f" style="margin-top:10px"><span>Reason (saved on the job in Airtable and printed on the work order)</span><input class="in-t" id="gateReason" placeholder="Paper agreement signed at office on 10/2"></label>
+        <button class="btn sec" data-a="startwint-override">Start anyway</button></details>`}
+  </div>`;
 }
 function restoreInk(inked) {
   Object.entries(inked).forEach(([who, url]) => { const cv = document.querySelector(`canvas.sig[data-sig="${who}"]`); if (!cv) return;
@@ -753,42 +867,23 @@ function field(k, label, type, opts) {
   return `<label class="f"><span>${label}</span><input class="in-t" data-f="${k}" type="${type || "text"}" ${type === "number" ? 'inputmode="decimal" step="any"' : ""} value="${esc(v)}"></label>`;
 }
 function tabInfo(j) {
-  const c = j.customer; const prof = PROFILES[j.profile] || {};
-  let crm;
-  if (c && !S.crm.manual && !S.crm.cust && !S.crm.results && !S.crm.relink) {
-    crm = `<div class="card"><h2>Customer</h2><p style="margin:0"><b>${esc(c.name)}</b> <span class="chip">${c.src === "crm" ? "In Airtable" : "Entered by hand"}</span></p>
-      <p class="small muted" style="margin:4px 0 0">${esc([c.phone, c.email].filter(Boolean).join("  |  "))}${j.boat ? `<br>Boat record: ${esc(j.boat.name)}${j.boat.type ? " (" + esc(j.boat.type) + ")" : ""}` : ""}</p>
-      ${!j.boat && c.src === "crm" ? `<p class="banner small">No boat record linked, so the HIN and engine details won't be saved on a boat in Airtable.</p>` : ""}
-      ${c.src !== "crm" ? `<p class="banner small">Entered by hand, so this job isn't linked to a customer record. Add them in Airtable, then link them here.</p>` : ""}
-      <button class="btn ghost" data-a="relink" style="padding-left:0">Change customer or boat</button></div>`;
-  } else {
-    crm = `<div class="card"><h2>Link to customer</h2>${S.crm.manual ? `
-      <div class="grid2">${["name", "phone", "email"].map(k => `<label class="f"><span>${{ name: "Customer name", phone: "Phone", email: "Email" }[k]}</span><input class="in-t" data-m="${k}" value="${esc((c && c.src !== "crm" && c[k]) || "")}"></label>`).join("")}</div>
-      <button class="btn" data-a="savemanual">Save customer</button> <button class="btn ghost" data-a="crmback">Search Airtable instead</button>` : `
-      <p class="small muted" style="margin-top:-6px">Search Airtable customers by name, phone, or email.</p>
-      <div style="display:flex;gap:8px"><input class="in-t" id="crmq" type="search" placeholder="Customer name" value="${esc(S.crm.q)}" enterkeyhint="search"><button class="btn" data-a="crmsearch" ${S.crm.loading ? "disabled" : ""}>Search</button></div>
-      ${S.crm.loading ? `<p class="muted small">Looking up\u2026</p>` : ""}${S.crm.err ? `<div class="banner">${esc(S.crm.err)}</div>` : ""}
-      ${S.crm.cust ? `<p style="margin:14px 0 4px"><b>${esc(S.crm.cust.name)}</b>: pick the boat you're working on</p>
-          ${(S.crm.boats || []).map((b, i) => `<button class="res" data-boat="${i}"><b>${esc(b.name)}</b><span>${esc([b.mmc, b.type, b.drive, b.length ? b.length + " ft" : "", b.hin ? "HIN " + b.hin : ""].filter(Boolean).join(", "))}</span></button>`).join("")}
-          ${S.crm.boats ? `<button class="res" data-boat="-1"><b>Boat isn't listed</b><span>Link the customer only</span></button>` : ""}`
-        : S.crm.results ? (S.crm.results.length ? S.crm.results.map((r, i) => `<button class="res" data-cust="${i}"><b>${esc(r.name)}</b><span>${esc([r.phone, r.email].filter(Boolean).join("  |  "))}${r.boats.length ? "  |  " + r.boats.length + " boat" + (r.boats.length > 1 ? "s" : "") : ""}</span></button>`).join("") : `<p class="muted">No customers match \u201c${esc(S.crm.q)}\u201d.</p>`) : ""}
-      <button class="btn ghost" data-a="manual" style="padding-left:0">Not in Airtable? Enter by hand</button>${c ? `<button class="btn ghost" data-a="crmcancel">Cancel</button>` : ""}`}</div>`;
-  }
+  const prof = PROFILES[j.profile] || {}; const c = S.ck;
   const hist = S.history || [];
-  return `${crm}
+  const who = c && c.customer ? `<b>${esc(c.customer.name)}</b><br><span class="small muted">${esc(boatLabel(c.boat) || "Boat not linked")} \u00b7 HIN ${esc(c.hin)}${c.engineHours ? " \u00b7 " + esc(c.engineHours) + " hrs at check-in" : ""}</span>`
+    : j.customer ? `<b>${esc(j.customer.name)}</b><br><span class="small muted">${esc([j.year, j.makeModel].filter(Boolean).join(" ") || (j.boat && j.boat.name) || "")} \u00b7 HIN ${esc(j.hin || "")}</span>` : `<span class="muted">Not linked yet.</span>`;
+  return `<div class="card" style="margin-top:20px"><h2>Customer and boat</h2><p style="margin:0">${who}</p>
+    <p class="small muted" style="margin:8px 0 0">Customer, boat, HIN, and engine hours are recorded at check-in.</p>
+    <button class="btn ghost" data-tab="checkin" style="padding-left:0">${c ? "Edit on the Check-in tab" : "Check in this boat"}</button>
+    ${j.checkinOverride ? `<p class="banner small">Started without a signed check-in. ${esc(j.checkinOverride)}</p>` : ""}</div>
   ${hist.length ? `<div class="card"><h2>This boat's history</h2>${hist.map(h => `<p style="margin:6px 0"><b>${esc(fmtDate(h.dateIn) || "Earlier job")}</b>: ${esc(h.status)}${h.hours ? `, ${esc(h.hours)} hrs` : ""}${h.impeller ? `, impeller ${esc(String(h.impeller).toLowerCase())}` : ""}${h.recs ? `<br><span class="small muted">${esc(h.recs.split("\n")[0])}</span>` : ""}</p>`).join("")}</div>` : ""}
-  <div class="card"><h2>Boat and engine</h2>
-    ${field("type", "Service type (sets the checklist)", "select", Object.entries(TYPES).map(([k, v]) => [k, v.label + ": " + v.short]))}
+  <div class="card"><h2>Service setup</h2>
+    ${field("type", "Service type (sets the checklist)", "select", Object.entries(TYPES).map(([key, v]) => [key, v.label + ": " + v.short]))}
     ${["DD", "VD", "IO"].includes(j.type) ? field("cooling", "Cooling system", "select", [["raw", "Raw-water cooled"], ["closed", "Closed (freshwater) cooled"]]) : ""}
     ${["DD", "VD", "IO"].includes(j.type) && !j.cooling ? `<p class="banner" style="margin-top:-6px">Choose the cooling system. Until you do, both cooling checklists show.</p>` : ""}
-    <div class="grid2">${field("year", "Model year", "number")}${field("length", "Length (ft)", "number")}</div>
-    ${field("makeModel", "Make, model, and color", "text")}
-    <div class="grid2">${field("engine", "Engine make, model, HP", "text")}${field("serial", "Engine serial #", "text")}</div>
+    ${field("engine", "Engine make, model, HP", "text")}
     ${field("profile", "Parts profile (from the reference sheet)", "select", Object.keys(PROFILES))}
     ${prof.kind === "inboard" ? field("block", "Engine block (sets oil type)", "select", [...GM_BLOCKS, ...FORD_BLOCKS, "Other"]) : ""}
-    <div class="grid2">${field("engineHours", "Engine hours", "number")}${field("storageLocation", "Storage location", "text")}</div>
     <div class="grid2">${field("technician", "Technician", "text")}${field("dateIn", "Date in", "date")}</div>
-    ${field("hin", "HIN (correct if mistyped)", "text")}
   </div>`;
 }
 
@@ -955,61 +1050,423 @@ function applyCrm(job, c, b) {
   job.boat = b ? { id: b.id, name: b.name, type: b.type, drive: b.drive } : null;
   if (b) { if (!job.makeModel && b.mmc) job.makeModel = b.mmc; if (!job.length && b.length) job.length = b.length; if (!job.type) { const t = guessType(b); if (t) job.type = t; } }
 }
-function linkBoat(b) {
-  const c = S.crm.cust; const f = {}; applyCrm(f, c, b);
-  const j = S.job; ["makeModel", "length", "type"].forEach(k => { if (j[k]) delete f[k]; });
-  S.crm = blankCrm(); if (f.type) Object.assign(j, { type: f.type });
-  save({ ...f, parts: seedParts({ ...j, ...f }) }, true);
-  if (b && b.hin && j.hin && b.hin !== j.hin) toast(`Heads up: Airtable has HIN ${b.hin} for this boat. Saving replaces it with ${j.hin}.`, 6000);
-  else toast(b ? "Linked to " + c.name + "'s " + b.name : "Linked to " + c.name);
+async function linkBoat(b) {
+  const c = S.crm.cust; const j = S.job;
+  try {
+    let boat = b;
+    if (!b) boat = (await api("ensureBoat", { customerId: c.id, hin: j.hin, name: (j.makeModel || (j.type && TYPES[j.type].label) || "Boat").split(",")[0], mmc: j.makeModel, length: j.length, year: j.year })).boat;
+    else if (!b.hin && j.hin) boat = (await api("setBoatHin", { boatId: b.id, hin: j.hin })).boat;
+    else if (b.hin && j.hin && b.hin !== j.hin) { toast(`That boat has HIN ${b.hin} on file, not ${j.hin}. Pick the right boat or add a new one.`, 6000); return; }
+    const f = {}; applyCrm(f, c, boat);
+    ["makeModel", "length", "type"].forEach(k => { if (j[k]) delete f[k]; });
+    S.crm = blankCrm(); if (f.type) Object.assign(j, { type: f.type });
+    save({ ...f, parts: seedParts({ ...j, ...f }) }, true);
+    toast("Linked to " + c.name + "'s " + (boat.mmc || boat.name));
+  } catch (e) { toast(e.message, 6000); }
+}
+
+/* ============================================================
+   CHECK-IN (the "Check-in" tab): condition photos, readings, and the
+   customer's signed agreement. Customer, boat, HIN, and engine hours
+   live here; the winterization job copies them from the check-in.
+   ============================================================ */
+const CK_POINTS = [
+  { id: "hin", t: "HIN plate", req: true, hint: "Upper right of the transom (starboard side); PWCs at the rear of the hull" },
+  { id: "hours", t: "Hour meter and dash, key on", req: true },
+  { id: "bow", t: "Bow", req: true },
+  { id: "port", t: "Port side (left)", req: true },
+  { id: "stbd", t: "Starboard side (right)", req: true },
+  { id: "stern", t: "Stern and transom", req: true },
+  { id: "helm", t: "Helm and console", req: true },
+  { id: "interior", t: "Seats and interior" },
+  { id: "engine", t: "Engine or motor" },
+  { id: "drive", t: "Prop and lower unit or drive" },
+  { id: "trailer", t: "Trailer and tires" },
+  { id: "cover", t: "Cover and canvas" },
+  { id: "damage", t: "Close-ups of any existing damage", hint: "One photo per scratch, ding, tear, or crack" }
+];
+const CK_WHERE = ["Customer's lift or dock", "Customer's property", "Picked up by Waterline", "Dropped off by owner"];
+const CK_FUEL = ["Empty", "1/4", "1/2", "3/4", "Full"];
+const boatLabel = b => b ? [b.year, b.mmc || b.name, b.length ? b.length + " ft" : ""].filter(Boolean).join(" ") : "";
+const pickCust = x => ({ id: x.id, name: x.name, phone: x.phone, email: x.email, address: x.address });
+const pickBoat = b => ({ id: b.id, name: b.name, mmc: b.mmc, length: b.length, year: b.year, hin: b.hin, type: b.type, drive: b.drive });
+let ckTimer = null, ckSaving = false, ckAgain = false;
+
+const ckPhotosAt = id => [...S.ckPhotos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => S.ck && p.checkinId === S.ck.id && p.item === id)];
+const ckMissing = () => CK_POINTS.filter(p => p.req && !ckPhotosAt(p.id).length);
+function ckReadiness() {
+  const c = S.ck, out = [];
+  out.push([!!(c.customer && c.boat), c.customer && c.boat ? `${c.customer.name}: ${boatLabel(c.boat)}` : "Link the customer and boat"]);
+  out.push([!!c.where, c.where ? c.where : "Choose where the boat was checked in"]);
+  const m = ckMissing(); out.push([!m.length, m.length ? `${m.length} required photo${m.length > 1 ? "s" : ""} still needed` : "All required photos taken"]);
+  out.push([!!(c.noDamage || (c.damage || "").trim()), c.noDamage || (c.damage || "").trim() ? "Existing damage recorded" : "Record existing damage, or confirm there's none"]);
+  return out;
+}
+const ckSummary = () => { const c = S.ck; return { title: `${(c.season || "").slice(0, 4) || new Date().getFullYear()} Check-in - ${(c.customer && c.customer.name) || "No customer"} - ${boatLabel(c.boat) || c.hin}`, photoCount: S.ckPhotos.length }; };
+const ckBoatSummary = () => { const c = S.ck; return { hin: c.hin, hours: c.engineHours, mmc: c.boat && c.boat.mmc, length: c.boat && c.boat.length, year: c.boat && c.boat.year }; };
+
+// Copy the check-in's customer, boat, and hours onto the winterization job.
+function syncJobFromCk(saveIt) {
+  const j = S.job, c = S.ck; if (!j || !c) return;
+  const f = {};
+  if (j.checkinId !== c.id) f.checkinId = c.id;
+  const ckMeta = { id: c.id, at: c.checkedInAt ? new Date(c.checkedInAt).toISOString() : (j.checkin && j.checkin.at) || "", by: c.checkedInBy || "", status: S.ckStatus };
+  if (JSON.stringify(j.checkin || {}) !== JSON.stringify(ckMeta)) f.checkin = ckMeta;
+  if (c.hin && c.hin !== j.hin) f.hin = c.hin;
+  if (c.customer && (!j.customer || j.customer.id !== c.customer.id || j.customer.name !== c.customer.name)) f.customer = { ...c.customer, src: "crm" };
+  if (c.boat) {
+    if (!j.boat || j.boat.id !== c.boat.id) { f.boat = { id: c.boat.id, name: c.boat.name, type: c.boat.type, drive: c.boat.drive }; if (!j.type) { const t = guessType(c.boat); if (t) f.type = t; } }
+    if (c.boat.mmc && c.boat.mmc !== j.makeModel) f.makeModel = c.boat.mmc;
+    if (c.boat.year && String(c.boat.year) !== String(j.year || "")) f.year = c.boat.year;
+    if (c.boat.length && String(c.boat.length) !== String(j.length || "")) f.length = c.boat.length;
+  }
+  if (c.engineHours !== undefined && c.engineHours !== "" && String(c.engineHours) !== String(j.engineHours || "")) f.engineHours = c.engineHours;
+  if (S.agreement && j.agreementRef !== S.agreement.ref) { f.agreementRef = S.agreement.ref; f.agreementAt = S.agreement.signedAt; }
+  if (!Object.keys(f).length) return;
+  if (f.type) f.parts = seedParts({ ...j, ...f });
+  if (saveIt) save(f); else Object.assign(j, f);
+}
+
+function ckSave(fields, rerender) {
+  Object.assign(S.ck, fields); S.ck.updatedAt = Date.now();
+  lsSet("wl_ck_" + S.ck.id, JSON.stringify(S.ck));
+  clearTimeout(ckTimer); ckTimer = setTimeout(ckFlush, 1000); setSaving("Saving\u2026");
+  if (S.job) syncJobFromCk(true);
+  if (rerender) render();
+}
+async function ckFlush() {
+  if (!S.ck) return;
+  if (ckSaving) { ckAgain = true; return; }
+  ckSaving = true; const c = S.ck;
+  try {
+    const r = await api("saveCheckin", { id: c.id, state: c, summary: ckSummary(), boat: ckBoatSummary() });
+    if (S.ck !== c) return;
+    S.ckSaved = Date.now(); setSaving("Saved");
+    const changed = r.status !== S.ckStatus || (!!r.agreement) !== (!!S.agreement);
+    S.ckStatus = r.status; S.agreement = r.agreement;
+    if (changed) { if (S.job) syncJobFromCk(true); if (S.view === "job") { const ae = document.activeElement; const typing = ae && /INPUT|TEXTAREA/.test(ae.tagName) && ae.dataset.cf; if (typing) { ckRefreshFinish(); const ch = document.querySelector(".jobhead .chip"); if (ch) ch.outerHTML = stageChip(stageNow()); } else render(); } }
+  } catch (e) {
+    setSaving(e.offline ? "Offline: saved on this device" : e.status === 401 ? "" : "Not saved: " + e.message);
+    clearTimeout(ckTimer); ckTimer = setTimeout(ckFlush, e.offline ? 15000 : 30000);
+  } finally {
+    ckSaving = false; if (ckAgain) { ckAgain = false; ckFlush(); }
+  }
+}
+async function addCkPhotos(files, item) {
+  const pt = CK_POINTS.find(p => p.id === item) || { t: "General" };
+  for (const f of files) {
+    let blob; try { blob = await compress(f); } catch (e) { toast("That file isn't a photo the browser can read."); continue; }
+    const p = { qid: "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), checkinId: S.ck.id, hin: S.ck.hin, item, sec: "Check-in", step: pt.t, caption: "Check-in: " + pt.t, at: Date.now(), blob };
+    p.thumb = URL.createObjectURL(blob); S.pendingPhotos.push(p); IDB.put({ ...p, thumb: undefined });
+  }
+  ckRefreshPhotos(); drainPhotoQueue();
+}
+async function removeCkPhoto(id) {
+  if (!confirm("Delete this check-in photo?")) return;
+  const q = S.pendingPhotos.find(p => p.qid === id);
+  if (q) { S.pendingPhotos = S.pendingPhotos.filter(p => p.qid !== id); IDB.del(id); ckRefreshPhotos(); return; }
+  try { await api("deletePhoto", { id, checkinId: S.ck.id }); S.ckPhotos = S.ckPhotos.filter(p => p.id !== id); ckRefreshPhotos(); ckSave({}); }
+  catch (e) { toast(e.offline ? "You're offline. Delete it once you have signal." : "Couldn't delete: " + e.message, 4000); }
+}
+const ckCam = (item, need, label) => `<button type="button" class="cam${need ? " need" : ""}" data-ckcam="${item}">${I.cam}${esc(label)}</button>`;
+const CK_CHIP = { "In Progress": "prog", "Awaiting Signature": "rev", "Signed": "done", "Override": "prog" };
+const ckChip = s => `<span class="chip ${CK_CHIP[s] || ""}">${esc(s === "Awaiting Signature" ? "Needs signature" : s)}</span>`;
+
+/* ---------- Check-in tab ---------- */
+function tabCheckin() {
+  const c = S.ck;
+  if (!c) {
+    const j = S.job;
+    return `<div class="card" style="margin-top:20px;border-top:4px solid var(--sun)"><h2>No check-in for this boat yet</h2>
+      <p>Check the boat in to record its condition photos, existing damage, items aboard, and keys, and to get the customer's signed agreement.${j && j.checkinOverride ? "" : " Winterization normally waits for a signed check-in."}</p>
+      ${j && j.checkinOverride ? `<p class="banner small">This job was started without a signed check-in. ${esc(j.checkinOverride)}</p>` : ""}
+      <button class="btn block" data-a="ckstart-here" ${S.busy ? "disabled" : ""}>${S.busy ? "Starting\u2026" : "Check in this boat"}</button></div>`;
+  }
+  return `<div class="card" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Check-in</h2>${ckChip(S.ckStatus)}</div>
+      <p class="small muted" style="margin:6px 0 0">${c.checkedInAt ? "Started " + esc(fmtTime(c.checkedInAt)) + (c.checkedInBy ? " by " + esc(c.checkedInBy) : "") : ""}. Customer, boat, HIN, and engine hours are recorded here and copied to the winterization job.</p></div>
+    ${ckCrmCard()}
+    <div class="card"><h2>Where and readings</h2>
+      <label class="f"><span>Where the boat was checked in</span><select class="in-t" data-cf="where"><option value="">Choose\u2026</option>${CK_WHERE.map(w => `<option ${c.where === w ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label>
+      <div class="grid2"><label class="f"><span>Engine hours</span><input class="in-t" type="number" inputmode="decimal" step="any" data-cf="engineHours" value="${esc(c.engineHours || "")}"></label>
+      <div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Fuel level</span><div class="filters" style="padding:0">${CK_FUEL.map(f => `<button data-fuel="${f}" aria-pressed="${c.fuel === f}">${f}</button>`).join("")}</div></div></div>
+    </div>
+    <div class="card" id="ckPhotos">${ckPhotosHtml()}</div>
+    <div class="card"><h2>Existing damage</h2>
+      <label class="check"><input type="checkbox" data-cf="noDamage" ${c.noDamage ? "checked" : ""}><span>No visible damage at check-in</span></label>
+      ${c.noDamage ? "" : `<label class="f"><span>Describe each spot (where, what, size). Photograph each one above.</span><textarea class="in-t" data-cf="damage" rows="3" placeholder="Port bow: 3 in. gelcoat scratch. Driver seat: small tear on bolster.">${esc(c.damage || "")}</textarea></label>`}
+    </div>
+    <div class="card"><h2>Items, keys, and notes</h2>
+      <label class="f"><span>Items left aboard</span><textarea class="in-t" data-cf="items" rows="2" placeholder="4 life jackets, tube, stereo remote\u2026">${esc(c.items || "")}</textarea></label>
+      <label class="f"><span>Keys received (and tag #)</span><input class="in-t" data-cf="keys" value="${esc(c.keys || "")}" placeholder="2 keys + float, tag 14"></label>
+      <label class="f"><span>Customer's notes or concerns</span><textarea class="in-t" data-cf="notes" rows="2">${esc(c.notes || "")}</textarea></label>
+    </div>
+    ${ckAgreementCard()}
+    <div class="card" id="ckFinish">${ckFinishCard()}</div>
+    <p class="small muted" style="text-align:center">${S.ckSaved ? "Check-in saved to Airtable " + esc(fmtTime(S.ckSaved)) : ""}</p>`;
+}
+function ckPhotosHtml() {
+  return `<h2>Condition photos</h2>
+      <p class="small muted" style="margin-top:-6px">Each photo is time-stamped and saved to this boat's check-in. These are what the customer reviews when they sign.</p>
+      ${CK_POINTS.map(pt => { const ph = ckPhotosAt(pt.id); return `<div class="cp" style="flex-wrap:wrap"><span class="dot ${ph.length ? "ok" : pt.req ? "" : "opt"}" ${!pt.req && !ph.length ? 'style="background:var(--stone-2)"' : ""}></span><span class="t">${esc(pt.t)}${pt.req ? "" : ` <span class="small muted">(if applicable)</span>`}${pt.hint ? `<br><span class="small muted">${esc(pt.hint)}</span>` : ""}</span>
+        <span class="iact" style="margin:0">${ckCam(pt.id, pt.req && !ph.length, ph.length ? "Add" : "Take")}</span>
+        ${ph.length ? `<div class="thumbs" style="margin:8px 0 0 22px;flex-basis:100%">${ph.map(p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(pt.t)}"><button class="del-ph" data-ckdel="${esc(p.id || p.qid)}" aria-label="Delete photo">\u00d7</button></span>`).join("")}</div>` : ""}</div>`; }).join("")}`;
+}
+// Refresh just the photo list, finish card, and tab badge (never the whole
+// screen), so typing or a tap isn't interrupted while photos upload.
+function ckRefreshPhotos() {
+  if (S.view !== "job" || S.tab !== "checkin" || !S.ck) return;
+  const el = document.getElementById("ckPhotos"); if (el) el.innerHTML = ckPhotosHtml();
+  ckRefreshFinish();
+  const b = document.querySelector('[data-tab="checkin"] .badge'), m = ckMissing().length;
+  if (b) { if (m) b.textContent = m; else b.remove(); }
+  updateUploadLabel();
+}
+function ckFinishCard() {
+  const c = S.ck; const ready = ckReadiness(); const allReady = ready.every(r => r[0]); const complete = !!c.completedAt;
+  const cleared = S.ckStatus === "Signed" || S.ckStatus === "Override";
+  return `<h2>${complete ? "Check-in complete" : "Finish check-in"}</h2>
+      ${ready.map(([ok, t]) => `<div class="cp"><span class="dot ${ok ? "ok" : ""}"></span><span class="t">${esc(t)}</span></div>`).join("")}
+      <div class="cp"><span class="dot ${S.agreement ? "ok" : ""}"></span><span class="t">${S.agreement ? "Agreement signed" : c.override && c.override.reason ? "Override: " + esc(c.override.reason) : "Agreement not signed yet (you can finish now and collect it later)"}</span></div>
+      ${complete ? `<p style="margin:14px 0 6px">Completed ${esc(fmtTime(c.completedAt))} by ${esc(c.completedBy || "")}. Status: <b>${esc(S.ckStatus === "Awaiting Signature" ? "Needs signature" : S.ckStatus)}</b></p>
+        ${S.job ? `<button class="btn block" data-tab="check">Go to the winterization checklist</button>` : cleared ? `<button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>Start the winterization</button>` : `<p class="small muted">Winterization unlocks once the customer signs.</p>`}
+        <button class="btn ghost" data-a="ckreopen">Reopen check-in</button>`
+      : `<button class="btn block" data-a="ckcomplete" ${allReady ? "" : "disabled"}>Complete check-in</button>${allReady ? "" : `<p class="small muted" style="margin:8px 0 0">Finish the items above first.</p>`}`}`;
+}
+function ckRefreshFinish() { const el = document.getElementById("ckFinish"); if (el) el.innerHTML = ckFinishCard(); }
+function ckCrmCard() {
+  const c = S.ck, k = S.ckCrm;
+  if (c.customer && c.boat && !k.edit) {
+    return `<div class="card"><h2>Customer and boat</h2><p style="margin:0"><b>${esc(c.customer.name)}</b> <span class="chip">In Airtable</span></p>
+      <p class="small muted" style="margin:4px 0 0">${esc([c.customer.phone, c.customer.email].filter(Boolean).join("  |  "))}<br>${esc(boatLabel(c.boat))}${c.boat.hin ? " \u00b7 HIN " + esc(c.boat.hin) : ""}</p>
+      ${S.agreement ? "" : `<button class="btn ghost" data-a="ckeditcrm" style="padding-left:0">Change customer or boat</button>`}</div>`;
+  }
+  if (!c.customer || k.edit === "cust") {
+    return `<div class="card"><h2>Whose boat is this?</h2>${k.newCust ? `
+      <div class="grid2">${[["name", "Customer name"], ["phone", "Phone"], ["email", "Email"], ["address", "Mailing address"]].map(([f, l]) => `<label class="f"><span>${l}</span><input class="in-t" data-nc="${f}" ${f === "email" ? 'type="email"' : f === "phone" ? 'type="tel"' : ""}></label>`).join("")}</div>
+      <button class="btn" data-a="cksavecust">Add customer to Airtable</button> <button class="btn ghost" data-a="ckcancelnew">Search instead</button>` : `
+      <p class="small muted" style="margin-top:-6px">${c.customer ? "Search for the right customer:" : "No boat in Airtable has this HIN yet. Find the customer:"}</p>
+      <div style="display:flex;gap:8px"><input class="in-t" id="ckcrmq" type="search" placeholder="Name, phone, or email" value="${esc(k.q)}" enterkeyhint="search"><button class="btn" data-a="ckcrmsearch" ${k.loading ? "disabled" : ""}>Search</button></div>
+      ${k.err ? `<div class="banner">${esc(k.err)}</div>` : ""}${k.loading ? `<p class="small muted">Looking up\u2026</p>` : ""}
+      ${k.results ? (k.results.length ? k.results.map((r, i) => `<button class="res" data-ckcust="${i}"><b>${esc(r.name)}</b><span>${esc([r.phone, r.email].filter(Boolean).join("  |  "))}${r.boats.length ? "  |  " + r.boats.length + " boat" + (r.boats.length > 1 ? "s" : "") : ""}</span></button>`).join("") : `<p class="muted">No customers match.</p>`) : ""}
+      <button class="btn ghost" data-a="cknewcust" style="padding-left:0">New customer? Add them</button>${c.customer && c.boat ? `<button class="btn ghost" data-a="ckcrmcancel">Cancel</button>` : ""}`}</div>`;
+  }
+  const boats = k.boats || [];
+  return `<div class="card"><h2>Which boat?</h2><p class="small muted" style="margin-top:-6px">${esc(c.customer.name)}. HIN ${esc(c.hin)} will be saved on the boat you pick.</p>
+    ${k.loading ? `<p class="small muted">Loading boats\u2026</p>` : ""}${k.err ? `<div class="banner">${esc(k.err)}</div>` : ""}
+    ${boats.map((b, i) => { const other = b.hin && b.hin !== c.hin; return `<button class="res" data-ckboat="${i}" ${other ? "disabled" : ""}><b>${esc(boatLabel(b) || b.name)}</b><span>${other ? "Has a different HIN (" + esc(b.hin) + "), so it's a different boat" : b.hin ? "HIN " + esc(b.hin) : "No HIN on file yet"}</span></button>`; }).join("")}
+    ${k.newBoat ? `<div style="border:1.5px dashed var(--stone-2);border-radius:12px;padding:12px;margin-top:10px">
+      <label class="f"><span>Make, model, and color</span><input class="in-t" data-nb="mmc" placeholder="Bennington 24 SSX, white/blue"></label>
+      <div class="grid2"><label class="f"><span>Length (ft)</span><input class="in-t" data-nb="length" type="number" inputmode="decimal"></label><label class="f"><span>Model year</span><input class="in-t" data-nb="year" type="number" inputmode="numeric" value="${esc(parseHin(c.hin).ok ? parseHin(c.hin).year : "")}"></label></div>
+      <button class="btn" data-a="cksaveboat">Add boat to Airtable</button></div>` : `<button class="btn ghost" data-a="cknewboat" style="padding-left:0">Boat isn't listed? Add it</button>`}
+    <button class="btn ghost" data-a="ckchangecust">Different customer</button></div>`;
+}
+function ckAgreementCard() {
+  const c = S.ck, a = S.agreement;
+  if (a) {
+    const driveOk = a.driveStatus === "OK" && a.driveLink;
+    return `<div class="card" style="border-top:4px solid var(--pine)"><h2>Agreement signed</h2>
+      <p style="margin:0"><b>${esc(a.signer)}</b> signed ${esc(fmtTime(a.signedAt))} \u00b7 ref ${esc(a.ref)}</p>
+      <p class="small muted" style="margin:4px 0 0">${esc(a.via || "")}${a.witness ? ", witnessed by " + esc(a.witness) : ""}</p>
+      <p class="small" style="margin:8px 0 0">${a.pdfUrl ? `<a href="${esc(a.pdfUrl)}" target="_blank" rel="noopener">Open signed PDF</a>` : "PDF saving\u2026"}${driveOk ? ` \u00b7 <a href="${esc(a.driveLink)}" target="_blank" rel="noopener">Google Drive copy</a>` : a.driveStatus && a.driveStatus !== "Pending" ? ` \u00b7 <span class="muted">Drive: ${esc(a.driveStatus)}</span> <button class="btn ghost" data-a="ckdrive">Retry</button>` : ` \u00b7 <span class="muted">Copying to Drive\u2026</span>`}</p></div>`;
+  }
+  if (!c.customer || !c.boat) return `<div class="card"><h2>Agreement</h2><p class="muted" style="margin:0">Link the customer and boat first.</p></div>`;
+  const link = `${location.origin}/agreement/?customerId=${c.customer.id}`;
+  const msg = `Hi ${c.customer.name.split(" ")[0]}, it's Waterline Lake Services. We've checked in your ${boatLabel(c.boat) || "boat"}. Please review the condition photos and sign your storage agreement here: ${link}`;
+  return `<div class="card" style="border-top:4px solid var(--sun)"><h2>Customer signature</h2>
+    <p class="small muted" style="margin-top:-6px">One signature covers all of ${esc(c.customer.name.split(" ")[0])}'s boats for the season. Take the condition photos first so the customer sees them when signing.</p>
+    <div style="display:grid;gap:10px">
+      <button class="btn" data-a="cksignhere">Customer signs on this device</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.customer.phone ? `<a class="btn sec" href="sms:${esc(c.customer.phone.replace(/[^0-9+]/g, ""))}?&body=${encodeURIComponent(msg)}">Text link</a>` : ""}
+        ${c.customer.email ? `<a class="btn sec" href="mailto:${esc(c.customer.email)}?subject=${encodeURIComponent("Your Waterline storage agreement")}&body=${encodeURIComponent(msg)}">Email link</a>` : ""}
+        <button class="btn sec" data-a="ckcopylink" data-link="${esc(link)}">Copy link</button>
+        <button class="btn ghost" data-a="ckrecheck">Check again</button>
+      </div>
+    </div>
+    <details style="margin-top:14px"><summary class="small" style="cursor:pointer">Can't get a signature? Record an override</summary>
+      <label class="f" style="margin-top:10px"><span>Reason (saved on the check-in in Airtable)</span><input class="in-t" id="ckovr" value="${esc((c.override && c.override.reason) || "")}" placeholder="Signed a paper agreement at the office"></label>
+      <button class="btn sec" data-a="ckoverride">${c.override && c.override.reason ? "Update override" : "Save override"}</button>
+      ${c.override && c.override.reason ? `<button class="btn ghost" data-a="ckclearoverride">Remove override</button>` : ""}
+    </details></div>`;
+}
+
+/* ---------- check-in actions ---------- */
+async function ckDriveRetry(quiet) {
+  if (!S.agreement) return;
+  try {
+    const res = await fetch("/api/agreement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "driveCopy", id: S.agreement.id }) });
+    const r = await res.json();
+    if (r.driveLink) { S.agreement.driveLink = r.driveLink; S.agreement.driveStatus = "OK"; render(); }
+    else if (!quiet) toast(r.error ? "Drive copy failed: " + r.error : "Drive copy isn't set up yet.", 5000);
+  } catch (e) { if (!quiet) toast("Drive copy failed: " + e.message, 5000); }
+}
+async function ckCrmSearch() {
+  const q = S.ckCrm.q.trim(); if (!q) return;
+  Object.assign(S.ckCrm, { loading: true, err: null, results: null }); render();
+  try { S.ckCrm.results = (await api("searchCustomers", { q })).customers; } catch (e) { S.ckCrm.err = e.offline ? "Customer search needs signal." : "Search failed: " + e.message; }
+  S.ckCrm.loading = false; render();
+}
+async function ckChooseCustomer(cust) {
+  ckSave({ customer: pickCust(cust), boat: null }); Object.assign(S.ckCrm, { edit: "boat", loading: true, boats: null, err: null, results: null }); render();
+  try { S.ckCrm.boats = cust.boats.length ? (await api("customerBoats", { ids: cust.boats })).boats : []; if (!S.ckCrm.boats.length) S.ckCrm.newBoat = true; }
+  catch (e) { S.ckCrm.err = "Couldn't load boats: " + e.message; S.ckCrm.boats = []; }
+  S.ckCrm.loading = false; render();
+}
+async function ckChooseBoat(b) {
+  try {
+    let boat = b;
+    if (!b.hin) boat = (await api("setBoatHin", { boatId: b.id, hin: S.ck.hin })).boat;
+    S.ckCrm = blankCkCrm(); ckSave({ boat: pickBoat(boat) }, true);
+    toast("HIN saved on " + (boatLabel(boat) || boat.name)); ckFlush();
+  } catch (e) { toast(e.message, 6000); }
+}
+async function ckCreateBoat() {
+  const g = k => ((document.querySelector(`[data-nb="${k}"]`) || {}).value || "").trim();
+  if (!g("mmc")) { toast("Add the make and model."); return; }
+  try {
+    const r = await api("ensureBoat", { customerId: S.ck.customer.id, hin: S.ck.hin, name: g("mmc").split(",")[0], mmc: g("mmc"), length: g("length"), year: g("year") });
+    S.ckCrm = blankCkCrm(); ckSave({ boat: pickBoat(r.boat) }, true);
+    toast(r.created ? "Boat added to Airtable" : "Found this boat in Airtable"); ckFlush();
+  } catch (e) { toast(e.message, 6000); }
+}
+async function ckCreateCustomer() {
+  const g = k => ((document.querySelector(`[data-nc="${k}"]`) || {}).value || "").trim();
+  if (g("name").length < 2) { toast("Add the customer's name."); return; }
+  try { const r = await api("createCustomer", { name: g("name"), phone: g("phone"), email: g("email"), address: g("address") }); await ckChooseCustomer({ ...r.customer, boats: [] }); toast("Customer added to Airtable"); }
+  catch (e) { toast("Couldn't add the customer: " + e.message, 5000); }
+}
+// Start a check-in for a HIN. From an open job with no check-in, the new
+// check-in takes the job's customer and boat and gets linked to the job.
+async function startCheckin(hinIn, fromJob) {
+  const hin = normHin(hinIn); if (hin.length < 5) { toast("Enter the HIN first."); return; }
+  S.busy = true; render();
+  let pre;
+  try { pre = await api("checkinPrefill", { hin }); }
+  catch (e) { S.busy = false; render(); toast(e.offline ? "You need signal to start a check-in." : "Couldn't look up the boat: " + e.message, 4500); return; }
+  const existing = pre.openCheckin || (pre.lastCheckin && fromJob ? pre.lastCheckin : null);
+  if (existing) {
+    S.busy = false;
+    if (fromJob && S.job) { save({ checkinId: existing.id }); clearTimeout(saveTimer); await flush(); openWorkspace({ jobId: S.job.id }, "checkin"); toast("Linked this boat's existing check-in"); return; }
+    toast("This boat already has an open check-in. Opening it."); openWorkspace({ checkinId: existing.id }, "checkin"); return;
+  }
+  if (pre.lastCheckin && ["Signed", "Override"].includes(pre.lastCheckin.status) && !confirm(`This boat was already checked in this season (${fmtTime(Date.parse(pre.lastCheckin.at))}). Start another check-in?`)) { S.busy = false; openWorkspace({ checkinId: pre.lastCheckin.id }, "checkin"); return; }
+  const j = fromJob ? S.job : null;
+  const cust = pre.customer ? pickCust(pre.customer) : j && j.customer && j.customer.id ? pickCust(j.customer) : null;
+  const boat = pre.boat ? pickBoat(pre.boat) : j && j.boat && j.boat.id ? { id: j.boat.id, name: j.boat.name, mmc: j.makeModel, length: j.length, year: j.year, hin, type: j.boat.type, drive: j.boat.drive } : null;
+  const c = { hin, season: pre.season, checkedInAt: Date.now(), checkedInBy: S.tech, customer: cust, boat, where: "", fuel: "", engineHours: j && j.engineHours || "", noDamage: false, damage: "", items: "", keys: "", notes: "" };
+  try { const r = await api("createCheckin", { state: c, summary: { title: `${pre.season.slice(0, 4)} Check-in - ${(cust && cust.name) || "No customer"} - ${boatLabel(boat) || hin}`, photoCount: 0 } }); c.id = r.id; }
+  catch (e) { S.busy = false; render(); toast("Couldn't start the check-in: " + e.message, 4500); return; }
+  S.busy = false; S.newHin = "";
+  if (j) { save({ checkinId: c.id }); clearTimeout(saveTimer); await flush(); openWorkspace({ jobId: j.id }, "checkin"); }
+  else openWorkspace({ checkinId: c.id }, "checkin");
+  toast(cust ? `Found in Airtable: ${cust.name}` : "New boat: link the customer on the Check-in tab", 3500);
 }
 
 /* ============================================================
    JOBS
    ============================================================ */
-async function loadJobs() {
-  S.jobsErr = null;
-  try { S.jobs = (await api("listJobs")).jobs; }
-  catch (e) { if (e.status === 401) return; S.jobsErr = e.offline ? "You're offline. Jobs will load when you have signal." : "Couldn't load jobs: " + e.message; }
+async function loadBoard() {
+  S.boardErr = null;
+  try { const r = await api("listBoard"); S.board = r.items; S.season = r.season; }
+  catch (e) { if (e.status === 401) return; S.boardErr = e.offline ? "You're offline. Boats load when you have signal." : "Couldn't load boats: " + e.message; }
   if (S.view === "home") render();
 }
-async function createJob() {
-  const hin = normHin(S.newHin); const p = parseHin(hin); S.busy = true; render();
+const loadJobs = loadBoard;
+// Start the winterization job. fromCk: from the open check-in (Check-in tab
+// or the "not started" panel). Otherwise from a typed HIN.
+async function createJob(overrideReason, fromCk) {
+  const hin = fromCk ? S.ck.hin : normHin(S.newHin); const p = parseHin(hin); S.busy = true; render();
   let pre;
   try { pre = await api("prefill", { hin }); }
   catch (e) { S.busy = false; render(); toast(e.offline ? "You need signal to start a job." : "Couldn't look up the boat: " + e.message, 4500); return; }
-  if (pre.openJobId && confirm("This boat already has an open job. Open it instead of starting a new one?")) { S.busy = false; openJob(pre.openJobId); return; }
-  const prev = pre.prev || {};
-  const keep = ["customer", "boat", "type", "cooling", "profile", "block", "engine", "serial", "year", "makeModel", "length"];
-  const job = { hin, status: "in_progress", dateIn: today(), technician: S.tech, checks: {}, parts: [], recs: [], notEquipped: {}, signoff: {}, createdAt: Date.now() };
-  keep.forEach(k => { if (prev[k]) job[k] = prev[k]; });
-  if (!job.year && p.ok) job.year = p.year;
-  if (!job.customer && pre.crm) applyCrm(job, pre.crm.customer, pre.crm.boat);
-  job.parts = seedParts(job);
-  try {
-    S.photos = []; const r = await api("createJob", { state: job, summary: summaryOf(job) });
-    job.id = r.id;
-  } catch (e) { S.busy = false; render(); toast("Couldn't create the job: " + e.message, 4500); return; }
-  S.busy = false; S.newHin = ""; S.job = job; S.history = []; S.view = "job"; S.tab = job.customer && job.type ? "check" : "info"; S.open = new Set(["intake"]); S.crm = blankCrm();
-  render(); window.scrollTo(0, 0); flush();
-  toast(pre.prev ? "Returning boat: details filled from last season" : pre.crm ? `Found in Airtable: ${pre.crm.customer.name}` : "Job started", 3500);
-  api("getJob", { id: job.id }).then(r => { if (S.job && S.job.id === job.id) { S.history = r.history || []; } }).catch(() => {});
-}
-async function openJob(id) {
-  S.view = "job"; S.tab = "info"; $app.innerHTML = topbar(true, "Loading\u2026") + `<main class="wrap"><p class="empty">Opening job\u2026</p></main>`;
-  let r;
-  try { r = await api("getJob", { id }); }
-  catch (e) {
-    const local = lsGet("wl_job_" + id);
-    if (e.offline && local) { r = { id, state: JSON.parse(local), photos: [], history: [] }; toast("Offline: showing the copy saved on this phone.", 4000); }
-    else { S.view = "home"; render(); toast(e.offline ? "You need signal to open this job." : "Couldn't open the job: " + e.message, 4500); return; }
+  if (pre.openJobId) { S.busy = false; toast("This boat already has an open winterization job. Opening it.", 3500); openWorkspace({ jobId: pre.openJobId }); return; }
+  const ck = fromCk ? { id: S.ck.id, status: S.ckStatus, at: S.ck.checkedInAt ? new Date(S.ck.checkedInAt).toISOString() : "", by: S.ck.checkedInBy } : pre.checkin;
+  const cleared = ck && (ck.status === "Signed" || ck.status === "Override");
+  if (!cleared && !overrideReason) {
+    S.busy = false;
+    if (ck) { toast("Finish this boat's check-in and signature first.", 4000); openWorkspace({ checkinId: ck.id }, "checkin"); return; }
+    S.gate = { hin }; S.view = "gate"; render(); return;
   }
-  let state = r.state || {}; const local = lsGet("wl_job_" + id);
-  if (local) { try { const l = JSON.parse(local); if ((l.updatedAt || 0) > (state.updatedAt || 0)) { state = l; setTimeout(flush, 500); } } catch (e) {} }
-  state.id = id; if (!state.status) state.status = "in_progress";
-  S.job = state; S.photos = r.photos || []; S.history = r.history || []; S.saved = null; S.crm = blankCrm();
-  S.tab = state.type && state.customer ? "check" : "info"; S.open = new Set(); const next = liveItems(state).find(i => !st(state, i.id)); if (next) S.open.add(next.sec);
+  const prev = pre.prev || {};
+  const keep = ["type", "cooling", "profile", "block", "engine", "year", "makeModel", "length"];
+  const job = { hin, status: "in_progress", dateIn: today(), technician: S.tech, checks: {}, parts: [], recs: [], notEquipped: {}, signoff: {}, createdAt: Date.now() };
+  keep.forEach(key => { if (prev[key]) job[key] = prev[key]; });
+  if (!job.year && p.ok) job.year = p.year;
+  if (pre.crm) applyCrm(job, pre.crm.customer, pre.crm.boat);
+  if (ck) { job.checkinId = ck.id; job.checkin = { id: ck.id, at: ck.at, by: ck.by, status: ck.status }; }
+  if (pre.coverage) { job.agreementRef = pre.coverage.ref; job.agreementAt = pre.coverage.signedAt; }
+  if (!cleared) job.checkinOverride = `By ${S.tech} on ${new Date().toLocaleDateString("en-US")}: ${overrideReason}`;
+  if (fromCk) { const keepJob = S.job; S.job = job; syncJobFromCk(false); S.job = keepJob; }
+  job.parts = seedParts(job);
+  let id;
+  try { S.photos = []; id = (await api("createJob", { state: job, summary: summaryOf(job) })).id; }
+  catch (e) { S.busy = false; render(); toast("Couldn't create the job: " + e.message, 4500); return; }
+  job.id = id; lsSet("wl_job_" + id, JSON.stringify(job));
+  S.busy = false; S.newHin = ""; S.gate = null;
+  await openWorkspace({ jobId: id }, job.type ? "check" : "info");
+  S.open = new Set(["intake"]); if (S.view === "job") render();
+  toast(pre.prev ? "Returning boat: details filled from last season" : "Winterization started", 3500);
+}
+function renderGate() {
+  const g = S.gate;
+  $app.innerHTML = topbar(true, "Check-in needed") + `<main class="wrap"><div class="card" style="margin-top:20px;border-top:4px solid var(--sun)">
+    <div class="plate" style="color:var(--deep);border-color:var(--deep)"><small style="color:var(--muted)">HULL ID</small><b>${esc(g.hin)}</b></div>
+    <h2 style="margin-top:14px">This boat hasn't been checked in this season</h2>
+    <p>Before any work starts, check the boat in: condition photos plus the customer's signed agreement.</p>
+    <button class="btn block" data-a="gate-checkin">Check in this boat</button>
+    <details style="margin-top:16px"><summary class="small" style="cursor:pointer">Owner override: start without a signed check-in</summary>
+      <label class="f" style="margin-top:10px"><span>Reason (saved on the job in Airtable and printed on the work order)</span><input class="in-t" id="gateReason" placeholder="Paper agreement signed at office on 10/2"></label>
+      <button class="btn sec" data-a="gateoverride">Start anyway</button></details>
+  </div></main>`;
+}
+// Open a boat: its winterization job and/or its check-in, together.
+async function openWorkspace({ jobId, checkinId }, tab) {
+  if (S.job && saveTimer) { clearTimeout(saveTimer); await flush(); }
+  if (S.ck && ckTimer) { clearTimeout(ckTimer); await ckFlush(); }
+  S.view = "job"; S.sheet = null; $app.innerHTML = topbar(true, "Loading\u2026") + `<main class="wrap"><p class="empty">Opening this boat\u2026</p></main>`;
+  const readLocal = (key) => { try { return JSON.parse(lsGet(key) || "null"); } catch (e) { return null; } };
+  const newer = (srv, key) => { const l = readLocal(key); return l && (l.updatedAt || 0) > ((srv && srv.updatedAt) || 0) ? l : null; };
+  let jr = null, cr = null;
+  try {
+    if (jobId) { jr = await api("getJob", { id: jobId }); checkinId = checkinId || (jr.state && jr.state.checkinId) || jr.checkinId; }
+    if (checkinId) { cr = await api("getCheckin", { id: checkinId }).catch(e => { if (e.status === 404) return null; throw e; }); if (cr && !jobId && cr.jobId) { jobId = cr.jobId; jr = await api("getJob", { id: jobId }).catch(() => null); } }
+  } catch (e) {
+    const lj = jobId && readLocal("wl_job_" + jobId), lc = checkinId && readLocal("wl_ck_" + checkinId);
+    if (e.offline && (lj || lc)) { jr = lj ? { state: lj, photos: [], history: [] } : null; cr = lc ? { state: lc, photos: [], status: "In Progress", agreement: null } : null; toast("Offline: showing the copy saved on this device.", 4000); }
+    else { S.view = "home"; S.job = null; S.ck = null; render(); loadBoard(); toast(e.offline ? "You need signal to open this boat." : "Couldn't open it: " + e.message, 4500); return; }
+  }
+  // winterization job
+  if (jr && jobId) {
+    let state = jr.state || {}; const l = newer(state, "wl_job_" + jobId); if (l) { state = l; setTimeout(flush, 500); }
+    state.id = jobId; if (!state.status) state.status = "in_progress";
+    S.job = state; S.photos = jr.photos || []; S.history = jr.history || [];
+    S.open = new Set(); const next = liveItems(state).find(i => !st(state, i.id)); if (next) S.open.add(next.sec);
+  } else { S.job = null; S.photos = []; S.history = []; }
+  // check-in
+  if (cr && checkinId) {
+    let cs = cr.state || {}; const l = newer(cs, "wl_ck_" + checkinId); if (l) { cs = l; setTimeout(ckFlush, 500); }
+    cs.id = checkinId; S.ck = cs; S.ckPhotos = cr.photos || []; S.ckStatus = cr.status || "In Progress"; S.agreement = cr.agreement || null;
+  } else { S.ck = null; S.ckPhotos = []; S.ckStatus = "In Progress"; S.agreement = null; }
+  if (!S.job && !S.ck) { S.view = "home"; render(); loadBoard(); toast("That job or check-in isn't in Airtable anymore.", 4500); return; }
+  S.saved = null; S.ckSaved = null; S.crm = blankCrm(); S.ckCrm = blankCkCrm();
+  if (S.job && S.ck) syncJobFromCk(true);
+  S.tab = tab || (S.job ? (S.job.type ? "check" : "info") : "checkin");
+  history.replaceState(null, "", "/winterize/?" + (S.job ? "job=" + S.job.id : "checkin=" + S.ck.id));
   render(); window.scrollTo(0, 0);
+  if (S.agreement && S.agreement.pdfUrl && S.agreement.driveStatus !== "OK") ckDriveRetry(true);
+  if (S.ck && S.agreement && S.ck.completedAt && S.ckStatus === "In Progress") ckFlush(); // back from signing: let the server mark it Signed
+}
+const openJob = id => openWorkspace({ jobId: id });
+async function doRemove() {
+  const d = S.del, it = d.item; d.busy = true; render();
+  try {
+    const r = await api("removeItem", { jobId: d.job ? it.jobId : null, checkinId: d.ck ? it.checkinId : null });
+    [d.job && ["wl_job_", it.jobId], d.ck && ["wl_ck_", it.checkinId]].filter(Boolean).forEach(([pre, id]) => lsDel(pre + id));
+    const gone = S.pendingPhotos.filter(p => (d.job && p.jobId === it.jobId) || (d.ck && p.checkinId === it.checkinId));
+    gone.forEach(p => IDB.del(p.qid)); S.pendingPhotos = S.pendingPhotos.filter(p => !gone.includes(p));
+    S.del = null; toast(`Removed${r.jobDeleted ? " the winterization job" : ""}${r.jobDeleted && r.checkinDeleted ? " and" : ""}${r.checkinDeleted ? " the check-in" : ""}${r.photosDeleted ? ` (${r.photosDeleted} photo${r.photosDeleted > 1 ? "s" : ""})` : ""}.`, 4000);
+    S.board = null; render(); loadBoard();
+  } catch (e) { d.busy = false; render(); toast(e.offline ? "You need signal to remove it." : "Couldn't remove it: " + e.message, 5000); }
 }
 function setCheck(id, patch) {
   const checks = { ...(S.job.checks || {}) }; const cur = { ...(checks[id] || {}) }; Object.assign(cur, patch);
@@ -1029,23 +1486,33 @@ document.addEventListener("submit", async e => {
   if (e.target.id !== "loginf") return; e.preventDefault();
   const pin = document.getElementById("pin").value.trim(); if (!pin) return;
   lsSet("wl_pin", pin); S.busy = true; S.loginErr = ""; render();
-  try { const r = await api("login"); S.tech = r.tech; lsSet("wl_tech", r.tech); S.busy = false; S.view = "home"; render(); loadJobs(); drainPhotoQueue(); }
+  try { const r = await api("login"); S.tech = r.tech; S.season = r.season || ""; lsSet("wl_tech", r.tech); S.busy = false; afterLogin(); }
   catch (err) { lsDel("wl_pin"); S.busy = false; S.loginErr = err.offline ? "No connection. Sign in once you have signal." : err.status === 401 ? "That PIN isn't recognized." : err.message; render(); }
 });
 document.addEventListener("click", e => {
-  const t = e.target.closest("button,summary"); if (!t) return; const d = t.dataset;
+  const t = e.target.closest("button,summary,.sheet[data-a]"); if (!t) return; const d = t.dataset;
   if (t.tagName === "SUMMARY") { const box = t.parentElement; const sec = box.dataset.sec; if (sec) setTimeout(() => { box.open ? S.open.add(sec) : S.open.delete(sec); }); return; }
   if (d.a === "signout") { if (confirm("Sign out on this device?")) signOut(); return; }
-  if (d.a === "home") { if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } S.view = "home"; S.job = null; S.sheet = null; render(); loadJobs(); window.scrollTo(0, 0); return; }
-  if (d.a === "reload") { S.jobs = null; render(); loadJobs(); return; }
+  if (d.a === "home") { if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); } S.view = "home"; S.job = null; S.ck = null; S.sheet = null; history.replaceState(null, "", "/winterize/"); render(); loadBoard(); window.scrollTo(0, 0); return; }
+  if (d.a === "reload") { S.board = null; render(); loadBoard(); return; }
+  if (d.card !== undefined) { const it = S.board[+d.card]; openWorkspace({ jobId: it.jobId, checkinId: it.checkinId }, it.jobId ? undefined : "checkin"); return; }
+  if (d.delcard !== undefined) { const it = S.board[+d.delcard]; const signedCk = it.checkin && ["Signed", "Override"].includes(it.checkin.status); S.del = { item: it, job: !!it.jobId, ck: !!(it.checkinId && it.checkin) && !(it.jobId && signedCk) }; render(); setTimeout(() => { const b = document.querySelector('[data-a="delcancel"]'); b && b.focus(); }, 30); return; }
+  if (d.a === "delcancel" || (d.a === "delcancel-bg" && e.target === t)) { if (S.del && !S.del.busy) { S.del = null; render(); } return; }
+  if (d.a === "delconfirm") { if (!S.del.busy) doRemove(); return; }
   if (d.a === "retryphotos") { S.pendingPhotos.forEach(p => { delete p.failed; }); drainPhotoQueue(); return; }
-  if (d.a === "new") { S.view = "new"; render(); setTimeout(() => { const h = document.getElementById("hin"); h && h.focus(); }, 50); return; }
-  if (d.a === "create") { createJob(); return; }
-  if (d.open) { openJob(d.open); return; }
+  if (d.a === "new-ck" || d.a === "new-job") { S.newMode = d.a === "new-ck" ? "ck" : "job"; S.view = "new"; render(); setTimeout(() => { const h = document.getElementById("hin"); h && h.focus(); }, 50); return; }
+  if (d.a === "create") { S.newMode === "ck" ? startCheckin(S.newHin) : createJob(); return; }
+  if (d.a === "gateoverride") { const v = ((document.getElementById("gateReason") || {}).value || "").trim(); if (v.length < 5) { toast("Give a short reason."); return; } createJob(v); return; }
+  if (d.a === "gate-checkin") { startCheckin(S.gate.hin); return; }
+  if (d.a === "startwint") { createJob(null, true); return; }
+  if (d.a === "startwint-override") { const v = ((document.getElementById("gateReason") || {}).value || "").trim(); if (v.length < 5) { toast("Give a short reason."); return; } createJob(v, true); return; }
+  if (d.a === "ckstart-here") { startCheckin(S.job.hin, true); return; }
   if (d.filter) { S.filter = d.filter; render(); return; }
   if (d.a === "closesheet") { S.sheet = null; render(); return; }
   if (d.tab) { S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (S.ck && ckClick(t, d)) return;
   if (!S.job) return;
+  if (d.cam !== undefined) { pickKind = "job"; pickFor = d.cam; document.getElementById("filepick").click(); return; }
   if (d.tick) { setCheck(d.tick, { s: st(S.job, d.tick) === "done" ? "" : "done" }); rerenderItem(d.tick); return; }
   if (d.more) { S.openItems.has(d.more) ? S.openItems.delete(d.more) : S.openItems.add(d.more); rerenderItem(d.more); return; }
   if (d.na) { setCheck(d.na, { s: st(S.job, d.na) === "na" ? "" : "na" }); rerenderItem(d.na); return; }
@@ -1060,7 +1527,7 @@ document.addEventListener("click", e => {
   if (d.a === "manual") { S.crm.manual = true; render(); return; }
   if (d.a === "crmback") { S.crm = { ...blankCrm(), relink: true }; render(); return; }
   if (d.a === "savemanual") { const g = k => ((document.querySelector(`[data-m="${k}"]`) || {}).value || "").trim(); if (!g("name")) { toast("Add the customer's name."); return; }
-    S.crm = blankCrm(); save({ customer: { name: g("name"), phone: g("phone"), email: g("email"), src: "manual" }, boat: null }, true); return; }
+    api("createCustomer", { name: g("name"), phone: g("phone"), email: g("email") }).then(r => { S.crm = { ...blankCrm(), cust: { ...r.customer, boats: [] }, boats: [] }; render(); toast("Customer added. Now add the boat."); }).catch(e => toast("Couldn't add the customer: " + e.message, 5000)); return; }
   if (d.a === "addpart") { save({ parts: [...(S.job.parts || []), { name: "", qty: "", part: "" }] }, true); return; }
   if (d.a === "seedparts") { save({ parts: seedParts(S.job) }, true); return; }
   if (d.delpart !== undefined) { const ps = [...S.job.parts]; ps.splice(+d.delpart, 1); save({ parts: ps }, true); return; }
@@ -1077,9 +1544,41 @@ document.addEventListener("click", e => {
   if (d.a === "pdf-full") { makePdf("full"); return; }
   if (d.a === "sharepdf") { sharePdf(); return; }
 });
+function ckClick(t, d) {
+  if (d.ckcam !== undefined) { pickKind = "ck"; pickFor = d.ckcam; document.getElementById("filepick").click(); return true; }
+  if (d.fuel) { ckSave({ fuel: S.ck.fuel === d.fuel ? "" : d.fuel }, true); return true; }
+  if (d.ckdel) { removeCkPhoto(d.ckdel); return true; }
+  if (d.ckcust !== undefined) { ckChooseCustomer(S.ckCrm.results[+d.ckcust]); return true; }
+  if (d.ckboat !== undefined) { ckChooseBoat(S.ckCrm.boats[+d.ckboat]); return true; }
+  const a = d.a; if (!a || !a.startsWith("ck")) return false;
+  const c = S.ck;
+  switch (a) {
+    case "ckcrmsearch": S.ckCrm.q = (document.getElementById("ckcrmq") || {}).value || ""; ckCrmSearch(); break;
+    case "cknewcust": S.ckCrm.newCust = true; render(); break;
+    case "ckcancelnew": S.ckCrm.newCust = false; render(); break;
+    case "cksavecust": ckCreateCustomer(); break;
+    case "cknewboat": S.ckCrm.newBoat = true; render(); break;
+    case "cksaveboat": ckCreateBoat(); break;
+    case "ckeditcrm": S.ckCrm = { ...blankCkCrm(), edit: "cust" }; render(); break;
+    case "ckcrmcancel": S.ckCrm = blankCkCrm(); render(); break;
+    case "ckchangecust": S.ckCrm = { ...blankCkCrm(), edit: "cust" }; ckSave({ customer: null, boat: null }, true); break;
+    case "cksignhere": clearTimeout(ckTimer); ckFlush().then(() => { location.href = `/agreement/?customerId=${c.customer.id}&return=${encodeURIComponent("/winterize/?checkin=" + c.id + "&tab=checkin")}`; }); break;
+    case "ckcopylink": (navigator.clipboard ? navigator.clipboard.writeText(d.link) : Promise.reject()).then(() => toast("Link copied"), () => prompt("Copy this link:", d.link)); break;
+    case "ckrecheck": clearTimeout(ckTimer); ckFlush().then(() => toast(S.agreement ? "Signed!" : "Not signed yet")); break;
+    case "ckoverride": { const v = (document.getElementById("ckovr") || {}).value || ""; if (v.trim().length < 5) { toast("Give a short reason."); break; } ckSave({ override: { reason: v.trim(), by: S.tech, at: Date.now() } }, true); toast("Override saved"); break; }
+    case "ckclearoverride": ckSave({ override: null }, true); break;
+    case "ckdrive": ckDriveRetry(false); break;
+    case "ckcomplete": ckSave({ completedAt: Date.now(), completedBy: S.tech }, true); clearTimeout(ckTimer); ckFlush(); toast("Check-in complete"); break;
+    case "ckreopen": if (confirm("Reopen this check-in?")) ckSave({ completedAt: null, completedBy: null }, true); break;
+    default: return false;
+  }
+  return true;
+}
 document.addEventListener("input", e => {
   const t = e.target, d = t.dataset;
-  if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; renderHome(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); return; }
+  if (t.id === "ckcrmq") { S.ckCrm.q = t.value; return; }
+  if (d.cf && S.ck && t.type !== "checkbox" && t.tagName !== "SELECT") { ckSave({ [d.cf]: t.value }); ckRefreshFinish(); return; }
+  if (t.id === "q") { S.q = t.value; const el = document.getElementById("boardlist"); if (el && S.board) el.innerHTML = boardHtml(boardList(), S.board); return; }
   if (t.id === "hin") { S.newHin = t.value; const p = parseHin(t.value); const m = document.getElementById("hinmsg"); m.textContent = p.msg; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; document.querySelector('[data-a="create"]').disabled = p.hin.length < 5; return; }
   if (t.id === "crmq") { S.crm.q = t.value; return; }
   if (!S.job) return;
@@ -1091,8 +1590,11 @@ document.addEventListener("input", e => {
   if (d.rec !== undefined && t.tagName === "TEXTAREA") { save({ recs: S.job.recs.map((r, i) => i === +d.rec ? { ...r, text: t.value } : r) }); return; }
 });
 document.addEventListener("change", e => {
-  const t = e.target, d = t.dataset; if (!S.job) return;
-  if (t.type === "file" && d.photo !== undefined) { const files = [...t.files]; t.value = ""; if (files.length) addPhotos(files, d.photo || ""); return; }
+  const t = e.target, d = t.dataset;
+  if (d.delpick && S.del) { S.del[d.delpick] = t.checked; render(); return; }
+  if (d.cf && S.ck && (t.type === "checkbox" || t.tagName === "SELECT")) { ckSave({ [d.cf]: t.type === "checkbox" ? t.checked : t.value }, true); return; }
+  if (d.cf) return; // text boxes save as you type (input event); don't redraw on blur or a tap gets lost
+  if (!S.job) return;
   if (d.cap) { const id = d.cap, v = t.value; S.photos = S.photos.map(p => p.id === id ? { ...p, cap: v } : p); api("updatePhoto", { id, caption: v }).catch(() => toast("Caption didn't save.")); return; }
   if (d.f && t.tagName === "SELECT") { const f = { [d.f]: t.value }; if (d.f === "type" && !["DD", "VD", "IO"].includes(t.value)) f.cooling = "";
     Object.assign(S.job, f); if (["type", "profile", "block", "cooling"].includes(d.f)) f.parts = seedParts(S.job); save(f, true); return; }
@@ -1102,7 +1604,9 @@ document.addEventListener("change", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "crmq") { e.preventDefault(); S.crm.q = e.target.value; crmSearch(); }
-  if (e.key === "Enter" && e.target.id === "hin" && normHin(e.target.value).length >= 5 && !S.busy) { e.preventDefault(); createJob(); }
+  if (e.key === "Enter" && e.target.id === "ckcrmq") { e.preventDefault(); S.ckCrm.q = e.target.value; ckCrmSearch(); }
+  if (e.key === "Enter" && e.target.id === "hin" && normHin(e.target.value).length >= 5 && !S.busy) { e.preventDefault(); S.newMode === "ck" ? startCheckin(S.newHin) : createJob(); }
+  if (e.key === "Escape" && S.del && !S.del.busy) { S.del = null; render(); }
 });
 
 /* ============================================================
@@ -1174,8 +1678,9 @@ async function buildPdf(j, mode) {
 
   const c = j.customer || {}; const so = j.signoff || {};
   const facts = [["Customer", c.name], ["Phone / email", [c.phone, c.email].filter(Boolean).join("  /  ")], ["Boat", [j.year, j.makeModel].filter(Boolean).join(" ") || (j.boat && j.boat.name)],
-    ["Service type", TYPES[j.type] && TYPES[j.type].label + (j.cooling ? (j.cooling === "raw" ? ", raw-water cooled" : ", closed cooled") : "")], ["Engine", j.engine], ["Engine serial #", j.serial],
-    ["Engine hours", j.engineHours], ["Storage location", j.storageLocation], ["Technician", so.techName || j.technician], ["Date in / completed", [fmtDate(j.dateIn), fmtDate(j.dateCompleted)].filter(Boolean).join("  /  ")]];
+    ["Service type", TYPES[j.type] && TYPES[j.type].label + (j.cooling ? (j.cooling === "raw" ? ", raw-water cooled" : ", closed cooled") : "")], ["Engine", j.engine],
+    ["Engine hours", j.engineHours], ["Checked in", j.checkin ? [fmtDate(Date.parse(j.checkin.at)), j.checkin.by].filter(Boolean).join(" by ") : ""], ["Technician", so.techName || j.technician], ["Date in / completed", [fmtDate(j.dateIn), fmtDate(j.dateCompleted)].filter(Boolean).join("  /  ")],
+    ["Signed agreement", j.agreementRef ? j.agreementRef + (j.agreementAt ? ", " + fmtDate(Date.parse(j.agreementAt)) : "") : ""]];
   const colW = (W - 2 * M) / 2;
   facts.forEach((f, i) => { const x = M + (i % 2) * colW; if (i % 2 === 0 && i) y += 27; need(27);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...MUTED); doc.text(pdfTxt(f[0]), x, y);
@@ -1201,6 +1706,7 @@ async function buildPdf(j, mode) {
     y += 4;
   });
   if (mode === "full" && j.overrideNote) { h2("Submitted with open items"); para(j.overrideNote); }
+  if (mode === "full" && j.checkinOverride) { h2("Started without a signed check-in"); para(j.checkinOverride); }
   const parts = (j.parts || []).filter(p => p.name && (mode === "full" || p.qty));
   if (parts.length) { h2("Parts and fluids used"); parts.forEach(p => bullet(p.name + (p.qty ? "  |  Qty " + p.qty : "") + (p.part ? "  |  Part # " + p.part : ""), "\u2022", DEEP)); }
   const recs = recList(j);
@@ -1240,10 +1746,16 @@ async function buildPdf(j, mode) {
 /* ============================================================
    START
    ============================================================ */
+function afterLogin() {
+  const q = new URLSearchParams(location.search);
+  drainPhotoQueue();
+  if (q.get("job") || q.get("checkin")) { openWorkspace({ jobId: q.get("job"), checkinId: q.get("checkin") }, q.get("tab") || undefined); return; }
+  S.view = "home"; render(); loadBoard();
+  if (q.get("hin")) { S.newHin = q.get("hin"); S.newMode = q.get("new") === "job" ? "job" : "ck"; S.view = "new"; render(); }
+}
 (function start() {
   S.tech = lsGet("wl_tech") || "";
-  if (lsGet("wl_pin") && S.tech) { S.view = "home"; render(); loadJobs(); drainPhotoQueue(); }
-  else render();
+  if (lsGet("wl_pin") && S.tech) afterLogin(); else render();
 })();
 </script>
 </body>

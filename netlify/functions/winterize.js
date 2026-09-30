@@ -1,27 +1,26 @@
-// Backend for the staff-only winterization checklist at /winterize.
+// Backend for the staff-only tools at /winterize (check-in and winterization).
 //
 // Every request must carry a tech PIN in the `x-tech-pin` header. PINs live in
 // the WINTERIZE_PINS environment variable on the Netlify project, formatted as
-//   Name:PIN,Name:PIN      e.g.  Brian:482913,Ben:771204
-// Use 6+ digit PINs. Changing or removing a PIN there locks that device out on
-// its next request (no redeploy needed beyond Netlify's env-var refresh).
+//   Name:PIN,Name:PIN      e.g.  Brian:######,Ben:######
+// Changing a PIN takes effect after the next deploy (Deploys -> Trigger deploy).
 //
-// Writes go to the Waterline Marketing base:
+// Everything is keyed to the boat's HIN. A job or check-in is always attached
+// to a Boat record: if no Boat has this HIN yet, the app creates one under the
+// customer (and creates the customer too if they're new).
+//
+// Tables in the Waterline Marketing base:
+//   Check-ins            one row per boat check-in (condition, photos, agreement link)
 //   Winterization Jobs   one row per boat per season (checklist state + summary)
-//   Winterization Photos one row per photo, the image stored as an attachment
-//   Boats                HIN / engine / hours / service dates written back
+//   Winterization Photos one row per photo (check-in or job), image as attachment
+//   Boats / Customers    HIN, engine, hours, service dates written back
 //
-// Requires AIRTABLE_TOKEN (already set for the quote functions) with
-// data.records:read and data.records:write on the base.
+// Requires AIRTABLE_TOKEN with data.records:read and data.records:write.
 
-const crypto = require('crypto');
-const { TABLES, CUSTOMER_FIELDS, BOAT_FIELDS, airtableRequest } = require('./_airtable');
+const W = require('./_wl');
+const { T, CUST, BOAT, CHK, AGR, PHOTO } = W;
 
-const BASE_ID = 'appHvdREpgOcGf2k2';
-const JOBS = 'tblBYFYOrtdz7Yd5o';
-const PHOTOS = 'tbl4gpVQ7JJ9pgi8j';
-
-const JOB_F = {
+const JOB = {
   title: 'fldbOKhHgP76OppgA', boat: 'fldy6IAbehJhCLvB5', customer: 'fldaClMCLegvwjpMB',
   status: 'fldYyZSh48cEu4pzU', svc: 'fldXqff4Og5277L6s', hin: 'fldnCvqDFj5YUcUKi',
   tech: 'fldWf6Iqeft8IlKZ8', reviewer: 'fldxb4qH1l0dCFDUM', dateIn: 'fldDpyXRuP0a786Gv',
@@ -30,146 +29,86 @@ const JOB_F = {
   impeller: 'fldIpDckFcvpr1qr7', steps: 'fldhltVO1xLS9t5Tj', log: 'fldrZjSOmRn8LDD1s',
   parts: 'fld3dOIItXnniTtbB', recs: 'fldE6IY6k3rCVhHrM', quote: 'fldqe1JoLVq9raKeR',
   removed: 'fld4KOsv13cv1ds7x', spring: 'fldbh75LnHQ21dzOb', photoCount: 'fldHW2c7dq3uPpAKx',
-  labor: 'fldmvOx3tg0UZaHLi', storage: 'fldBVB6GuzTfMrAlU', report: 'fldHgTTb02Rttsmpu',
-  appId: 'fldPKCFL95xnmphNC', synced: 'fldWX6YGNAQlZsWz3', state: 'fld99YXrMOI1bffP6',
-  techSig: 'fldf8EIrncWCzLJgE', revSig: 'fldoL0vJAGjoz44WP', reportPdf: 'fldZuXn3XU0X6juv5',
-  customerName: 'fldBTJl9foiFFaxpb', photos: 'fldp2r5d1G0Fym19m',
-};
-const PHOTO_F = {
-  caption: 'fldcjijmoVEUTzTz6', photo: 'fldS7Qn1bwfhmfhsT', job: 'fldhy4nRjTx68NEt0',
-  step: 'fld8j4yx9CXZ1MZ7m', stepId: 'fldRWPmksboZ2tap0', section: 'fld4cgCMl15cjBudc',
-  by: 'fldpdzOa9jrumUGfe', at: 'fldNPoe2NzbnJjlk9',
-};
-const BOAT_X = {
-  mmc: 'fldAF9DehpYQWIvnv', hin: 'fldcjbkM38im7lKwT', year: 'fldNIe307QPlhVB1D',
-  engine: 'fldvkIqN4yFHplU3P', serial: 'fldBdb8zvEfgKjUht', svc: 'fldVI9EEpyZyaALb8',
-  cooling: 'fldQvstrpI7S45U9S', profile: 'fldmZgmaIsNXWB2wj', hours: 'fldvB5aNhOKKi1XD7',
-  lastWint: 'fldMzSQ3j552j0w7b', impDate: 'fldB0nT11QmiQBlpl', storage: 'fldtyBf7SlbhjymMh',
+  labor: 'fldmvOx3tg0UZaHLi', report: 'fldHgTTb02Rttsmpu', appId: 'fldPKCFL95xnmphNC',
+  synced: 'fldWX6YGNAQlZsWz3', state: 'fld99YXrMOI1bffP6', techSig: 'fldf8EIrncWCzLJgE',
+  revSig: 'fldoL0vJAGjoz44WP', reportPdf: 'fldZuXn3XU0X6juv5', customerName: 'fldBTJl9foiFFaxpb',
+  photos: 'fldp2r5d1G0Fym19m', checkin: 'fldlZRa0a9inODyyL', override: 'fldqRZbRTziqEai5l',
+  stage: 'fldtjMwsbZJrj18ja',
 };
 
-const REC_RE = /^rec[A-Za-z0-9]{14}$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STATUSES = ['In Progress', 'Awaiting Review', 'Complete'];
 const SVC = ['Direct Drive', 'V-Drive', 'Inboard/Outboard', 'Pontoon', 'Outboard boat', 'PWC'];
 const COOLING = ['Raw-water', 'Closed (freshwater)'];
-const MAX_B64 = 5.4 * 1024 * 1024; // ~4 MB file; Airtable caps uploads at 5 MB
+const WHERE = ["Customer's lift or dock", "Customer's property", 'Picked up by Waterline', 'Dropped off by owner'];
+const FUEL = ['Empty', '1/4', '1/2', '3/4', 'Full'];
+const MAX_B64 = 5.4 * 1024 * 1024; // Airtable caps uploads at 5 MB
+const { str, num, date, recId, pick, sel, esc } = W;
+const normHin = (h) => str(h, 40).toUpperCase().replace(/^US[-\s]?/, '').replace(/[^A-Z0-9]/g, '');
 
-// ---------- helpers ----------
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' },
-  body: JSON.stringify(body),
-});
-const esc = (v) => String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-const str = (v, max = 100000) => (v == null ? '' : String(v)).slice(0, max);
-const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
-const date = (v) => (DATE_RE.test(String(v || '')) ? v : null);
-const recId = (v) => (REC_RE.test(String(v || '')) ? v : null);
-const pick = (v, list) => (list.includes(v) ? v : undefined);
-const sha = (s) => crypto.createHash('sha256').update(String(s)).digest();
-
-function techForPin(pin) {
-  if (!pin || String(pin).length < 4) return null;
-  const entries = String(process.env.WINTERIZE_PINS || '')
-    .split(',').map((s) => s.trim()).filter(Boolean)
-    .map((s) => { const i = s.lastIndexOf(':'); return [s.slice(0, i).trim(), s.slice(i + 1).trim()]; })
-    .filter(([n, p]) => n && p && p.length >= 4);
-  let match = null;
-  for (const [name, p] of entries) {
-    if (crypto.timingSafeEqual(sha(p), sha(pin))) match = name; // no early exit: constant work
-  }
-  return match;
+// ---------- shared lookups ----------
+async function boatByHin(token, hin) {
+  if (!hin || hin.length < 5) return null;
+  const recs = await W.list(token, T.boats, { formula: `{HIN}="${esc(hin)}"`, fields: W.BOAT_READ, max: 3 });
+  return recs.length ? W.boatOut(recs[0]) : null;
 }
-
-function orIds(ids) {
-  return 'OR(' + ids.map((id) => `RECORD_ID()="${id}"`).join(',') + ')';
+async function customerById(token, id) {
+  return id ? W.customerOut(await W.getRec(token, T.customers, id)) : null;
 }
-async function list(token, table, { formula, fields, sort, max }) {
-  const q = new URLSearchParams();
-  q.set('returnFieldsByFieldId', 'true');
-  if (formula) q.set('filterByFormula', formula);
-  if (max) q.set('maxRecords', String(max));
-  (fields || []).forEach((f) => q.append('fields[]', f));
-  (sort || []).forEach((s, i) => { q.set(`sort[${i}][field]`, s.field); q.set(`sort[${i}][direction]`, s.direction || 'asc'); });
-  const out = [];
-  let offset;
-  do {
-    if (offset) q.set('offset', offset);
-    const page = await airtableRequest(token, `/${table}?${q.toString()}`, { method: 'GET' });
-    out.push(...(page.records || []));
-    offset = page.offset;
-  } while (offset && (!max || out.length < max));
-  return out;
+function agreementOut(a) {
+  const f = a.fields || {};
+  const pdf = (f[AGR.pdf] || [])[0];
+  return {
+    id: a.id, ref: f[AGR.ref] || '', signedAt: f[AGR.signedAt] || '', via: sel(f[AGR.via]), witness: f[AGR.witness] || '',
+    signer: f[AGR.name] || '', driveLink: f[AGR.driveLink] || '', driveStatus: f[AGR.driveStatus] || '', pdfUrl: pdf ? pdf.url : null,
+  };
 }
-async function getRec(token, table, id) {
-  return airtableRequest(token, `/${table}/${id}?returnFieldsByFieldId=true`, { method: 'GET' });
+// The signed agreement (this season) that covers a boat, if any.
+async function coverageFor(token, customerId, boatId) {
+  if (!customerId || !boatId) return null;
+  const c = await W.getRec(token, T.customers, customerId);
+  const ids = c.fields[CUST.agreements] || [];
+  if (!ids.length) return null;
+  const season = W.seasonFor();
+  const recs = await W.byIds(token, T.agreements, ids);
+  const hit = recs
+    .filter((a) => sel(a.fields[AGR.status]) === 'Signed' && a.fields[AGR.season] === season && (a.fields[AGR.boats] || []).includes(boatId))
+    .sort((a, b) => String(b.fields[AGR.signedAt]).localeCompare(String(a.fields[AGR.signedAt])))[0];
+  return hit ? agreementOut(hit) : null;
 }
-async function patch(token, table, id, fields) {
-  return airtableRequest(token, `/${table}/${id}?returnFieldsByFieldId=true`, {
-    method: 'PATCH', body: JSON.stringify({ fields, typecast: true }),
-  });
-}
-async function uploadAttachment(token, recordId, fieldId, { data, contentType, filename }) {
-  const res = await fetch(`https://content.airtable.com/v0/${BASE_ID}/${recordId}/${fieldId}/uploadAttachment`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contentType, file: data, filename }),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error((body.error && (body.error.message || body.error.type)) || 'Attachment upload failed');
-    err.status = res.status;
-    throw err;
-  }
-  const atts = (body.fields && (body.fields[fieldId] || Object.values(body.fields)[0])) || [];
-  return atts[atts.length - 1] || null;
-}
-const attUrl = (a, size) => (a ? ((a.thumbnails && a.thumbnails[size] && a.thumbnails[size].url) || a.url) : null);
-
 function photoOut(r) {
   const f = r.fields || {};
-  const att = (f[PHOTO_F.photo] || [])[0];
+  const att = (f[PHOTO.photo] || [])[0];
   return {
-    id: r.id, item: f[PHOTO_F.stepId] || '', sec: f[PHOTO_F.section] || '', cap: f[PHOTO_F.caption] || '',
-    by: f[PHOTO_F.by] || '', at: f[PHOTO_F.at] ? Date.parse(f[PHOTO_F.at]) : Date.parse(r.createdTime),
-    thumb: attUrl(att, 'large'), url: att ? att.url : null,
+    id: r.id, item: f[PHOTO.stepId] || '', sec: f[PHOTO.section] || '', cap: f[PHOTO.caption] || '',
+    by: f[PHOTO.by] || '', at: f[PHOTO.at] ? Date.parse(f[PHOTO.at]) : Date.parse(r.createdTime),
+    thumb: W.attUrl(att, 'large'), url: att ? att.url : null,
   };
 }
-function customerOut(r) {
-  const f = r.fields || {};
-  return {
-    id: r.id, name: f[CUSTOMER_FIELDS.name] || '(no name)', phone: f[CUSTOMER_FIELDS.phone] || '',
-    email: f[CUSTOMER_FIELDS.email] || '', address: f[CUSTOMER_FIELDS.address] || '', boats: f[CUSTOMER_FIELDS.boatsLink] || [],
-  };
-}
-function boatOut(r) {
-  const f = r.fields || {};
-  const sel = (v) => (v && typeof v === 'object' ? v.name : v) || '';
-  return {
-    id: r.id, name: f[BOAT_FIELDS.name] || 'Boat', type: sel(f[BOAT_FIELDS.type]), length: f[BOAT_FIELDS.length] || '',
-    drive: sel(f[BOAT_FIELDS.style]), mmc: f[BOAT_X.mmc] || '', hin: f[BOAT_X.hin] || '', custIds: f[BOAT_FIELDS.customer] || [],
-  };
+// Latest check-in this season for a HIN (and boat, if known).
+async function checkinForBoat(token, boatId, hin) {
+  if (!hin || hin.length < 5) return null;
+  const season = W.seasonFor();
+  const recs = await W.list(token, T.checkins, {
+    formula: `AND({Season}="${season}", {HIN}="${esc(hin)}")`,
+    fields: [CHK.status, CHK.at, CHK.agreement, CHK.boat, CHK.by, CHK.title], sort: [{ field: CHK.at, direction: 'desc' }], max: 5,
+  });
+  const r = recs.find((x) => !boatId || (x.fields[CHK.boat] || []).includes(boatId)) || recs[0];
+  if (!r) return null;
+  return { id: r.id, status: sel(r.fields[CHK.status]) || 'In Progress', at: r.fields[CHK.at] || '', by: r.fields[CHK.by] || '', title: r.fields[CHK.title] || '', signed: !!(r.fields[CHK.agreement] || []).length };
 }
 
-// Summary fields sent by the page -> Winterization Jobs field IDs (whitelisted).
-function summaryFields(s, tech) {
+// ---------- field mapping ----------
+function jobSummaryFields(s, tech) {
   s = s || {};
   const f = {
-    [JOB_F.title]: str(s.title, 250) || 'Winterization',
-    [JOB_F.status]: pick(s.status, STATUSES),
-    [JOB_F.svc]: pick(s.svc, SVC),
-    [JOB_F.hin]: str(s.hin, 40),
-    [JOB_F.tech]: str(s.tech || tech, 120),
-    [JOB_F.reviewer]: str(s.reviewer, 120),
-    [JOB_F.dateIn]: date(s.dateIn),
-    [JOB_F.dateDone]: date(s.dateDone),
-    [JOB_F.hours]: num(s.hours), [JOB_F.volts]: num(s.volts), [JOB_F.coolant]: num(s.coolant),
-    [JOB_F.af]: num(s.af), [JOB_F.fuel]: num(s.fuel), [JOB_F.labor]: num(s.labor),
-    [JOB_F.impeller]: str(s.impeller, 120), [JOB_F.steps]: str(s.steps, 40),
-    [JOB_F.log]: str(s.log), [JOB_F.parts]: str(s.parts), [JOB_F.recs]: str(s.recs),
-    [JOB_F.quote]: !!s.quote, [JOB_F.removed]: str(s.removed), [JOB_F.spring]: str(s.spring),
-    [JOB_F.photoCount]: num(s.photoCount), [JOB_F.storage]: str(s.storage, 250), [JOB_F.report]: !!s.report,
-    [JOB_F.synced]: new Date().toISOString(),
+    [JOB.title]: str(s.title, 250) || 'Winterization', [JOB.status]: pick(s.status, STATUSES), [JOB.svc]: pick(s.svc, SVC),
+    [JOB.hin]: normHin(s.hin), [JOB.tech]: str(s.tech || tech, 120), [JOB.reviewer]: str(s.reviewer, 120),
+    [JOB.dateIn]: date(s.dateIn), [JOB.dateDone]: date(s.dateDone),
+    [JOB.hours]: num(s.hours), [JOB.volts]: num(s.volts), [JOB.coolant]: num(s.coolant), [JOB.af]: num(s.af),
+    [JOB.fuel]: num(s.fuel), [JOB.labor]: num(s.labor), [JOB.impeller]: str(s.impeller, 120), [JOB.steps]: str(s.steps, 40),
+    [JOB.log]: str(s.log), [JOB.parts]: str(s.parts), [JOB.recs]: str(s.recs), [JOB.quote]: !!s.quote,
+    [JOB.removed]: str(s.removed), [JOB.spring]: str(s.spring), [JOB.photoCount]: num(s.photoCount), [JOB.report]: !!s.report,
+    [JOB.override]: str(s.checkinOverride, 250), [JOB.synced]: new Date().toISOString(),
   };
   Object.keys(f).forEach((k) => f[k] === undefined && delete f[k]);
   return f;
@@ -177,241 +116,371 @@ function summaryFields(s, tech) {
 function boatFields(b) {
   b = b || {};
   const f = {};
-  if (b.hin) f[BOAT_X.hin] = str(b.hin, 40);
-  if (num(b.year)) f[BOAT_X.year] = num(b.year);
-  if (b.engine) f[BOAT_X.engine] = str(b.engine, 250);
-  if (b.serial) f[BOAT_X.serial] = str(b.serial, 120);
-  if (pick(b.svc, SVC)) f[BOAT_X.svc] = b.svc;
-  if (pick(b.cooling, COOLING)) f[BOAT_X.cooling] = b.cooling;
-  if (b.profile) f[BOAT_X.profile] = str(b.profile, 120);
-  if (num(b.hours) != null) f[BOAT_X.hours] = num(b.hours);
-  if (b.storage) f[BOAT_X.storage] = str(b.storage, 250);
-  if (b.mmc) f[BOAT_X.mmc] = str(b.mmc, 250);
-  if (date(b.lastWint)) f[BOAT_X.lastWint] = b.lastWint;
-  if (date(b.impDate)) f[BOAT_X.impDate] = b.impDate;
+  if (b.hin && normHin(b.hin).length >= 5) f[BOAT.hin] = normHin(b.hin);
+  if (num(b.year)) f[BOAT.year] = num(b.year);
+  if (b.engine) f[BOAT.engine] = str(b.engine, 250);
+  if (pick(b.svc, SVC)) f[BOAT.svc] = b.svc;
+  if (pick(b.cooling, COOLING)) f[BOAT.cooling] = b.cooling;
+  if (b.profile) f[BOAT.profile] = str(b.profile, 120);
+  if (num(b.hours) != null) f[BOAT.hours] = num(b.hours);
+  if (b.mmc) f[BOAT.mmc] = str(b.mmc, 250);
+  if (num(b.length) != null) f[BOAT.length] = num(b.length);
+  if (date(b.lastWint)) f[BOAT.lastWint] = b.lastWint;
+  if (date(b.impDate)) f[BOAT.impDate] = b.impDate;
   return f;
 }
-function jobLinks(state) {
-  const f = {};
+const linkFields = (state, boatF, custF) => {
   const b = state && state.boat && recId(state.boat.id);
-  const c = state && state.customer && state.customer.src === 'crm' && recId(state.customer.id);
-  f[JOB_F.boat] = b ? [b] : [];
-  f[JOB_F.customer] = c ? [c] : [];
+  const c = state && state.customer && recId(state.customer.id);
+  return { [boatF]: b ? [b] : [], [custF]: c ? [c] : [] };
+};
+function checkinFields(s, st, tech) {
+  s = s || {};
+  const f = {
+    [CHK.title]: str(s.title, 250) || 'Check-in', [CHK.hin]: normHin(st.hin), [CHK.season]: st.season || W.seasonFor(),
+    [CHK.by]: str(st.checkedInBy || tech, 120), [CHK.where]: pick(st.where, WHERE) || null,
+    [CHK.hours]: num(st.engineHours), [CHK.fuel]: pick(st.fuel, FUEL) || null,
+    [CHK.damage]: st.noDamage ? 'None visible at check-in' : str(st.damage), [CHK.items]: str(st.items), [CHK.keys]: str(st.keys, 250),
+    [CHK.notes]: str(st.notes), [CHK.photoCount]: num(s.photoCount),
+    [CHK.overrideReason]: str(st.override && st.override.reason, 250), [CHK.overrideBy]: str(st.override && st.override.by, 120),
+    [CHK.synced]: new Date().toISOString(),
+  };
+  if (st.checkedInAt) f[CHK.at] = new Date(st.checkedInAt).toISOString();
   return f;
 }
 
 // ---------- actions ----------
 const actions = {
-  async login(_, tech) { return { tech }; },
+  async login(_, tech) { return { tech, season: W.seasonFor() }; },
 
+  // ---- customers & boats ----
+  async searchCustomers(token, tech, p) {
+    const q = str(p.q, 80).trim().toLowerCase();
+    if (!q) return { customers: [] };
+    const recs = await W.list(token, T.customers, { formula: `SEARCH("${esc(q)}", LOWER({Name}&" "&{Phone}&" "&{Email}))`, fields: W.CUST_READ, max: 12 });
+    return { customers: recs.map(W.customerOut) };
+  },
+  async customerBoats(token, tech, p) {
+    const recs = await W.byIds(token, T.boats, (p.ids || []).slice(0, 40), W.BOAT_READ);
+    return { boats: recs.map(W.boatOut) };
+  },
+  async createCustomer(token, tech, p) {
+    const name = str(p.name, 120).trim();
+    if (name.length < 2) throw W.fail(400, 'Customer name is required');
+    const rec = await W.create(token, T.customers, {
+      [CUST.name]: name, [CUST.phone]: str(p.phone, 40).trim() || undefined, [CUST.email]: str(p.email, 160).trim() || undefined, [CUST.address]: str(p.address, 250).trim(),
+    });
+    return { customer: W.customerOut(rec) };
+  },
+  // Create (or return) the Boat record for a HIN under a customer.
+  async ensureBoat(token, tech, p) {
+    const hin = normHin(p.hin);
+    const customerId = recId(p.customerId);
+    if (!customerId) throw W.fail(400, 'Customer is required');
+    if (hin.length >= 5) {
+      const existing = await boatByHin(token, hin);
+      if (existing) {
+        if (existing.custIds.length && !existing.custIds.includes(customerId)) throw W.fail(409, `HIN ${hin} is already on another customer's boat in Airtable. Check the HIN, or fix the boat record in Airtable.`);
+        if (!existing.custIds.length) await W.patch(token, T.boats, existing.id, { [BOAT.customer]: [customerId] });
+        return { boat: { ...existing, custIds: [customerId] }, created: false };
+      }
+    }
+    const name = str(p.name || p.mmc, 120).trim() || 'Boat';
+    const rec = await W.create(token, T.boats, {
+      [BOAT.name]: name, [BOAT.customer]: [customerId], [BOAT.hin]: hin || undefined, [BOAT.mmc]: str(p.mmc, 250) || undefined,
+      [BOAT.length]: num(p.length), [BOAT.year]: num(p.year),
+    });
+    return { boat: W.boatOut(rec), created: true };
+  },
+  // Put a HIN on a Boat record the customer already has.
+  async setBoatHin(token, tech, p) {
+    const id = recId(p.boatId); const hin = normHin(p.hin);
+    if (!id || hin.length < 5) throw W.fail(400, 'Boat and HIN are required');
+    const other = await boatByHin(token, hin);
+    if (other && other.id !== id) throw W.fail(409, `HIN ${hin} is already on another boat record ("${other.name}"). Pick that boat instead, or fix it in Airtable.`);
+    const rec = await W.patch(token, T.boats, id, { [BOAT.hin]: hin });
+    return { boat: W.boatOut(rec) };
+  },
+
+  // ---- check-ins ----
+  async listCheckins(token) {
+    const season = W.seasonFor();
+    const recs = await W.list(token, T.checkins, {
+      formula: `{Season}="${season}"`, fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.by, CHK.photoCount, CHK.agreement],
+      sort: [{ field: CHK.at, direction: 'desc' }], max: 200,
+    });
+    return {
+      season,
+      checkins: recs.map((r) => ({ id: r.id, title: r.fields[CHK.title] || '', hin: r.fields[CHK.hin] || '', status: sel(r.fields[CHK.status]) || 'In Progress', at: r.fields[CHK.at] || '', by: r.fields[CHK.by] || '', photos: r.fields[CHK.photoCount] || 0, signed: !!(r.fields[CHK.agreement] || []).length })),
+    };
+  },
+  async checkinPrefill(token, tech, p) {
+    const hin = normHin(p.hin);
+    const boat = await boatByHin(token, hin);
+    const customer = boat && boat.custIds[0] ? await customerById(token, boat.custIds[0]) : null;
+    const last = await checkinForBoat(token, boat && boat.id, hin);
+    const coverage = boat && customer ? await coverageFor(token, customer.id, boat.id) : null;
+    return { boat, customer, openCheckin: last && ['In Progress', 'Awaiting Signature'].includes(last.status) ? last : null, lastCheckin: last, coverage, season: W.seasonFor() };
+  },
+  async createCheckin(token, tech, p) {
+    const st = p.state || {};
+    const rec = await W.create(token, T.checkins, {
+      ...checkinFields(p.summary, st, tech), ...linkFields(st, CHK.boat, CHK.customer),
+      [CHK.status]: 'In Progress', [CHK.state]: str(JSON.stringify(st)),
+    });
+    return { id: rec.id };
+  },
+  async getCheckin(token, tech, p) {
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad check-in id');
+    const r = await W.getRec(token, T.checkins, id);
+    const f = r.fields || {};
+    let state = null; try { state = JSON.parse(f[CHK.state] || 'null'); } catch (e) {}
+    const photos = (await W.byIds(token, T.photos, f[CHK.photos] || [])).map(photoOut);
+    const agrIds = f[CHK.agreement] || [];
+    let agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
+    if (!agreement && state && state.customer && state.boat) agreement = await coverageFor(token, recId(state.customer.id), recId(state.boat.id));
+    return { id, state, photos, status: sel(f[CHK.status]) || 'In Progress', agreement, jobId: (f[CHK.jobs] || []).slice(-1)[0] || null, stage: f[CHK.stage] || '' };
+  },
+  async saveCheckin(token, tech, p) {
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad check-in id');
+    const st = p.state || {};
+    const cur = await W.getRec(token, T.checkins, id);
+    let agrIds = cur.fields[CHK.agreement] || [];
+    // Pick up a signed agreement that already covers this boat this season.
+    if (!agrIds.length && st.customer && st.boat) {
+      const cov = await coverageFor(token, recId(st.customer.id), recId(st.boat.id));
+      if (cov) agrIds = [cov.id];
+    }
+    let status = 'In Progress';
+    if (st.completedAt) status = agrIds.length ? 'Signed' : (st.override && st.override.reason ? 'Override' : 'Awaiting Signature');
+    await W.patch(token, T.checkins, id, {
+      ...checkinFields(p.summary, st, tech), ...linkFields(st, CHK.boat, CHK.customer),
+      [CHK.agreement]: agrIds, [CHK.status]: status, [CHK.state]: str(JSON.stringify(st)),
+    });
+    const boatId = st.boat && recId(st.boat.id);
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); }
+    const agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
+    return { status, agreement, savedAt: Date.now() };
+  },
+
+  // ---- the jobs board: one card per boat in service ----
+  // Joins this season's check-ins with winterization jobs. Stage comes from the
+  // Stage formula fields in Airtable, so the board and Airtable always agree.
+  async listBoard(token) {
+    const season = W.seasonFor();
+    const [cks, jobs] = await Promise.all([
+      W.list(token, T.checkins, {
+        formula: `{Season}="${season}"`,
+        fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.by, CHK.photoCount, CHK.jobs, CHK.stage, CHK.synced],
+        sort: [{ field: CHK.at, direction: 'desc' }], max: 300,
+      }),
+      W.list(token, T.jobs, {
+        fields: [JOB.title, JOB.hin, JOB.status, JOB.steps, JOB.dateIn, JOB.customerName, JOB.svc, JOB.synced, JOB.checkin, JOB.stage, JOB.photoCount],
+        sort: [{ field: JOB.synced, direction: 'desc' }], max: 300,
+      }),
+    ]);
+    const jobById = new Map(jobs.map((j) => [j.id, j]));
+    const used = new Set();
+    const part = (t, i) => (String(t || '').split(' - ')[i] || '').trim();
+    const jobOut = (j) => {
+      const f = j.fields || {};
+      return { id: j.id, status: sel(f[JOB.status]) || 'In Progress', steps: f[JOB.steps] || '', svc: sel(f[JOB.svc]) || '', photos: f[JOB.photoCount] || 0, customer: (f[JOB.customerName] || [])[0] || part(f[JOB.title], 1), boat: part(f[JOB.title], 2), at: f[JOB.synced] || '', dateIn: f[JOB.dateIn] || '' };
+    };
+    const items = [];
+    for (const c of cks) {
+      const f = c.fields || {};
+      const linked = (f[CHK.jobs] || []).map((id) => jobById.get(id)).filter(Boolean)
+        .sort((a, b) => String(b.fields[JOB.synced] || '').localeCompare(String(a.fields[JOB.synced] || '')));
+      linked.forEach((j) => used.add(j.id));
+      const job = linked[0] ? jobOut(linked[0]) : null;
+      items.push({
+        checkinId: c.id, jobId: job ? job.id : null, hin: f[CHK.hin] || '', stage: f[CHK.stage] || 'Checking in',
+        customer: (job && job.customer) || part(f[CHK.title], 1), boat: part(f[CHK.title], 2) || (job && job.boat) || '',
+        checkin: { status: sel(f[CHK.status]) || 'In Progress', at: f[CHK.at] || '', by: f[CHK.by] || '', photos: f[CHK.photoCount] || 0 },
+        job, updated: [f[CHK.synced], f[CHK.at], job && job.at].filter(Boolean).sort().pop() || '',
+      });
+    }
+    for (const j of jobs) {
+      if (used.has(j.id)) continue;
+      const f = j.fields || {};
+      const job = jobOut(j);
+      items.push({ checkinId: (f[JOB.checkin] || [])[0] || null, jobId: j.id, hin: f[JOB.hin] || '', stage: f[JOB.stage] || 'In winterization',
+        customer: job.customer, boat: job.boat, checkin: null, job, updated: job.at || '' });
+    }
+    items.sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
+    return { season, items };
+  },
+  // Remove a winterization job and/or a check-in, with their photos.
+  // Customers, boats, and signed agreements are never deleted here.
+  async removeItem(token, tech, p) {
+    const jobId = p.jobId ? recId(p.jobId) : null, checkinId = p.checkinId ? recId(p.checkinId) : null;
+    if ((p.jobId && !jobId) || (p.checkinId && !checkinId) || (!jobId && !checkinId)) throw W.fail(400, 'Bad id');
+    const out = { jobDeleted: false, checkinDeleted: false, photosDeleted: 0 };
+    if (jobId) {
+      const r = await W.getRec(token, T.jobs, jobId);
+      out.photosDeleted += await W.delMany(token, T.photos, r.fields[JOB.photos] || []);
+      await W.del(token, T.jobs, jobId); out.jobDeleted = true;
+      console.log('winterize removeItem: job', jobId, r.fields[JOB.title], 'by', tech);
+    }
+    if (checkinId) {
+      const r = await W.getRec(token, T.checkins, checkinId);
+      out.photosDeleted += await W.delMany(token, T.photos, r.fields[CHK.photos] || []);
+      await W.del(token, T.checkins, checkinId); out.checkinDeleted = true;
+      console.log('winterize removeItem: check-in', checkinId, r.fields[CHK.title], 'by', tech);
+    }
+    return out;
+  },
+
+  // ---- winterization jobs ----
   async listJobs(token) {
-    const recs = await list(token, JOBS, {
-      fields: [JOB_F.title, JOB_F.hin, JOB_F.status, JOB_F.steps, JOB_F.dateIn, JOB_F.customerName, JOB_F.svc, JOB_F.storage, JOB_F.synced],
-      sort: [{ field: JOB_F.synced, direction: 'desc' }], max: 150,
+    const recs = await W.list(token, T.jobs, {
+      fields: [JOB.title, JOB.hin, JOB.status, JOB.steps, JOB.dateIn, JOB.customerName, JOB.svc, JOB.synced],
+      sort: [{ field: JOB.synced, direction: 'desc' }], max: 150,
     });
     return {
       jobs: recs.map((r) => {
         const f = r.fields || {};
-        const sel = (v) => (v && typeof v === 'object' ? v.name : v) || '';
         return {
-          id: r.id, title: f[JOB_F.title] || '', hin: f[JOB_F.hin] || '', status: sel(f[JOB_F.status]) || 'In Progress',
-          steps: f[JOB_F.steps] || '', dateIn: f[JOB_F.dateIn] || '', customer: (f[JOB_F.customerName] || [])[0] || '',
-          svc: sel(f[JOB_F.svc]), storage: f[JOB_F.storage] || '',
+          id: r.id, title: f[JOB.title] || '', hin: f[JOB.hin] || '', status: sel(f[JOB.status]) || 'In Progress',
+          steps: f[JOB.steps] || '', dateIn: f[JOB.dateIn] || '', customer: (f[JOB.customerName] || [])[0] || '', svc: sel(f[JOB.svc]),
         };
       }),
     };
   },
-
   async getJob(token, tech, p) {
-    const id = recId(p.id); if (!id) throw Object.assign(new Error('Bad job id'), { status: 400 });
-    const r = await getRec(token, JOBS, id);
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad job id');
+    const r = await W.getRec(token, T.jobs, id);
     const f = r.fields || {};
     let state = null;
-    try { state = JSON.parse(f[JOB_F.state] || 'null'); } catch (e) { state = null; }
-    const photoIds = (f[JOB_F.photos] || []).filter((x) => REC_RE.test(x));
-    const photos = [];
-    for (let i = 0; i < photoIds.length; i += 40) {
-      const chunk = photoIds.slice(i, i + 40);
-      photos.push(...(await list(token, PHOTOS, { formula: orIds(chunk) })).map(photoOut));
-    }
+    try { state = JSON.parse(f[JOB.state] || 'null'); } catch (e) { state = null; }
+    const photos = (await W.byIds(token, T.photos, f[JOB.photos] || [])).map(photoOut);
     let history = [];
-    const hin = f[JOB_F.hin];
+    const hin = f[JOB.hin];
     if (hin) {
-      const prev = await list(token, JOBS, {
+      const prev = await W.list(token, T.jobs, {
         formula: `AND({HIN}="${esc(hin)}", RECORD_ID()!="${id}")`,
-        fields: [JOB_F.title, JOB_F.status, JOB_F.dateIn, JOB_F.hours, JOB_F.impeller, JOB_F.recs],
-        sort: [{ field: JOB_F.dateIn, direction: 'desc' }], max: 10,
+        fields: [JOB.title, JOB.status, JOB.dateIn, JOB.hours, JOB.impeller, JOB.recs], sort: [{ field: JOB.dateIn, direction: 'desc' }], max: 10,
       });
-      history = prev.map((x) => ({
-        id: x.id, status: (x.fields[JOB_F.status] && x.fields[JOB_F.status].name) || x.fields[JOB_F.status] || '',
-        dateIn: x.fields[JOB_F.dateIn] || '', hours: x.fields[JOB_F.hours] || '', impeller: x.fields[JOB_F.impeller] || '',
-        recs: x.fields[JOB_F.recs] || '',
-      }));
+      history = prev.map((x) => ({ id: x.id, status: sel(x.fields[JOB.status]), dateIn: x.fields[JOB.dateIn] || '', hours: x.fields[JOB.hours] || '', impeller: x.fields[JOB.impeller] || '', recs: x.fields[JOB.recs] || '' }));
     }
-    return {
-      id, state, photos, history,
-      techSig: attUrl((f[JOB_F.techSig] || [])[0], 'large'), revSig: attUrl((f[JOB_F.revSig] || [])[0], 'large'),
-      reportUrl: ((f[JOB_F.reportPdf] || [])[0] || {}).url || null,
-    };
+    return { id, state, photos, history, checkinId: (f[JOB.checkin] || [])[0] || null };
   },
-
-  // Everything the page needs to start a job for a HIN: the most recent earlier
-  // job for this hull (to prefill engine/profile/customer), or failing that the
-  // Boat record in the CRM that already carries this HIN.
+  // Everything needed to start a job for a HIN: last job (to prefill), the CRM
+  // boat/customer, and this season's check-in (winterization requires a signed one).
   async prefill(token, tech, p) {
-    const hin = str(p.hin, 40).toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (hin.length < 5) return { prev: null, crm: null, openJobId: null };
-    const jobs = await list(token, JOBS, {
-      formula: `{HIN}="${esc(hin)}"`, fields: [JOB_F.state, JOB_F.status, JOB_F.dateIn],
-      sort: [{ field: JOB_F.dateIn, direction: 'desc' }], max: 5,
-    });
-    const open = jobs.find((j) => ((j.fields[JOB_F.status] && j.fields[JOB_F.status].name) || j.fields[JOB_F.status]) !== 'Complete');
+    const hin = normHin(p.hin);
+    if (hin.length < 5) return { prev: null, crm: null, openJobId: null, checkin: null, coverage: null };
+    const jobs = await W.list(token, T.jobs, { formula: `{HIN}="${esc(hin)}"`, fields: [JOB.state, JOB.status, JOB.dateIn], sort: [{ field: JOB.dateIn, direction: 'desc' }], max: 5 });
+    const open = jobs.find((j) => sel(j.fields[JOB.status]) !== 'Complete');
     let prev = null;
-    for (const j of jobs) { try { prev = JSON.parse(j.fields[JOB_F.state] || 'null'); } catch (e) {} if (prev) break; }
-    let crm = null;
-    if (!prev || !prev.customer) {
-      const boats = await list(token, TABLES.boats, {
-        formula: `{HIN}="${esc(hin)}"`, fields: [BOAT_FIELDS.name, BOAT_FIELDS.customer, BOAT_FIELDS.type, BOAT_FIELDS.length, BOAT_FIELDS.style, BOAT_X.mmc, BOAT_X.hin], max: 2,
-      });
-      if (boats.length === 1) {
-        const b = boatOut(boats[0]);
-        if (b.custIds[0]) crm = { boat: b, customer: customerOut(await getRec(token, TABLES.customers, b.custIds[0])) };
-      }
-    }
-    return { prev, crm, openJobId: open ? open.id : null };
+    for (const j of jobs) { try { prev = JSON.parse(j.fields[JOB.state] || 'null'); } catch (e) {} if (prev) break; }
+    const boat = await boatByHin(token, hin);
+    const customer = boat && boat.custIds[0] ? await customerById(token, boat.custIds[0]) : null;
+    const checkin = await checkinForBoat(token, boat && boat.id, hin);
+    const coverage = boat && customer ? await coverageFor(token, customer.id, boat.id) : null;
+    return { prev, crm: boat && customer ? { boat, customer } : null, openJobId: open ? open.id : null, checkin, coverage };
   },
-
-  async searchCustomers(token, tech, p) {
-    const q = str(p.q, 80).trim().toLowerCase();
-    if (!q) return { customers: [] };
-    const recs = await list(token, TABLES.customers, {
-      formula: `SEARCH("${esc(q)}", LOWER({Name}&" "&{Phone}&" "&{Email}))`,
-      fields: [CUSTOMER_FIELDS.name, CUSTOMER_FIELDS.phone, CUSTOMER_FIELDS.email, CUSTOMER_FIELDS.address, CUSTOMER_FIELDS.boatsLink], max: 12,
-    });
-    return { customers: recs.map(customerOut) };
-  },
-
-  async customerBoats(token, tech, p) {
-    const ids = (p.ids || []).filter((x) => REC_RE.test(x)).slice(0, 40);
-    if (!ids.length) return { boats: [] };
-    const recs = await list(token, TABLES.boats, {
-      formula: orIds(ids),
-      fields: [BOAT_FIELDS.name, BOAT_FIELDS.customer, BOAT_FIELDS.type, BOAT_FIELDS.length, BOAT_FIELDS.style, BOAT_X.mmc, BOAT_X.hin],
-    });
-    return { boats: recs.map(boatOut) };
-  },
-
   async createJob(token, tech, p) {
-    const state = p.state || {};
-    const fields = { ...summaryFields(p.summary, tech), ...jobLinks(state), [JOB_F.state]: str(JSON.stringify(state)) };
-    fields[JOB_F.status] = 'In Progress';
-    const created = await airtableRequest(token, `/${JOBS}`, {
-      method: 'POST', body: JSON.stringify({ records: [{ fields }], typecast: true }),
+    const st = p.state || {};
+    const rec = await W.create(token, T.jobs, {
+      ...jobSummaryFields(p.summary, tech), ...linkFields(st, JOB.boat, JOB.customer),
+      [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)), [JOB.status]: 'In Progress',
     });
-    const id = created.records[0].id;
-    await patch(token, JOBS, id, { [JOB_F.appId]: id });
-    return { id };
+    await W.patch(token, T.jobs, rec.id, { [JOB.appId]: rec.id });
+    return { id: rec.id };
   },
-
   async saveJob(token, tech, p) {
-    const id = recId(p.id); if (!id) throw Object.assign(new Error('Bad job id'), { status: 400 });
-    const state = p.state || {};
-    await patch(token, JOBS, id, { ...summaryFields(p.summary, tech), ...jobLinks(state), [JOB_F.state]: str(JSON.stringify(state)) });
-    const boatId = state.boat && recId(state.boat.id);
-    if (boatId) {
-      const bf = boatFields(p.boat);
-      if (Object.keys(bf).length) await patch(token, TABLES.boats, boatId, bf);
-    }
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad job id');
+    const st = p.state || {};
+    await W.patch(token, T.jobs, id, {
+      ...jobSummaryFields(p.summary, tech), ...linkFields(st, JOB.boat, JOB.customer),
+      [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)),
+    });
+    const boatId = st.boat && recId(st.boat.id);
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); }
     return { savedAt: Date.now() };
   },
 
+  // ---- photos (check-in or job) ----
   async uploadPhoto(token, tech, p) {
-    const jobId = recId(p.jobId); if (!jobId) throw Object.assign(new Error('Bad job id'), { status: 400 });
-    if (!p.data || p.data.length > MAX_B64) throw Object.assign(new Error('Photo too large'), { status: 413 });
+    const jobId = recId(p.jobId), checkinId = recId(p.checkinId);
+    if (!jobId && !checkinId) throw W.fail(400, 'Bad job or check-in id');
+    if (!p.data || p.data.length > MAX_B64) throw W.fail(413, 'Photo too large');
     const type = /^image\/(jpeg|png|webp)$/.test(p.contentType) ? p.contentType : 'image/jpeg';
     const at = Number(p.at) || Date.now();
-    const created = await airtableRequest(token, `/${PHOTOS}`, {
-      method: 'POST',
-      body: JSON.stringify({ records: [{ fields: {
-        [PHOTO_F.caption]: str(p.caption, 250) || 'Photo', [PHOTO_F.job]: [jobId], [PHOTO_F.stepId]: str(p.item, 60),
-        [PHOTO_F.step]: str(p.step, 250), [PHOTO_F.section]: str(p.sec, 120), [PHOTO_F.by]: tech,
-        [PHOTO_F.at]: new Date(at).toISOString(),
-      } }] }),
+    const rec = await W.create(token, T.photos, {
+      [PHOTO.caption]: str(p.caption, 250) || 'Photo', [PHOTO.job]: jobId ? [jobId] : [], [PHOTO.checkin]: checkinId ? [checkinId] : [],
+      [PHOTO.stepId]: str(p.item, 60), [PHOTO.step]: str(p.step, 250), [PHOTO.section]: str(p.sec, 120), [PHOTO.by]: tech,
+      [PHOTO.at]: new Date(at).toISOString(),
     });
-    const rec = created.records[0];
     try {
-      const att = await uploadAttachment(token, rec.id, PHOTO_F.photo, {
-        data: p.data, contentType: type, filename: `${str(p.hin, 40) || 'boat'}-${str(p.item, 40) || 'photo'}-${at}.${type.split('/')[1].replace('jpeg', 'jpg')}`,
+      const att = await W.uploadAttachment(token, rec.id, PHOTO.photo, {
+        data: p.data, contentType: type, filename: `${normHin(p.hin) || 'boat'}-${str(p.item, 40) || 'photo'}-${at}.${type.split('/')[1].replace('jpeg', 'jpg')}`,
       });
       return { photo: { id: rec.id, item: str(p.item, 60), sec: str(p.sec, 120), cap: str(p.caption, 250) || 'Photo', by: tech, at, thumb: att && att.url, url: att && att.url } };
     } catch (e) {
-      await airtableRequest(token, `/${PHOTOS}/${rec.id}`, { method: 'DELETE' }).catch(() => {});
+      await W.del(token, T.photos, rec.id).catch(() => {});
       throw e;
     }
   },
-
   async updatePhoto(token, tech, p) {
-    const id = recId(p.id); if (!id) throw Object.assign(new Error('Bad photo id'), { status: 400 });
-    await patch(token, PHOTOS, id, { [PHOTO_F.caption]: str(p.caption, 250) });
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad photo id');
+    await W.patch(token, T.photos, id, { [PHOTO.caption]: str(p.caption, 250) });
     return {};
   },
-
   async deletePhoto(token, tech, p) {
-    const id = recId(p.id), jobId = recId(p.jobId);
-    if (!id || !jobId) throw Object.assign(new Error('Bad id'), { status: 400 });
-    const r = await getRec(token, PHOTOS, id);
-    if (!(r.fields[PHOTO_F.job] || []).includes(jobId)) throw Object.assign(new Error('Photo is not on this job'), { status: 403 });
-    await airtableRequest(token, `/${PHOTOS}/${id}`, { method: 'DELETE' });
+    const id = recId(p.id), parent = recId(p.jobId || p.checkinId);
+    if (!id || !parent) throw W.fail(400, 'Bad id');
+    const r = await W.getRec(token, T.photos, id);
+    const links = [...(r.fields[PHOTO.job] || []), ...(r.fields[PHOTO.checkin] || [])];
+    if (!links.includes(parent)) throw W.fail(403, 'Photo is not on this record');
+    await W.del(token, T.photos, id);
     return {};
   },
-
-  // Returns a photo's image bytes so the page can place it in a PDF
-  // (Airtable's image links don't allow the browser to read them directly).
+  // Image bytes for a PDF (Airtable's image links don't let the browser read them).
   async photoData(token, tech, p) {
-    const id = recId(p.id); if (!id) throw Object.assign(new Error('Bad photo id'), { status: 400 });
-    const r = await getRec(token, PHOTOS, id);
-    const att = (r.fields[PHOTO_F.photo] || [])[0];
-    const url = attUrl(att, 'large');
-    if (!url) throw Object.assign(new Error('No image'), { status: 404 });
+    const id = recId(p.id); if (!id) throw W.fail(400, 'Bad photo id');
+    const r = await W.getRec(token, T.photos, id);
+    const url = W.attUrl((r.fields[PHOTO.photo] || [])[0], 'large');
+    if (!url) throw W.fail(404, 'No image');
     const res = await fetch(url);
     const buf = Buffer.from(await res.arrayBuffer());
     return { data: buf.toString('base64'), type: res.headers.get('content-type') || 'image/jpeg' };
   },
-
-  // Signatures and the customer report PDF. Replaces whatever was there.
+  // Signatures and the customer service report PDF on a job. Replaces what was there.
   async uploadFile(token, tech, p) {
-    const jobId = recId(p.jobId); if (!jobId) throw Object.assign(new Error('Bad job id'), { status: 400 });
-    const field = { techSig: JOB_F.techSig, revSig: JOB_F.revSig, report: JOB_F.reportPdf }[p.kind];
-    if (!field) throw Object.assign(new Error('Bad file kind'), { status: 400 });
-    if (!p.data || p.data.length > MAX_B64) throw Object.assign(new Error('File too large'), { status: 413 });
+    const jobId = recId(p.jobId); if (!jobId) throw W.fail(400, 'Bad job id');
+    const field = { techSig: JOB.techSig, revSig: JOB.revSig, report: JOB.reportPdf }[p.kind];
+    if (!field) throw W.fail(400, 'Bad file kind');
+    if (!p.data || p.data.length > MAX_B64) throw W.fail(413, 'File too large');
     const type = p.kind === 'report' ? 'application/pdf' : 'image/png';
-    await patch(token, JOBS, jobId, { [field]: [] });
-    const att = await uploadAttachment(token, jobId, field, { data: p.data, contentType: type, filename: str(p.filename, 180) || (p.kind + (p.kind === 'report' ? '.pdf' : '.png')) });
-    return { url: attUrl(att, 'large') || (att && att.url) };
+    await W.patch(token, T.jobs, jobId, { [field]: [] });
+    const att = await W.uploadAttachment(token, jobId, field, { data: p.data, contentType: type, filename: str(p.filename, 180) || (p.kind + (p.kind === 'report' ? '.pdf' : '.png')) });
+    return { url: W.attUrl(att, 'large') || (att && att.url) };
   },
 };
 
 exports.handler = async function (event) {
-  if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
+  if (event.httpMethod !== 'POST') return W.json(405, { ok: false, error: 'Method not allowed' });
   const token = process.env.AIRTABLE_TOKEN;
   if (!token || !process.env.WINTERIZE_PINS) {
     console.error('winterize: AIRTABLE_TOKEN or WINTERIZE_PINS is not set');
-    return json(500, { ok: false, error: 'Server not configured' });
+    return W.json(500, { ok: false, error: 'Server not configured' });
   }
-  const tech = techForPin(event.headers['x-tech-pin']);
+  const tech = W.techForPin((event.headers || {})['x-tech-pin']);
   if (!tech) {
     await new Promise((r) => setTimeout(r, 600)); // slow down PIN guessing
-    return json(401, { ok: false, error: 'PIN not recognized' });
+    return W.json(401, { ok: false, error: 'PIN not recognized' });
   }
   let p;
-  try { p = JSON.parse(event.body || '{}'); } catch (e) { return json(400, { ok: false, error: 'Invalid JSON' }); }
+  try { p = JSON.parse(event.body || '{}'); } catch (e) { return W.json(400, { ok: false, error: 'Invalid JSON' }); }
   const fn = actions[p.action];
-  if (!fn) return json(400, { ok: false, error: 'Unknown action' });
+  if (!fn) return W.json(400, { ok: false, error: 'Unknown action' });
   try {
-    return json(200, { ok: true, ...(await fn(token, tech, p)) });
+    return W.json(200, { ok: true, ...(await fn(token, tech, p)) });
   } catch (err) {
     console.error('winterize', p.action, err.status, err.message, err.data && JSON.stringify(err.data));
     const status = err.status && err.status < 500 && err.status !== 401 ? err.status : 502;
-    return json(status, { ok: false, error: err.message || 'Airtable request failed' });
+    return W.json(status, { ok: false, error: err.message || 'Airtable request failed' });
   }
 };
