@@ -95,7 +95,7 @@ exports.handler = async function (event) {
         [QUOTE_FIELDS.boatType]: boatType,
         [QUOTE_FIELDS.boatLength]: b.boatLength ? Number(b.boatLength) : undefined,
         [QUOTE_FIELDS.package]: b.packageInterest || undefined,
-        [QUOTE_FIELDS.comments]: payload.message || '',
+        [QUOTE_FIELDS.customerNotes]: payload.message || '',
         [QUOTE_FIELDS.howHeard]: payload.howHeard || undefined,
         [QUOTE_FIELDS.submittedAt]: new Date().toISOString(),
         [QUOTE_FIELDS.status]: 'New',
