@@ -48,13 +48,18 @@ const QUOTE_FIELDS = {
   boatType: 'fldt861BpC41uQlzj',
   boatLength: 'fld6vyLQ02BR7vRMH',
   package: 'fldeBSzWondYxrmWG',
-  comments: 'fldJkm9a942bDJhfc',
-  // Auto-generated pricing breakdown text from the internal quote tool.
-  // Deliberately a SEPARATE field from `comments` above — comments holds
-  // the customer's own free-text notes from the public quote request form,
-  // and internal quote saves must never touch that field (see
-  // save-internal-quote.js, where this is what quoteText writes to).
-  internalQuoteSummary: 'fldnnsP0gdbFklEc3',
+  // The customer's own free-text notes, submitted with their original quote
+  // request from the public website form (Airtable field "Customer Notes").
+  customerNotes: 'fldJkm9a942bDJhfc',
+  // Staff-typed notes entered in the internal quote tool (Airtable field
+  // "Internal Notes"). Deliberately a SEPARATE field from `customerNotes`
+  // above, so internal quote saves never touch the customer's own message.
+  // This field is meant to persist and accumulate across multiple visits to
+  // the internal tool — save-internal-quote.js writes whatever the staff
+  // member currently has typed in the textarea (verbatim, staff-controlled),
+  // never an auto-computed value, so a save never silently wipes out notes
+  // typed in on an earlier visit.
+  internalNotes: 'fldnnsP0gdbFklEc3',
   howHeard: 'fldgmem29M8L0IJ8j',
   status: 'fld5YYU6Sh9PvnxIK',
   address: 'fldKSV2EQMXZHls5l',
