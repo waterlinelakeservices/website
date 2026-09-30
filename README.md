@@ -52,6 +52,16 @@ Everything hangs off the **Boat** record (keyed by HIN): Boats → Check-ins →
 
 - **Check-ins**: one row per boat per check-in. Status: In Progress → Awaiting Signature → Signed (or Override). `Winterization Status` (rollup) and `Stage` (formula) show where the boat is overall. Photos go in Winterization Photos, linked by `Check-in`.
 - **Winterization Jobs**: `Stage` (formula) uses the same stage names. `Check-in` links the job to its check-in.
+- **Winterization Photos**: each photo links to its check-in or job **and** to its `Boat` (kept in sync if the check-in's boat changes); `Customer` is looked up through the boat. `Upload ID` makes photo uploads safe to retry.
+- **Agreements**: `Submission ID` makes the customer's Sign tap safe to retry. Boats a customer adds on the signing page become real Boat records on their customer record.
+
+### Duplicate guards (server-side)
+
+- A new customer with the same email or phone as an existing one reuses that record.
+- A Boat is found by HIN before one is created; a HIN already on another customer's boat is refused.
+- One open check-in per HIN per season, and one open winterization job per HIN: starting another opens the existing one.
+- A photo upload retried after a dropped connection is saved once (by `Upload ID`).
+- A Sign retried from the same page visit returns the agreement already saved (by `Submission ID`).
 - **Agreements**: one row per signing. Signed PDF and signature image are attachments. Also records signer name/email/phone/address, server timestamp, IP, device, witness (if signed on a staff device), agreement version and SHA-256 fingerprint of the exact text, e-sign consent, and condition acknowledgment. `Drive Link` / `Drive Status` show the Google Drive copy.
 - **Customers → Waiver Link**: formula that produces the link to send a customer: `"https://waterlinelakeservices.com/agreement/?customerId=" & RECORD_ID()`.
 
