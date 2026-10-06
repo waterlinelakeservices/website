@@ -1236,7 +1236,7 @@ function tabCheckin() {
 }
 function ckPhotosHtml() {
   return `<h2>Condition photos</h2>
-      <p class="small muted" style="margin-top:-6px">Each photo is time-stamped and saved to this boat's check-in. These are what the customer reviews when they sign.</p>
+      <p class="small muted" style="margin-top:-6px">Each photo is time-stamped and saved to this boat's check-in as Waterline's record of its condition. ${S.ck.sharePhotos !== false ? "They're included in the customer's signing link (turn that off on the signature card below)." : "They're not included in the customer's signing link."}</p>
       ${CK_POINTS.map(pt => { const ph = ckPhotosAt(pt.id); return `<div class="cp" style="flex-wrap:wrap"><span class="dot ${ph.length ? "ok" : pt.req ? "" : "opt"}" ${!pt.req && !ph.length ? 'style="background:var(--stone-2)"' : ""}></span><span class="t">${esc(pt.t)}${pt.req ? "" : ` <span class="small muted">(if applicable)</span>`}${pt.hint ? `<br><span class="small muted">${esc(pt.hint)}</span>` : ""}</span>
         <span class="iact" style="margin:0">${ckCam(pt.id, pt.req && !ph.length, ph.length ? "Add" : "Take")}</span>
         ${ph.length ? `<div class="thumbs" style="margin:8px 0 0 22px;flex-basis:100%">${ph.map(p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(pt.t)}"><button class="del-ph" data-ckdel="${esc(p.id || p.qid)}" aria-label="Delete photo">\u00d7</button></span>`).join("")}</div>` : ""}</div>`; }).join("")}`;
@@ -1306,9 +1306,10 @@ function ckAgreementCard() {
   const notDone = unsigned.filter(x => x.id === c.id ? !c.completedAt : !x.completed);
   const first = c.customer.name.split(" ")[0];
   const what = unsigned.length > 1 ? `${unsigned.length} boats` : `your ${boatLabel(c.boat) || "boat"}`;
-  const msg = `Hi ${first}, it's Waterline Lake Services. We've checked in ${what}. Please review the condition photos and sign your agreement here: ${link}`;
+  const msg = `Hi ${first}, it's Waterline Lake Services. We've checked in ${what}. Please review ${c.sharePhotos !== false ? "the condition photos" : "your boat's check-in details"} and sign your agreement here: ${link}`;
   return `<div class="card" id="ckSig" style="border-top:4px solid var(--sun)"><h2>Customer signature</h2>
-    <p class="small muted" style="margin-top:-6px">One signature covers ${unsigned.length > 1 ? `all ${unsigned.length} of ${esc(first)}'s boats checked in this visit` : `${esc(first)}'s boats for the season`}. They'll see each boat's condition photos when they sign.</p>
+    <p class="small muted" style="margin-top:-6px">One signature covers ${unsigned.length > 1 ? `all ${unsigned.length} of ${esc(first)}'s boats checked in this visit` : `${esc(first)}'s boats for the season`}. They'll see each boat's written condition report${c.sharePhotos !== false ? " and its photos" : ""}.</p>
+    <label class="check" style="margin:2px 0 12px"><input type="checkbox" data-cf="sharePhotos" ${c.sharePhotos !== false ? "checked" : ""}><span>Include this boat's condition photos in the signing link<br><span class="small muted">${c.sharePhotos !== false ? "The customer will see the photos." : "Photos stay on file; the customer sees only the written condition report."}</span></span></label>
     ${unsigned.length > 1 ? `<ul class="covers">${unsigned.map(x => `<li><b>${esc(visitLabel(x))}</b> <span class="small muted">${esc(x.package || "no package yet")} \u00b7 ${(x.id === c.id ? c.completedAt : x.completed) ? "check-in done" : "still checking in"}</span></li>`).join("")}</ul>` : ""}
     ${notDone.length ? `<p class="banner small">${notDone.length === 1 && notDone[0].id === c.id ? "Finish this check-in" : `Finish ${notDone.length === 1 ? "the check-in for " + esc(visitLabel(notDone[0])) : "every boat's check-in"}`} before sending, so the customer signs for all of them at once.</p>` : ""}
     <div style="display:grid;gap:10px">

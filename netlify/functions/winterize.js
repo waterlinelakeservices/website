@@ -157,7 +157,7 @@ function checkinFields(s, st, tech) {
     [CHK.damage]: st.noDamage ? 'None visible at check-in' : str(st.damage), [CHK.items]: str(st.items), [CHK.keys]: str(st.keys, 250),
     [CHK.notes]: str(st.notes), [CHK.photoCount]: num(s.photoCount),
     [CHK.overrideReason]: str(st.override && st.override.reason, 250), [CHK.overrideBy]: str(st.override && st.override.by, 120),
-    [CHK.synced]: new Date().toISOString(), [CHK.package]: pick(st.package, W.PKG_NAMES) || null,
+    [CHK.synced]: new Date().toISOString(), [CHK.package]: pick(st.package, W.PKG_NAMES) || null, [CHK.sharePhotos]: st.sharePhotos !== false,
   };
   if (st.checkedInAt) f[CHK.at] = new Date(st.checkedInAt).toISOString();
   return f;

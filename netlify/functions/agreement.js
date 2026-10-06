@@ -1,7 +1,7 @@
 // Customer-facing storage agreement at /agreement?customerId=recXXXX
 //
 // action "load"      -> customer info, their Boat records, this season's open
-//                       check-ins (with condition photos), and the agreement text.
+//                       check-ins (condition report only; photos stay with Waterline), and the agreement text.
 // action "submit"    -> server builds the signed PDF from ITS OWN copy of the
 //                       agreement text (never trusts text sent by the browser),
 //                       stamps server time + IP, creates an Agreements row linked
@@ -40,7 +40,7 @@ const BATTERY = {
 const batteryText = (b) => b && BATTERY[b.choice] ? BATTERY[b.choice] + (b.note ? ': ' + b.note : '') : '';
 const CONSENT_TEXT = 'I agree to sign this Agreement electronically and to receive it and related records electronically (U.S. ESIGN Act; Indiana Uniform Electronic Transactions Act).';
 const AGREE_TEXT = 'I have read and agree to the Waterline Lake Services agreement above, and I am authorized to sign on behalf of the vessel(s) listed.';
-const CONDITION_TEXT = 'I have reviewed the condition of my vessel(s) as documented at check-in, including the photos shown.';
+const CONDITION_TEXT = 'I have reviewed the condition of my vessel(s) as documented at check-in.';
 
 const OPEN = ['In Progress', 'Awaiting Signature'];
 
@@ -55,7 +55,7 @@ async function loadCustomer(token, p) {
   if (!f[CUST.portalKey]) { try { f[CUST.portalKey] = await W.ensurePortalKey(token, c.id, ''); } catch (e) { /* link still works this time */ } }
   const boats = (await W.byIds(token, T.boats, f[CUST.boats] || [], W.BOAT_READ)).map(W.boatOut);
   const checkinRecs = await W.byIds(token, T.checkins, f[CUST.checkins] || [], [
-    CHK.title, CHK.boat, CHK.status, CHK.season, CHK.at, CHK.by, CHK.where, CHK.hours, CHK.fuel, CHK.damage, CHK.items, CHK.keys, CHK.photos, CHK.hin, CHK.package,
+    CHK.title, CHK.boat, CHK.status, CHK.season, CHK.at, CHK.by, CHK.where, CHK.hours, CHK.fuel, CHK.damage, CHK.items, CHK.keys, CHK.photos, CHK.hin, CHK.package, CHK.state,
   ]);
   const season = W.seasonFor();
   const checkins = checkinRecs
@@ -66,6 +66,8 @@ async function loadCustomer(token, p) {
         id: r.id, status: W.sel(x[CHK.status]), boatId: (x[CHK.boat] || [])[0] || null, hin: x[CHK.hin] || '', at: x[CHK.at] || '', by: x[CHK.by] || '',
         where: W.sel(x[CHK.where]), hours: x[CHK.hours] || '', fuel: W.sel(x[CHK.fuel]), damage: x[CHK.damage] || '',
         items: x[CHK.items] || '', keys: x[CHK.keys] || '', photoIds: x[CHK.photos] || [], package: W.sel(x[CHK.package]),
+        // Staff choose per boat whether the customer sees the photos (on unless turned off).
+        sharePhotos: (() => { try { return (JSON.parse(x[CHK.state] || '{}') || {}).sharePhotos !== false; } catch (e) { return true; } })(),
       };
     });
   // Each boat's package: from its check-in, else its (or the customer's) most advanced quote.
@@ -173,7 +175,7 @@ async function buildPdf(p) {
       if (bits) text(bits, { indent: 12 });
       text(`Existing damage noted: ${c.damage || 'None noted'}`, { indent: 12 });
       if (c.items) text(`Items aboard: ${c.items}`, { indent: 12 });
-      text(`${c.photoCount} condition photo${c.photoCount === 1 ? '' : 's'} on file (check-in record ${c.id}).`, { indent: 12, font: ital, color: MUTED });
+      text(`${c.photoCount} time-stamped condition photo${c.photoCount === 1 ? '' : 's'} on file with Waterline, available on request (check-in record ${c.id}).`, { indent: 12, font: ital, color: MUTED });
       y -= 4;
     });
   }
@@ -247,7 +249,8 @@ async function driveCopy(token, agreementId) {
 const actions = {
   async load(token, p, ctx) {
     const d = await loadCustomer(token, p);
-    const photoIds = d.checkins.flatMap((c) => c.photoIds);
+    // Photos go to the page only for boats where staff left "show photos" on; otherwise just the count.
+    const photoIds = d.checkins.filter((c) => c.sharePhotos).flatMap((c) => c.photoIds);
     const photos = photoIds.length ? await photosFor(token, photoIds) : [];
     // Which of this customer's boats are already covered by a signed agreement this season?
     const signed = d.signedIds.length ? await W.byIds(token, T.agreements, d.signedIds, [AGR.ref, AGR.status, AGR.season, AGR.boats, AGR.signedAt]) : [];
@@ -256,7 +259,7 @@ const actions = {
     return {
       customer: { name: d.customer.name, email: d.customer.email, phone: d.customer.phone, address: d.customer.address },
       boats: d.boats.map((b) => ({ id: b.id, label: boatLabel(b), hin: b.hin, package: b.package, packageFixed: b.packageFixed })),
-      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, package: c.package, at: c.at, by: c.by, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photos: photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) })),
+      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, package: c.package, at: c.at, by: c.by, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photoCount: c.photoIds.length, photos: c.sharePhotos ? photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) : [] })),
       covered, packageGuess: d.guess,
       packages: AT.PACKAGES.map((name) => ({ name, blurb: AT.PACKAGE_BLURB[name], storage: AT.STORAGE_PACKAGES.includes(name) })),
       battery: Object.entries(BATTERY).map(([id, label]) => ({ id, label, storageOnly: id === 'waterline', needsNote: id === 'property' || id === 'other' })),

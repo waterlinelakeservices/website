@@ -200,7 +200,7 @@ function render() {
   const coveredIds = new Set(d.covered.flatMap(a => a.boats));
   const withCheckin = new Map(d.checkins.filter(x => x.boatId).map(x => [x.boatId, x]));
   const allCovered = d.boats.length && d.boats.every(b => coveredIds.has(b.id)) && !d.checkins.length;
-  const photoCount = d.checkins.reduce((n, x) => n + x.photos.length, 0);
+  const photoCount = d.checkins.reduce((n, x) => n + ((x.photos && x.photos.length) || 0), 0); // photos actually shown
   const n = i => d.checkins.length ? i : i - 1; // step numbers (no condition step without a check-in)
   document.getElementById('lead').textContent = c.name ? `Hi ${c.name.split(' ')[0]}. Review your boat details and the agreement, then sign. It takes about two minutes.` : document.getElementById('lead').textContent;
   $app.innerHTML = `
@@ -231,8 +231,9 @@ function render() {
       return `<div class="ci"><b>${esc(b ? b.label : 'Your boat')}</b><div class="small muted">Checked in ${esc(fmt(ci.at))}${ci.by ? ' by ' + esc(ci.by) : ''}${ci.where ? ' · ' + esc(ci.where) : ''}</div>
       <dl>${ci.hours ? `<dt>Engine hours</dt><dd>${esc(ci.hours)}</dd>` : ''}${ci.fuel ? `<dt>Fuel</dt><dd>${esc(ci.fuel)}</dd>` : ''}
         <dt>Existing damage</dt><dd>${esc(ci.damage || 'None noted')}</dd>${ci.items ? `<dt>Items aboard</dt><dd>${esc(ci.items)}</dd>` : ''}${ci.keys ? `<dt>Keys</dt><dd>${esc(ci.keys)}</dd>` : ''}</dl>
-      ${ci.photos.length ? `<div class="pgrid">${ci.photos.map((p, i) => `<button data-photo="${ci.id}:${i}" aria-label="View photo: ${esc(p.cap)}"><img src="${esc(p.thumb)}" alt="${esc(p.cap)}" loading="lazy"></button>`).join('')}</div>` : ''}</div>`; }).join('')}
-    <label class="check"><input type="checkbox" id="condAck" ${S.condAck ? 'checked' : ''}><span>${esc(d.agreement.conditionText)}${photoCount ? ` (${photoCount} photo${photoCount === 1 ? '' : 's'})` : ''}</span></label>
+      ${ci.photos && ci.photos.length ? `<div class="pgrid">${ci.photos.map((p, i) => `<button data-photo="${ci.id}:${i}" aria-label="View photo: ${esc(p.cap)}"><img src="${esc(p.thumb)}" alt="${esc(p.cap)}" loading="lazy"></button>`).join('')}</div>`
+        : ci.photoCount ? `<p class="small muted" style="margin:6px 0 0">${ci.photoCount} time-stamped photo${ci.photoCount === 1 ? '' : 's'} on file with us. Ask if you'd like copies.</p>` : ''}</div>`; }).join('')}
+    <label class="check"><input type="checkbox" id="condAck" ${S.condAck ? 'checked' : ''}><span>${esc(d.agreement.conditionText)}${photoCount ? ` (${photoCount} photo${photoCount === 1 ? '' : 's'} shown above)` : ''}</span></label>
   </section>` : ''}
 
   <section class="card">
@@ -290,7 +291,7 @@ function validate() {
   const answersOk = included().every(x => { const b = S.bat[x.key] || {}; const o = S.data.battery.find(z => z.id === b.choice); return S.pkg[x.key] && o && (!o.needsNote || (b.note || '').trim().length > 1) && (!o.storageOnly || isStorage(S.pkg[x.key])); });
   const accessOk = S.accessAck && (S.accessAddress ?? S.data.customer.address ?? '').trim().length >= 5;
   const hint = document.getElementById('hint');
-  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where we pick up or service your boat, and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition photos.' : '';
+  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where we pick up or service your boat, and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition report.' : '';
   const ok = hasBoat && answersOk && accessOk && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
   b.disabled = !ok;
 }

@@ -13,7 +13,7 @@
 // DRAFT v2 (2026-09-30): Anchor terms, property access, battery handling, and the
 // freeze-protection commitment are new and have not yet had attorney review.
 
-const VERSION = '2026-2027 v3';
+const VERSION = '2026-2027 v4';
 const SEASON = '2026-2027';
 const STORAGE_PACKAGES = ['Harbor', 'Flagship'];
 const ANCHOR_PACKAGES = ['Anchor'];
@@ -46,7 +46,7 @@ const SECTIONS = [
     { label: 'Not Covered.', text: 'This commitment does not cover: systems or equipment Company did not winterize or that were not part of Owner\'s service; damage from water reintroduced after Company\'s service (for example, if the Vessel is run, used, launched, lowered into the water, or washed out, or takes on rain or snow melt because a cover was removed or failed); damage after the Vessel was moved or serviced by anyone other than Company; pre-existing cracks, leaks, or defects; or damage caused by lift, dock, or boathouse failure. This section is Company\'s only obligation for freeze damage and is subject to the Limitation of Liability section.' },
   ] },
   { for: 'all', h: 'Condition at Check-in', p: [
-    { text: 'Owner has reviewed the condition report and photos Company recorded when each Vessel was checked in. Damage or conditions documented at check-in existed before Company\'s service and are not Company\'s responsibility.' },
+    { text: 'Owner has reviewed the condition report Company recorded when each Vessel was checked in. Company also took time-stamped photos of each Vessel at check-in, which Company keeps on file and will share with Owner on request. Damage or conditions documented at check-in, in the report or the photos, existed before Company\'s service and are not Company\'s responsibility.' },
   ] },
 
   // ---- storage packages (Harbor, Flagship) ----
