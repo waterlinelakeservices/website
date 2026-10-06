@@ -45,6 +45,12 @@ const CONDITION_TEXT = 'I have reviewed the condition of my vessel(s) as documen
 const OPEN = ['In Progress', 'Awaiting Signature'];
 
 // ---------- data for the page ----------
+// A check-in's saved details (App State), parsed once per record.
+const stCache = new WeakMap();
+function stOf(fields) {
+  if (!stCache.has(fields)) { let v = {}; try { v = JSON.parse(fields[CHK.state] || '{}') || {}; } catch (e) { v = {}; } stCache.set(fields, v); }
+  return stCache.get(fields);
+}
 async function loadCustomer(token, p) {
   // Links carry the customer's private key (?k=). Older links used the record ID.
   let c = null;
@@ -64,10 +70,10 @@ async function loadCustomer(token, p) {
       const x = r.fields;
       return {
         id: r.id, status: W.sel(x[CHK.status]), boatId: (x[CHK.boat] || [])[0] || null, hin: x[CHK.hin] || '', at: x[CHK.at] || '', by: x[CHK.by] || '',
-        where: W.sel(x[CHK.where]), hours: x[CHK.hours] || '', fuel: W.sel(x[CHK.fuel]), damage: x[CHK.damage] || '',
+        where: W.sel(x[CHK.where]), hours: x[CHK.hours] || (stOf(x).engineHours === 'N/A' ? 'N/A' : ''), fuel: W.sel(x[CHK.fuel]) || (stOf(x).fuel === 'N/A' ? 'N/A' : ''), damage: x[CHK.damage] || '',
         items: x[CHK.items] || '', keys: x[CHK.keys] || '', photoIds: x[CHK.photos] || [], package: W.sel(x[CHK.package]),
         // Staff choose per boat whether the customer sees the photos (on unless turned off).
-        sharePhotos: (() => { try { return (JSON.parse(x[CHK.state] || '{}') || {}).sharePhotos !== false; } catch (e) { return true; } })(),
+        sharePhotos: stOf(x).sharePhotos !== false,
       };
     });
   // Each boat's package: from its check-in, else its (or the customer's) most advanced quote.

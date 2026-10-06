@@ -887,7 +887,7 @@ function field(k, label, type, opts) {
 function tabInfo(j) {
   const prof = PROFILES[j.profile] || {}; const c = S.ck;
   const hist = S.history || [];
-  const who = c && c.customer ? `<b>${esc(c.customer.name)}</b><br><span class="small muted">${esc(boatLabel(c.boat) || "Boat not linked")} \u00b7 HIN ${esc(c.hin)}${c.engineHours ? " \u00b7 " + esc(c.engineHours) + " hrs at check-in" : ""}</span>`
+  const who = c && c.customer ? `<b>${esc(c.customer.name)}</b><br><span class="small muted">${esc(boatLabel(c.boat) || "Boat not linked")} \u00b7 HIN ${esc(c.hin)}${c.engineHours ? " \u00b7 " + (c.engineHours === "N/A" ? "hours N/A" : esc(c.engineHours) + " hrs") + " at check-in" : ""}</span>`
     : j.customer ? `<b>${esc(j.customer.name)}</b><br><span class="small muted">${esc([j.year, j.makeModel].filter(Boolean).join(" ") || (j.boat && j.boat.name) || "")} \u00b7 HIN ${esc(j.hin || "")}</span>` : `<span class="muted">Not linked yet.</span>`;
   return `<div class="card" style="margin-top:20px"><h2>Customer and boat</h2><p style="margin:0">${who}</p>
     <p class="small muted" style="margin:8px 0 0">Customer, boat, HIN, and engine hours are recorded at check-in.</p>
@@ -1104,7 +1104,7 @@ const CK_POINTS = [
   { id: "damage", t: "Close-ups of any existing damage", hint: "One photo per scratch, ding, tear, or crack" }
 ];
 const CK_WHERE = ["Customer's lift or dock", "Customer's property", "Picked up by Waterline", "Dropped off by owner"];
-const CK_FUEL = ["Empty", "1/4", "1/2", "3/4", "Full"];
+const CK_FUEL = ["Empty", "1/4", "1/2", "3/4", "Full", "N/A"];
 const CK_PACKAGES = [
   ["Anchor", "Serviced at their lift or property. Boat stays there."],
   ["Harbor", "We pick it up and store it at our facility."],
@@ -1116,7 +1116,9 @@ const pickBoat = b => ({ id: b.id, name: b.name, mmc: b.mmc, length: b.length, y
 let ckTimer = null, ckSaving = false, ckAgain = false;
 
 const ckPhotosAt = id => [...S.ckPhotos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => S.ck && p.checkinId === S.ck.id && p.item === id)];
-const ckMissing = () => CK_POINTS.filter(p => p.req && !ckPhotosAt(p.id).length);
+// The hour-meter photo isn't required when engine hours are N/A (no key, no power, no meter).
+const ckReq = pt => !!pt.req && !(pt.id === "hours" && S.ck && S.ck.engineHours === "N/A");
+const ckMissing = () => CK_POINTS.filter(p => ckReq(p) && !ckPhotosAt(p.id).length);
 function ckReadiness() {
   const c = S.ck, out = [];
   out.push([!!(c.customer && c.boat), c.customer && c.boat ? `${c.customer.name}: ${boatLabel(c.boat)}` : "Link the customer and boat"]);
@@ -1217,7 +1219,9 @@ function tabCheckin() {
     </div>
     <div class="card"><h2>Where and readings</h2>
       <label class="f"><span>Where the boat was checked in</span><select class="in-t" data-cf="where"><option value="">Choose\u2026</option>${CK_WHERE.map(w => `<option ${c.where === w ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label>
-      <div class="grid2"><label class="f"><span>Engine hours</span><input class="in-t" type="number" inputmode="decimal" step="any" data-cf="engineHours" value="${esc(c.engineHours || "")}"></label>
+      <div class="grid2"><div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Engine hours</span><div style="display:flex;gap:6px">
+        <input class="in-t" type="text" inputmode="decimal" data-cf="engineHours" value="${esc(c.engineHours === "N/A" ? "N/A" : c.engineHours || "")}" ${c.engineHours === "N/A" ? "disabled" : ""} placeholder="e.g. 212.5" style="flex:1;min-width:0">
+        <button class="pill" data-a="ckhoursna" aria-pressed="${c.engineHours === "N/A"}" style="border-radius:999px;border:1.5px solid var(--stone-2);background:${c.engineHours === "N/A" ? "var(--deep)" : "#fff"};color:${c.engineHours === "N/A" ? "#fff" : "var(--ink)"};padding:0 14px;font:inherit;cursor:pointer">N/A</button></div></div>
       <div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Fuel level</span><div class="filters" style="padding:0">${CK_FUEL.map(f => `<button data-fuel="${f}" aria-pressed="${c.fuel === f}">${f}</button>`).join("")}</div></div></div>
     </div>
     <div class="card" id="ckPhotos">${ckPhotosHtml()}</div>
@@ -1237,8 +1241,8 @@ function tabCheckin() {
 function ckPhotosHtml() {
   return `<h2>Condition photos</h2>
       <p class="small muted" style="margin-top:-6px">Each photo is time-stamped and saved to this boat's check-in as Waterline's record of its condition. ${S.ck.sharePhotos !== false ? "They're included in the customer's signing link (turn that off on the signature card below)." : "They're not included in the customer's signing link."}</p>
-      ${CK_POINTS.map(pt => { const ph = ckPhotosAt(pt.id); return `<div class="cp" style="flex-wrap:wrap"><span class="dot ${ph.length ? "ok" : pt.req ? "" : "opt"}" ${!pt.req && !ph.length ? 'style="background:var(--stone-2)"' : ""}></span><span class="t">${esc(pt.t)}${pt.req ? "" : ` <span class="small muted">(if applicable)</span>`}${pt.hint ? `<br><span class="small muted">${esc(pt.hint)}</span>` : ""}</span>
-        <span class="iact" style="margin:0">${ckCam(pt.id, pt.req && !ph.length, ph.length ? "Add" : "Take")}</span>
+      ${CK_POINTS.map(pt => { const ph = ckPhotosAt(pt.id); return `<div class="cp" style="flex-wrap:wrap"><span class="dot ${ph.length ? "ok" : ckReq(pt) ? "" : "opt"}" ${!ckReq(pt) && !ph.length ? 'style="background:var(--stone-2)"' : ""}></span><span class="t">${esc(pt.t)}${ckReq(pt) ? "" : ` <span class="small muted">(if applicable)</span>`}${pt.hint ? `<br><span class="small muted">${esc(pt.hint)}</span>` : ""}</span>
+        <span class="iact" style="margin:0">${ckCam(pt.id, ckReq(pt) && !ph.length, ph.length ? "Add" : "Take")}</span>
         ${ph.length ? `<div class="thumbs" style="margin:8px 0 0 22px;flex-basis:100%">${ph.map(p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(pt.t)}"><button class="del-ph" data-ckdel="${esc(p.id || p.qid)}" aria-label="Delete photo">\u00d7</button></span>`).join("")}</div>` : ""}</div>`; }).join("")}`;
 }
 // Refresh just the photo list, finish card, and tab badge (never the whole
@@ -1714,6 +1718,7 @@ function ckClick(t, d) {
   switch (a) {
     case "ckaddboat": S.addBoat = { busy: false }; if (!S.visit) loadVisit(); render(); setTimeout(() => { const el = document.getElementById("ckVisit"); el && el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
     case "ckaddcancel": S.addBoat = null; render(); break;
+    case "ckhoursna": ckSave({ engineHours: c.engineHours === "N/A" ? "" : "N/A" }, true); break;
     case "ckhinfix": S.hinFix = { value: "", reason: "", busy: false }; render(); setTimeout(() => { const el = document.getElementById("hinNew"); el && el.focus(); }, 30); break;
     case "ckhincancel": S.hinFix = null; render(); break;
     case "ckhinsave": ckCorrectHin(); break;
@@ -1744,6 +1749,7 @@ document.addEventListener("input", e => {
   if (t.id === "ckcrmq") { S.ckCrm.q = t.value; return; }
   if (t.id === "hinNew" && S.hinFix) { S.hinFix.value = t.value; const m = document.getElementById("hinNewMsg"); if (m) { const p = parseHin(normHin(t.value)); m.textContent = t.value ? p.msg : ""; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; } return; }
   if (t.id === "hinReason" && S.hinFix) { S.hinFix.reason = t.value; return; }
+  if (d.cf === "engineHours" && S.ck && /^\s*n\s*\/?\s*a\s*$/i.test(t.value)) { ckSave({ engineHours: "N/A" }, true); return; }
   if (d.cf && S.ck && t.type !== "checkbox" && t.tagName !== "SELECT") { ckSave({ [d.cf]: t.value }); ckRefreshFinish(); return; }
   if (t.id === "q") { S.q = t.value; const el = document.getElementById("boardlist"); if (el && S.board) el.innerHTML = boardHtml(boardList(), S.board); return; }
   if (t.id === "hin") { S.newHin = t.value; const p = parseHin(t.value); const m = document.getElementById("hinmsg"); m.textContent = p.msg; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; document.querySelector('[data-a="create"]').disabled = p.hin.length < 5; return; }
