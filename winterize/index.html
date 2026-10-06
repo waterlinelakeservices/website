@@ -1207,7 +1207,8 @@ function tabCheckin() {
       <button class="btn block" data-a="ckstart-here" ${S.busy ? "disabled" : ""}>${S.busy ? "Starting\u2026" : "Check in this boat"}</button></div>`;
   }
   return `<div class="card" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Check-in</h2>${ckChip(S.ckStatus)}</div>
-      <p class="small muted" style="margin:6px 0 0">${c.checkedInAt ? "Started " + esc(fmtTime(c.checkedInAt)) + (c.checkedInBy ? " by " + esc(c.checkedInBy) : "") : ""}. Customer, boat, HIN, and engine hours are recorded here and copied to the winterization job.</p></div>
+      <p class="small muted" style="margin:6px 0 0">${c.checkedInAt ? "Started " + esc(fmtTime(c.checkedInAt)) + (c.checkedInBy ? " by " + esc(c.checkedInBy) : "") : ""}. Customer, boat, HIN, and engine hours are recorded here and copied to the winterization job.</p>
+      ${ckHinBlock()}</div>
     ${ckCrmCard()}
     ${c.customer ? ckVisitCard() : ""}
     <div class="card"><h2>Package</h2>
@@ -1324,6 +1325,39 @@ function ckAgreementCard() {
       <button class="btn sec" data-a="ckoverride">${c.override && c.override.reason ? "Update override" : "Save override"}</button>
       ${c.override && c.override.reason ? `<button class="btn ghost" data-a="ckclearoverride">Remove override</button>` : ""}
     </details></div>`;
+}
+
+/* ---------- correcting a mistyped HIN ---------- */
+function ckHinBlock() {
+  const c = S.ck, f = S.hinFix;
+  const hist = (c.hinHistory || []).map(h => `<li>Changed from ${esc(h.from || "blank")} to ${esc(h.to)} by ${esc(h.by || "")}, ${esc(fmtTime(h.at))}${h.reason ? ` (${esc(h.reason)})` : ""}</li>`).join("");
+  if (!f) return `<p style="margin:10px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="small muted">HIN</span><b style="letter-spacing:.08em">${esc(c.hin || "none")}</b>
+      <button class="btn ghost" data-a="ckhinfix" style="padding:4px 0">Correct HIN</button></p>${hist ? `<ul class="small muted" style="margin:4px 0 0;padding-left:18px">${hist}</ul>` : ""}`;
+  const p = parseHin(f.value || "");
+  return `<div class="addboat" style="margin-top:12px"><h3 style="margin:0 0 6px">Correct the HIN</h3>
+    <p class="small muted" style="margin:0 0 8px">Currently <b>${esc(c.hin)}</b>. The fix updates this check-in${c.boat ? ", the boat record" : ""}${S.job ? ", and the winterization job" : ""}, and is logged with your name.</p>
+    <label class="f"><span>Corrected HIN</span><input class="in-t" id="hinNew" autocomplete="off" autocapitalize="characters" spellcheck="false" style="font-size:20px;font-weight:600;letter-spacing:.12em;text-transform:uppercase" value="${esc(f.value || "")}"></label>
+    <p class="small" id="hinNewMsg" style="margin:-6px 0 10px;color:${p.ok ? "var(--pine)" : "var(--muted)"}">${esc(f.value ? p.msg : "Type the HIN exactly as it appears on the transom plate.")}</p>
+    <label class="f"><span>Reason (optional)</span><input class="in-t" id="hinReason" value="${esc(f.reason || "")}" placeholder="Typo at check-in"></label>
+    ${S.agreement ? `<p class="banner small">This boat's agreement is already signed with HIN ${esc(c.hin)}. The signed copy keeps that number; this correction is logged on the check-in. If you need the agreement to show the corrected HIN, have the customer sign again.</p>` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="ckhinsave" ${f.busy ? "disabled" : ""}>${f.busy ? "Saving\u2026" : "Save corrected HIN"}</button><button class="btn ghost" data-a="ckhincancel">Cancel</button></div>
+  </div>`;
+}
+async function ckCorrectHin() {
+  const f = S.hinFix, c = S.ck; const hin = normHin(f.value || "");
+  if (hin.length < 5) { toast("Enter the corrected HIN."); return; }
+  if (hin === normHin(c.hin)) { toast("That's the same HIN."); return; }
+  if (!parseHin(hin).ok && !confirm(`${hin} doesn't look like a standard 12-character HIN. Save it anyway?`)) return;
+  f.busy = true; render();
+  try {
+    clearTimeout(ckTimer); await ckFlush();
+    const r = await api("correctHin", { checkinId: c.id, hin, reason: f.reason || "" });
+    c.hin = r.hin; c.hinHistory = r.state.hinHistory || c.hinHistory; if (c.boat) c.boat.hin = r.hin;
+    lsSet("wl_ck_" + c.id, JSON.stringify(c));
+    if (S.job) { save({ hin: r.hin }); }
+    S.hinFix = null; render(); loadVisit();
+    toast(`HIN corrected to ${r.hin}` + (r.jobs ? " (winterization job updated too)" : ""), 4000);
+  } catch (e) { if (S.hinFix) { S.hinFix.busy = false; render(); } toast(e.message, 7000); }
 }
 
 /* ---------- the customer's visit (several boats, one signature) ---------- */
@@ -1564,7 +1598,7 @@ async function openWorkspace({ jobId, checkinId }, tab) {
     let cs = cr.state || {}; const l = newer(cs, "wl_ck_" + checkinId); if (l) { cs = l; setTimeout(ckFlush, 500); }
     cs.id = checkinId; S.ck = cs; S.ckPhotos = cr.photos || []; S.ckStatus = cr.status || "In Progress"; S.agreement = cr.agreement || null; S.ckBattery = cr.battery || "";
   } else { S.ck = null; S.ckPhotos = []; S.ckStatus = "In Progress"; S.agreement = null; S.ckBattery = ""; }
-  S.visit = null; S.ckLink = ""; S.addBoat = null;
+  S.visit = null; S.ckLink = ""; S.addBoat = null; S.hinFix = null;
   if (!S.job && !S.ck) { S.view = "home"; render(); loadBoard(); toast("That job or check-in isn't in Airtable anymore.", 4500); return; }
   S.saved = null; S.ckSaved = null; S.crm = blankCrm(); S.ckCrm = blankCkCrm();
   if (S.job && S.ck) syncJobFromCk(true);
@@ -1679,6 +1713,9 @@ function ckClick(t, d) {
   switch (a) {
     case "ckaddboat": S.addBoat = { busy: false }; if (!S.visit) loadVisit(); render(); setTimeout(() => { const el = document.getElementById("ckVisit"); el && el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
     case "ckaddcancel": S.addBoat = null; render(); break;
+    case "ckhinfix": S.hinFix = { value: "", reason: "", busy: false }; render(); setTimeout(() => { const el = document.getElementById("hinNew"); el && el.focus(); }, 30); break;
+    case "ckhincancel": S.hinFix = null; render(); break;
+    case "ckhinsave": ckCorrectHin(); break;
     case "ckaddnew": addVisitNewBoat(); break;
     case "ckcrmsearch": S.ckCrm.q = (document.getElementById("ckcrmq") || {}).value || ""; ckCrmSearch(); break;
     case "cknewcust": S.ckCrm.newCust = true; render(); break;
@@ -1704,6 +1741,8 @@ function ckClick(t, d) {
 document.addEventListener("input", e => {
   const t = e.target, d = t.dataset;
   if (t.id === "ckcrmq") { S.ckCrm.q = t.value; return; }
+  if (t.id === "hinNew" && S.hinFix) { S.hinFix.value = t.value; const m = document.getElementById("hinNewMsg"); if (m) { const p = parseHin(normHin(t.value)); m.textContent = t.value ? p.msg : ""; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; } return; }
+  if (t.id === "hinReason" && S.hinFix) { S.hinFix.reason = t.value; return; }
   if (d.cf && S.ck && t.type !== "checkbox" && t.tagName !== "SELECT") { ckSave({ [d.cf]: t.value }); ckRefreshFinish(); return; }
   if (t.id === "q") { S.q = t.value; const el = document.getElementById("boardlist"); if (el && S.board) el.innerHTML = boardHtml(boardList(), S.board); return; }
   if (t.id === "hin") { S.newHin = t.value; const p = parseHin(t.value); const m = document.getElementById("hinmsg"); m.textContent = p.msg; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; document.querySelector('[data-a="create"]').disabled = p.hin.length < 5; return; }

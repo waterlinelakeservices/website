@@ -226,6 +226,46 @@ const actions = {
     return { boat: W.boatOut(rec) };
   },
 
+  // Fix a mistyped HIN on a check-in. Updates the check-in, its boat record, and any
+  // winterization job started from it, and logs who changed it, from what, and why.
+  async correctHin(token, tech, p) {
+    const id = recId(p.checkinId); const hin = normHin(p.hin); const reason = str(p.reason, 200).trim();
+    if (!id) throw W.fail(400, 'Bad check-in id');
+    if (hin.length < 5) throw W.fail(400, 'Enter the corrected HIN (at least 5 letters and numbers).');
+    const cur = await W.getRec(token, T.checkins, id);
+    const f = cur.fields || {};
+    let st = {}; try { st = JSON.parse(f[CHK.state] || '{}') || {}; } catch (e) { st = {}; }
+    const old = normHin(f[CHK.hin] || st.hin || '');
+    if (old === hin) return { hin, unchanged: true, state: st };
+    const boatId = (f[CHK.boat] || [])[0] || null;
+    // The corrected HIN can't belong to a different boat...
+    const other = await boatByHin(token, hin);
+    if (other && other.id !== boatId) throw W.fail(409, `HIN ${hin} is already on another boat record ("${other.name}"${other.custIds && other.custIds.length ? '' : ', no customer'}). If that's this boat, remove this check-in and check that boat in instead.`);
+    // ...or to another open check-in this season.
+    const season = f[CHK.season] || W.seasonFor();
+    const dup = await W.list(token, T.checkins, {
+      formula: `AND({Season}="${esc(season)}", {HIN}="${esc(hin)}", OR({Status}="In Progress", {Status}="Awaiting Signature"))`, fields: [CHK.title], max: 2,
+    });
+    if (dup.some((r) => r.id !== id)) throw W.fail(409, `Another open check-in already uses HIN ${hin} ("${dup.find((r) => r.id !== id).fields[CHK.title] || 'check-in'}").`);
+    if (boatId) await W.patch(token, T.boats, boatId, { [BOAT.hin]: hin });
+    const change = { from: old, to: hin, by: tech, at: Date.now(), reason };
+    st.hin = hin; st.hinHistory = [...(st.hinHistory || []), change]; st.updatedAt = Date.now();
+    if (st.boat) st.boat.hin = hin;
+    const title = String(f[CHK.title] || '').split(old).join(hin);
+    await W.patch(token, T.checkins, id, { [CHK.hin]: hin, [CHK.state]: str(JSON.stringify(st)), [CHK.title]: title || undefined });
+    // Winterization jobs started from this check-in carry the HIN too.
+    for (const jid of f[CHK.jobs] || []) {
+      const j = await W.getRec(token, T.jobs, jid);
+      let js = null; try { js = JSON.parse(j.fields[JOB.state] || 'null'); } catch (e) { js = null; }
+      const jf = { [JOB.hin]: hin };
+      if (js) { js.hin = hin; js.updatedAt = Date.now(); jf[JOB.state] = str(JSON.stringify(js)); }
+      const jt = String(j.fields[JOB.title] || ''); if (jt.includes(old)) jf[JOB.title] = jt.split(old).join(hin);
+      await W.patch(token, T.jobs, jid, jf);
+    }
+    console.log('winterize correctHin', id, old, '->', hin, 'by', tech, reason ? `(${reason})` : '');
+    return { hin, state: st, signed: !!(f[CHK.agreement] || []).length, jobs: (f[CHK.jobs] || []).length };
+  },
+
   // ---- check-ins ----
   async listCheckins(token) {
     const season = W.seasonFor();
