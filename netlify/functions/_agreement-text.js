@@ -13,14 +13,14 @@
 // DRAFT v2 (2026-09-30): Anchor terms, property access, battery handling, and the
 // freeze-protection commitment are new and have not yet had attorney review.
 
-const VERSION = '2026-2027 v2';
+const VERSION = '2026-2027 v3';
 const SEASON = '2026-2027';
 const STORAGE_PACKAGES = ['Harbor', 'Flagship'];
 const ANCHOR_PACKAGES = ['Anchor'];
 const PACKAGES = ['Anchor', 'Harbor', 'Flagship'];
 const PACKAGE_BLURB = {
   Anchor: 'Winterized at your own lift or property. Your boat stays with you.',
-  Harbor: 'Picked up, winterized, and stored at our facility. Delivered back in spring.',
+  Harbor: 'Picked up, winterized, and stored at the Waterline Storage Facility. Delivered back in spring.',
   Flagship: 'Everything in Harbor, plus shrink wrap, lift cover service, and a spring detail.',
 };
 
@@ -29,7 +29,7 @@ const SECTIONS = [
     { text: 'This Waterline Service Agreement ("Agreement") is entered into as of the date signed below (the "Effective Date"), by and between Waterline Lake Services, LLC, with a mailing address of 5421 S Poplar Dr, Columbus, IN 47201 ("Company" or "Waterline"), and the undersigned vessel owner ("Owner" or "Customer"). The vessel(s) covered by this Agreement, and the package chosen for each, are listed in the Schedule of Vessels that is part of this Agreement (each a "Vessel").' },
   ] },
   { for: 'all', h: 'Packages & Services', p: [
-    { label: 'Packages:', text: 'Each Vessel is covered under the package shown for it in the Schedule of Vessels. Under the Anchor package, Company winterizes the Vessel at Owner\'s lift, dock, or property, and the Vessel stays there. Under the Harbor and Flagship packages, Company picks the Vessel up, winterizes it, stores it at Company\'s facility for the season, and returns it in the spring. Terms below labeled for a package apply only to Vessels on that package.' },
+    { label: 'Packages:', text: 'Each Vessel is covered under the package shown for it in the Schedule of Vessels. Under the Anchor package, Company winterizes the Vessel at Owner\'s lift, dock, or property, and the Vessel stays there. Under the Harbor and Flagship packages, Company picks the Vessel up, winterizes it, stores it at the Waterline Storage Facility for the season, and returns it in the spring. Terms below labeled for a package apply only to Vessels on that package.' },
     { label: 'Services:', text: 'Company will perform the services on each Vessel described in Owner\'s accepted quote (for example, winterization, storage, and any add-ons agreed upon).' },
   ] },
   { for: 'all', h: 'Access to Owner\'s Property', p: [
@@ -51,7 +51,7 @@ const SECTIONS = [
 
   // ---- storage packages (Harbor, Flagship) ----
   { for: 'storage', h: 'Storage Location', p: [
-    { text: 'Company stores Vessels at the pole barn located at 8660 W 550S, Columbus, Indiana 47201 (the "Facility"), which Company leases from its own landlord.' },
+    { text: 'Company stores Vessels at the Waterline Storage Facility, a pole barn located at 8660 W 550S, Columbus, Indiana 47201 (the "Facility"), which Company leases from its own landlord.' },
   ] },
   { for: 'storage', h: 'Storage Term', p: [
     { label: 'Storage Season:', text: 'October 1, 2026 through April 30, 2027 (the "Storage Season"), matching the term of Company\'s own lease for the Facility.' },

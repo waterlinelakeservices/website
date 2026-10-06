@@ -27,7 +27,9 @@ const { T, CUST, BOAT, CHK, AGR, PHOTO } = W;
 // One fingerprint per version of the text: storage terms, Anchor terms, or both.
 const DOCS = {};
 ['storage', 'anchor', 'both'].forEach((c) => { const doc = AT.compose(c); DOCS[c] = { doc, sha: crypto.createHash('sha256').update(VERSION + '\n' + c + '\n' + JSON.stringify(doc)).digest('hex') }; });
-const ACCESS_TEXT = 'I authorize Waterline Lake Services to access my property, dock, and lift where my boat(s) are kept, as described above, to pick up, deliver, and/or service my boat(s) as this agreement describes.';
+const ACCESS_TEXT = 'I authorize Waterline Lake Services to access my property, dock, and lift at the location above to pick up, deliver, and/or service my boat(s) as this agreement describes.';
+const FACILITY = 'Waterline Storage Facility';
+const storageOf = (pkg) => AT.STORAGE_PACKAGES.includes(pkg) ? FACILITY : "Owner's lift or property";
 // Where the customer wants each battery kept after we disconnect it.
 const BATTERY = {
   boat: 'Leave it in the boat, disconnected',
@@ -150,12 +152,16 @@ async function buildPdf(p) {
   heading('Schedule of Vessels');
   p.vessels.forEach((v, i) => {
     rich([[`${i + 1}. ${v.label}`, bold], [`${v.hin ? `   HIN: ${v.hin}` : '   HIN: not recorded'}`, font]]);
-    text(`Package: ${v.package || 'not stated'}${v.package ? ' (' + (AT.ANCHOR_PACKAGES.includes(v.package) ? 'serviced at Owner\'s lift or property' : 'stored at Waterline\'s facility') + ')' : ''}`, { indent: 12 });
+    text(`Package: ${v.package || 'not stated'}`, { indent: 12 });
+    text(`Winter storage: ${v.package ? storageOf(v.package) : 'not stated'}`, { indent: 12 });
     text(`Battery: ${v.battery || 'not stated'}`, { indent: 12 });
   });
 
-  heading('Where the vessel(s) are kept; property access');
-  text(`Location: ${p.access.address || 'as on file'}`);
+  const kinds = new Set(p.vessels.map((v) => AT.STORAGE_PACKAGES.includes(v.package) ? 's' : 'a'));
+  const locLabel = kinds.has('s') && kinds.has('a') ? 'Pickup and service location' : kinds.has('s') ? 'Pickup and delivery location' : 'Service location';
+  heading(`${locLabel}; property access`);
+  text(`${locLabel}: ${p.access.address || 'as on file'}`);
+  if (kinds.has('s')) text(`Boats on Harbor or Flagship are stored for the winter at the ${FACILITY}, 8660 W 550S, Columbus, IN 47201.`, { size: 8.5, lh: 11.5 });
   if (p.access.notes) text(`Access notes: ${p.access.notes}`);
   text(`[x] ${ACCESS_TEXT}`, { size: 8.5, lh: 11.5 });
 
@@ -263,7 +269,7 @@ const actions = {
     if (!p.consent || !p.agree) throw W.fail(400, 'Please check the boxes to agree and consent to signing electronically.');
     if (!p.accessAck) throw W.fail(400, 'Please confirm we may access your property to pick up, deliver, or service your boat.');
     const access = { address: W.str(p.access && p.access.address, 250).trim(), notes: W.str(p.access && p.access.notes, 1000).trim() };
-    if (access.address.length < 5) throw W.fail(400, 'Please tell us where your boat is kept (address, lake, or dock).');
+    if (access.address.length < 5) throw W.fail(400, 'Please tell us where we pick up or service your boat (address, lake, or dock).');
     const signer = {
       name: W.str(p.signer && p.signer.name, 120).trim(), email: W.str(p.signer && p.signer.email, 160).trim(),
       phone: W.str(p.signer && p.signer.phone, 40).trim(), address: W.str(p.signer && p.signer.address, 250).trim(),
@@ -373,7 +379,7 @@ const actions = {
       [AGR.vessels]: vessels.map((v, i) => `${i + 1}. ${v.label}${v.hin ? ' | HIN ' + v.hin : ''} | ${v.package}`).join('\n'),
       [AGR.packages]: [...new Set(vessels.map((v) => v.package))],
       [AGR.battery]: vessels.map((v) => `${v.label}: ${v.battery}`).join('\n'),
-      [AGR.accessAck]: true, [AGR.accessNotes]: [access.address, access.notes].filter(Boolean).join('\n'),
+      [AGR.accessAck]: true, [AGR.accessNotes]: [`Pickup/service location: ${access.address}`, access.notes, ...vessels.map((v) => `${v.label}: winter storage at ${storageOf(v.package)}`)].filter(Boolean).join('\n'),
       [AGR.via]: via, [AGR.witness]: ctx.tech || '', [AGR.sigType]: sigType, [AGR.version]: VERSION, [AGR.sha]: DOCS[combo].sha,
       [AGR.consent]: true, [AGR.conditionAck]: !!p.conditionAck && checkins.length > 0, [AGR.ip]: ctx.ip, [AGR.device]: device,
       [AGR.checkins]: checkins.map((c) => c.id), [AGR.driveStatus]: 'Pending', [AGR.submissionId]: submissionId || undefined,

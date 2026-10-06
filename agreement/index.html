@@ -167,6 +167,14 @@ function included() {
   return [...d.boats.filter(b => S.boats.has(b.id)).map(b => ({ key: b.id, label: b.label, fixed: b.packageFixed })),
     ...S.extras.map((v, i) => ({ key: 'x' + i, label: v.makeModel || 'the boat you added', extra: true, used: !!(v.makeModel || v.hin || v.length) })).filter(x => x.used)];
 }
+// Which boats winter at the Waterline Storage Facility vs. stay at the owner's property.
+function storageSummary() {
+  const inc = included(); if (!inc.length) return '';
+  const st = inc.filter(x => S.pkg[x.key] && isStorage(S.pkg[x.key])).map(x => x.label);
+  const an = inc.filter(x => S.pkg[x.key] && !isStorage(S.pkg[x.key])).map(x => x.label);
+  const row = (h, list) => list.length ? `<p class="small" style="margin:4px 0"><b>${h}:</b> ${list.map(esc).join(', ')}</p>` : '';
+  return `<div style="background:#f3f8f9;border-radius:10px;padding:8px 12px;margin:6px 0 10px">${row('Stored at the Waterline Storage Facility', st)}${row('Staying at your lift or property', an)}</div>`;
+}
 function combo() {
   const pk = included().map(x => S.pkg[x.key]).filter(Boolean);
   const st = pk.some(isStorage), an = pk.some(p => !isStorage(p));
@@ -179,6 +187,7 @@ function boatAnswers(k, fixed) {
   return `<div class="answers">
     ${fixed ? `<p class="small" style="margin:0 0 8px"><b>Package:</b> ${esc(pkg)} <span class="muted">(${esc((d.packages.find(p => p.name === pkg) || {}).blurb || '')})</span></p>` : `
     <fieldset class="pk"><legend class="small"><b>Package</b></legend>${d.packages.map(p => `<label class="pkopt${pkg === p.name ? ' on' : ''}"><input type="radio" name="pkg-${k}" data-pkg="${k}" value="${p.name}" ${pkg === p.name ? 'checked' : ''}><span><b>${esc(p.name)}</b><span class="small muted">${esc(p.blurb)}</span></span></label>`).join('')}</fieldset>`}
+    ${pkg ? `<p class="small" style="margin:6px 0 0"><b>Winter storage:</b> ${isStorage(pkg) ? 'Waterline Storage Facility' : 'Stays at your lift or property'}</p>` : ''}
     <label class="f" style="margin:8px 0 0"><span><b>Battery.</b> We'll disconnect it. Where should we keep it for the winter?</span>
       <select class="in-t" data-bat="${k}"><option value="">Choose\u2026</option>${opts.map(o => `<option value="${o.id}" ${b.choice === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
     ${opt && opt.needsNote ? `<label class="f" style="margin:6px 0 0"><span>${b.choice === 'property' ? 'Where at your property? (garage, shed, basement\u2026)' : 'Tell us what you\u2019d like'}</span><input class="in-t" data-batnote="${k}" value="${esc(b.note || '')}"></label>` : ''}
@@ -227,9 +236,10 @@ function render() {
   </section>` : ''}
 
   <section class="card">
-    <p class="label">Step ${n(3)}</p><h2>Where your boat${d.boats.length + S.extras.length === 1 ? ' is' : 's are'} kept</h2>
-    <p class="small muted" style="margin-top:-6px">We'll come to your lift or property to ${combo() === 'anchor' ? 'winterize your boat' : combo() === 'storage' ? 'pick up and later return your boat' : 'pick up or service your boats'}.</p>
-    <label class="f"><span>Address or location (lake, street, dock)</span><input class="in-t" id="accessAddress" value="${esc(S.accessAddress ?? c.address)}" autocomplete="street-address"></label>
+    <p class="label">Step ${n(3)}</p><h2>${combo() === 'anchor' ? 'Where we\u2019ll service your boat' : combo() === 'storage' ? 'Pickup location' : 'Pickup and service location'}</h2>
+    <p class="small muted" style="margin-top:-6px">${combo() === 'anchor' ? 'We\u2019ll winterize your boat at your lift or property, and it stays there for the winter.' : combo() === 'storage' ? 'We\u2019ll pick your boat up here, store it for the winter at the Waterline Storage Facility, and deliver it back here in the spring.' : 'We\u2019ll pick up your Harbor/Flagship boats here and store them at the Waterline Storage Facility; your Anchor boats are winterized here and stay put.'}</p>
+    ${storageSummary()}
+    <label class="f"><span>Address of your lift or dock (street, lake, dock)</span><input class="in-t" id="accessAddress" value="${esc(S.accessAddress ?? c.address)}" autocomplete="street-address"></label>
     <label class="f"><span>Anything we should know to get there? (gate code, dock location, pets, lift notes)</span><textarea class="in-t" id="accessNotes" rows="2">${esc(S.accessNotes || '')}</textarea></label>
     <label class="check"><input type="checkbox" id="accessAck" ${S.accessAck ? 'checked' : ''}><span>${esc(d.agreement.accessText)}</span></label>
   </section>
@@ -280,7 +290,7 @@ function validate() {
   const answersOk = included().every(x => { const b = S.bat[x.key] || {}; const o = S.data.battery.find(z => z.id === b.choice); return S.pkg[x.key] && o && (!o.needsNote || (b.note || '').trim().length > 1) && (!o.storageOnly || isStorage(S.pkg[x.key])); });
   const accessOk = S.accessAck && (S.accessAddress ?? S.data.customer.address ?? '').trim().length >= 5;
   const hint = document.getElementById('hint');
-  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where your boat is kept and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition photos.' : '';
+  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where we pick up or service your boat, and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition photos.' : '';
   const ok = hasBoat && answersOk && accessOk && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
   b.disabled = !ok;
 }
