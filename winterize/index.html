@@ -1098,6 +1098,7 @@ const CK_POINTS = [
   { id: "helm", t: "Helm and console", req: true },
   { id: "interior", t: "Seats and interior" },
   { id: "engine", t: "Engine or motor" },
+  { id: "enginetag", t: "Engine label or tag", hint: "Make, model, and serial plate, for our records" },
   { id: "drive", t: "Prop and lower unit or drive" },
   { id: "trailer", t: "Trailer and tires" },
   { id: "cover", t: "Cover and canvas" },
@@ -1112,7 +1113,8 @@ const CK_PACKAGES = [
 ];
 const boatLabel = b => b ? [b.year, b.mmc || b.name, b.length ? b.length + " ft" : ""].filter(Boolean).join(" ") : "";
 const pickCust = x => ({ id: x.id, name: x.name, phone: x.phone, email: x.email, address: x.address });
-const pickBoat = b => ({ id: b.id, name: b.name, mmc: b.mmc, length: b.length, year: b.year, hin: b.hin, type: b.type, drive: b.drive });
+const pickBoat = b => ({ id: b.id, name: b.name, mmc: b.mmc, length: b.length, year: b.year, hin: b.hin, type: b.type, drive: b.drive,
+  engineMake: b.engineMake || "", driveType: b.driveType || "", engineModel: b.engineModel || "", hp: b.hp || "", oilFilter: b.oilFilter || "" });
 let ckTimer = null, ckSaving = false, ckAgain = false;
 
 const ckPhotosAt = id => [...S.ckPhotos.filter(p => p.item === id), ...S.pendingPhotos.filter(p => S.ck && p.checkinId === S.ck.id && p.item === id)];
@@ -1129,7 +1131,43 @@ function ckReadiness() {
   return out;
 }
 const ckSummary = () => { const c = S.ck; return { title: `${(c.season || "").slice(0, 4) || new Date().getFullYear()} Check-in - ${(c.customer && c.customer.name) || "No customer"} - ${boatLabel(c.boat) || c.hin}`, photoCount: S.ckPhotos.length }; };
-const ckBoatSummary = () => { const c = S.ck; return { hin: c.hin, hours: c.engineHours, mmc: c.boat && c.boat.mmc, length: c.boat && c.boat.length, year: c.boat && c.boat.year }; };
+const ckBoatSummary = () => { const c = S.ck; const e = ckEngine(); return { hin: c.hin, hours: c.engineHours, mmc: c.boat && c.boat.mmc, length: c.boat && c.boat.length, year: c.boat && c.boat.year,
+  engineMake: e.make, driveType: e.drive, engineModel: e.model, hp: e.hp, oilFilter: e.filter }; };
+// Engine details: what's been entered on this check-in, falling back to what's on the boat record.
+const ENGINE_MAKES = ["PCM", "Indmar", "Ilmor", "MerCruiser", "Volvo Penta", "Mercury", "Yamaha", "Suzuki", "Honda", "Evinrude", "Rotax (Sea-Doo)", "Other"];
+const DRIVE_TYPES = ["Inboard, V-drive", "Inboard, direct drive", "Sterndrive (I/O)", "Outboard", "Jet (PWC)"];
+function ckEngine() {
+  const c = S.ck || {}, b = c.boat || {}, e = c.engine || {};
+  return { drive: e.drive ?? b.driveType ?? "", make: e.make ?? b.engineMake ?? "", model: e.model ?? b.engineModel ?? "", hp: e.hp ?? b.hp ?? "", filter: e.filter ?? b.oilFilter ?? "" };
+}
+function ckEngineCard() {
+  const e = ckEngine();
+  const plan = ckChecklistPlan();
+  return `<div class="card"><h2>Boat Profile</h2>
+    <p class="small muted" style="margin-top:-6px">This boat's permanent record. Engine details save to the boat in Airtable (and can be edited there); they set the oil, filters, and parts we order and the winterization checklist steps.</p>
+    <div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Drive type</span>
+      <div class="filters" style="padding:0;flex-wrap:wrap">${DRIVE_TYPES.map(d => `<button data-drive="${d}" aria-pressed="${e.drive === d}">${esc(d)}</button>`).join("")}</div></div>
+    <div class="grid2">
+      <label class="f"><span>Engine make</span><select class="in-t" data-eng="make"><option value="">Choose\u2026</option>${ENGINE_MAKES.map(m => `<option ${e.make === m ? "selected" : ""}>${esc(m)}</option>`).join("")}</select></label>
+      <label class="f"><span>Horsepower</span><input class="in-t" type="number" inputmode="numeric" data-eng="hp" value="${esc(e.hp || "")}" placeholder="e.g. 150"></label>
+    </div>
+    <label class="f"><span>Engine model (from the tag or decal)</span><input class="in-t" data-eng="model" value="${esc(e.model || "")}" placeholder="e.g. PCM ZR6, MerCruiser 4.5L, Yamaha F150"></label>
+    <label class="f"><span>Oil filter part # (if known)</span><input class="in-t" data-eng="filter" value="${esc(e.filter || "")}" placeholder="e.g. R077001"></label>
+    <p class="small" style="margin:4px 0 0">${plan.type ? `<b>Winterization checklist:</b> ${esc(TYPES[plan.type].label)}${plan.profile ? ` &middot; <b>Parts profile:</b> ${esc(plan.profile)}` : ""}` : `<span class="muted">Choose the drive type to set the winterization checklist.</span>`}</p>
+  </div>`;
+}
+// Which winterization checklist and parts profile the Boat Profile points to.
+function ckChecklistPlan() {
+  const e = ckEngine(), b = (S.ck && S.ck.boat) || {};
+  const isPontoon = /pontoon|tritoon/i.test([b.type, b.name, b.mmc].join(" "));
+  const type = { "Inboard, V-drive": "VD", "Inboard, direct drive": "DD", "Sterndrive (I/O)": "IO", "Outboard": isPontoon ? "PT" : "OB", "Jet (PWC)": "PWC" }[e.drive] || "";
+  let profile = "";
+  if (e.make === "PCM") profile = /210/.test([e.model, b.mmc, b.name].join(" ")) ? "SAN 210" : "GS 20";
+  else if (e.make === "Indmar") profile = "NXT20";
+  else if (type === "PT" || type === "OB") profile = Number(e.hp) >= 200 ? "Outboard - 200hp +" : "Outboard - Standard";
+  else if (type === "PWC") profile = e.make === "Rotax (Sea-Doo)" ? "PWC - Rotax" : "PWC - Standard";
+  return { type, profile: PROFILES[profile] ? profile : "" };
+}
 
 // Copy the check-in's customer, boat, and hours onto the winterization job.
 function syncJobFromCk(saveIt) {
@@ -1141,15 +1179,21 @@ function syncJobFromCk(saveIt) {
   if (c.hin && c.hin !== j.hin) f.hin = c.hin;
   if (c.customer && (!j.customer || j.customer.id !== c.customer.id || j.customer.name !== c.customer.name)) f.customer = { ...c.customer, src: "crm" };
   if (c.boat) {
-    if (!j.boat || j.boat.id !== c.boat.id) { f.boat = { id: c.boat.id, name: c.boat.name, type: c.boat.type, drive: c.boat.drive }; if (!j.type) { const t = guessType(c.boat); if (t) f.type = t; } }
+    if (!j.boat || j.boat.id !== c.boat.id) { f.boat = { id: c.boat.id, name: c.boat.name, type: c.boat.type, drive: c.boat.drive }; if (!j.type) { const t = ckChecklistPlan().type || guessType(c.boat); if (t) f.type = t; } }
     if (c.boat.mmc && c.boat.mmc !== j.makeModel) f.makeModel = c.boat.mmc;
     if (c.boat.year && String(c.boat.year) !== String(j.year || "")) f.year = c.boat.year;
     if (c.boat.length && String(c.boat.length) !== String(j.length || "")) f.length = c.boat.length;
   }
   if (c.engineHours !== undefined && c.engineHours !== "" && String(c.engineHours) !== String(j.engineHours || "")) f.engineHours = c.engineHours;
+  // The Boat Profile sets the checklist and parts profile, unless the tech already chose them.
+  const plan = ckChecklistPlan();
+  if (plan.type && !j.type && !f.type) f.type = plan.type;
+  if (plan.profile && !j.profile) f.profile = plan.profile;
+  const eng = ckEngine();
+  if (!j.engine && (eng.make || eng.model)) f.engine = [eng.model && eng.make && eng.model.toLowerCase().startsWith(eng.make.toLowerCase()) ? "" : eng.make, eng.model, eng.hp ? eng.hp + " hp" : ""].filter(Boolean).join(" ");
   if (S.agreement && j.agreementRef !== S.agreement.ref) { f.agreementRef = S.agreement.ref; f.agreementAt = S.agreement.signedAt; }
   if (!Object.keys(f).length) return;
-  if (f.type) f.parts = seedParts({ ...j, ...f });
+  if (f.type || f.profile) f.parts = seedParts({ ...j, ...f });
   if (saveIt) save(f); else Object.assign(j, f);
 }
 
@@ -1217,6 +1261,7 @@ function tabCheckin() {
       <div class="pkgs">${CK_PACKAGES.map(([name, blurb]) => `<button class="pkg" data-pkg="${name}" aria-pressed="${c.package === name}"><b>${name}</b><span>${esc(blurb)}</span></button>`).join("")}</div>
       ${c.package ? "" : `<p class="small muted" style="margin:8px 0 0">Sets which agreement terms the customer signs for this boat.</p>`}
     </div>
+    ${ckEngineCard()}
     <div class="card"><h2>Where and readings</h2>
       <label class="f"><span>Where the boat was checked in</span><select class="in-t" data-cf="where"><option value="">Choose\u2026</option>${CK_WHERE.map(w => `<option ${c.where === w ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label>
       <div class="grid2"><div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Engine hours</span><div style="display:flex;gap:6px">
@@ -1548,6 +1593,8 @@ async function createJob(overrideReason, fromCk) {
   keep.forEach(key => { if (prev[key]) job[key] = prev[key]; });
   if (!job.year && p.ok) job.year = p.year;
   if (pre.crm) applyCrm(job, pre.crm.customer, pre.crm.boat);
+  // Starting from a check-in: the Boat Profile's drive type and parts profile set the checklist.
+  if (fromCk && S.ck) { const pl = ckChecklistPlan(); if (pl.type) job.type = pl.type; if (pl.profile) job.profile = pl.profile; }
   if (ck) { job.checkinId = ck.id; job.checkin = { id: ck.id, at: ck.at, by: ck.by, status: ck.status }; }
   if (pre.coverage) { job.agreementRef = pre.coverage.ref; job.agreementAt = pre.coverage.signedAt; }
   if (!cleared) job.checkinOverride = `By ${S.tech} on ${new Date().toLocaleDateString("en-US")}: ${overrideReason}`;
@@ -1601,6 +1648,7 @@ async function openWorkspace({ jobId, checkinId }, tab) {
   // check-in
   if (cr && checkinId) {
     let cs = cr.state || {}; const l = newer(cs, "wl_ck_" + checkinId); if (l) { cs = l; setTimeout(ckFlush, 500); }
+    if (cr.boat && cs.boat && cr.boat.id === cs.boat.id) { cs.boat = { ...cs.boat, ...pickBoat(cr.boat) }; delete cs.engine; }
     cs.id = checkinId; S.ck = cs; S.ckPhotos = cr.photos || []; S.ckStatus = cr.status || "In Progress"; S.agreement = cr.agreement || null; S.ckBattery = cr.battery || "";
   } else { S.ck = null; S.ckPhotos = []; S.ckStatus = "In Progress"; S.agreement = null; S.ckBattery = ""; }
   S.visit = null; S.ckLink = ""; S.addBoat = null; S.hinFix = null;
@@ -1705,6 +1753,7 @@ document.addEventListener("click", e => {
 function ckClick(t, d) {
   if (d.ckcam !== undefined) { pickKind = "ck"; pickFor = d.ckcam; document.getElementById("filepick").click(); return true; }
   if (d.fuel) { ckSave({ fuel: S.ck.fuel === d.fuel ? "" : d.fuel }, true); return true; }
+  if (d.drive) { const e = ckEngine(); ckSave({ engine: { ...e, drive: e.drive === d.drive ? "" : d.drive } }, true); return true; }
   if (d.pkg) { // Anchor boats stay put, so they're never "picked up by Waterline"
     const w = S.ck.where; const anchorWhere = !w || w === "Picked up by Waterline" ? { where: "Customer's lift or dock" } : {};
     ckSave({ package: d.pkg, ...(d.pkg === "Anchor" ? anchorWhere : {}) }, true); return true; }
@@ -1749,6 +1798,7 @@ document.addEventListener("input", e => {
   if (t.id === "ckcrmq") { S.ckCrm.q = t.value; return; }
   if (t.id === "hinNew" && S.hinFix) { S.hinFix.value = t.value; const m = document.getElementById("hinNewMsg"); if (m) { const p = parseHin(normHin(t.value)); m.textContent = t.value ? p.msg : ""; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; } return; }
   if (t.id === "hinReason" && S.hinFix) { S.hinFix.reason = t.value; return; }
+  if (d.eng && S.ck && t.tagName !== "SELECT") { ckSave({ engine: { ...ckEngine(), [d.eng]: t.value } }); return; }
   if (d.cf === "engineHours" && S.ck && /^\s*n\s*\/?\s*a\s*$/i.test(t.value)) { ckSave({ engineHours: "N/A" }, true); return; }
   if (d.cf && S.ck && t.type !== "checkbox" && t.tagName !== "SELECT") { ckSave({ [d.cf]: t.value }); ckRefreshFinish(); return; }
   if (t.id === "q") { S.q = t.value; const el = document.getElementById("boardlist"); if (el && S.board) el.innerHTML = boardHtml(boardList(), S.board); return; }
@@ -1765,6 +1815,7 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   const t = e.target, d = t.dataset;
   if (d.delpick && S.del) { S.del[d.delpick] = t.checked; render(); return; }
+  if (d.eng && S.ck && t.tagName === "SELECT") { ckSave({ engine: { ...ckEngine(), [d.eng]: t.value } }, true); return; }
   if (d.cf && S.ck && (t.type === "checkbox" || t.tagName === "SELECT")) { ckSave({ [d.cf]: t.type === "checkbox" ? t.checked : t.value }, true); return; }
   if (d.cf) return; // text boxes save as you type (input event); don't redraw on blur or a tap gets lost
   if (!S.job) return;

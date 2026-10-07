@@ -30,6 +30,7 @@ const BOAT = {
   svc: 'fldVI9EEpyZyaALb8', cooling: 'fldQvstrpI7S45U9S', profile: 'fldmZgmaIsNXWB2wj',
   hours: 'fldvB5aNhOKKi1XD7', lastWint: 'fldMzSQ3j552j0w7b', impDate: 'fldB0nT11QmiQBlpl',
   checkins: 'fldtkaf2mkplF4908', agreements: 'fld6Oui8hnVlz4bDx',
+  engineMake: 'fldpzJHCJDuj3i0nn', driveType: 'fldlKIim0erxx0zfO', engineModel: 'flduQ30S2BV3GzCuG', hp: 'fldZoUzYfTi6ptBRF', oilFilter: 'fldVJpdXfkVt5GLFl',
 };
 const CHK = {
   title: 'fldUAYRbqlHsRgwsV', boat: 'fldtopXF2ao919TmK', customer: 'fldQBwFPaxRc28c14',
@@ -178,15 +179,18 @@ function customerOut(r) {
     address: f[CUST.address] || '', boats: f[CUST.boats] || [], quotes: f[CUST.quotes] || [], portalKey: f[CUST.portalKey] || '',
   };
 }
+const ENGINE_MAKES = ['PCM', 'Indmar', 'Ilmor', 'MerCruiser', 'Volvo Penta', 'Mercury', 'Yamaha', 'Suzuki', 'Honda', 'Evinrude', 'Rotax (Sea-Doo)', 'Other'];
+const DRIVE_TYPES = ['Inboard, V-drive', 'Inboard, direct drive', 'Sterndrive (I/O)', 'Outboard', 'Jet (PWC)'];
 function boatOut(r) {
   const f = r.fields || {};
   return {
     id: r.id, name: f[BOAT.name] || 'Boat', type: sel(f[BOAT.type]), length: f[BOAT.length] || '',
     drive: sel(f[BOAT.style]), mmc: f[BOAT.mmc] || '', hin: f[BOAT.hin] || '', year: f[BOAT.year] || '',
     custIds: f[BOAT.customer] || [],
+    engineMake: sel(f[BOAT.engineMake]), driveType: sel(f[BOAT.driveType]), engineModel: f[BOAT.engineModel] || '', hp: f[BOAT.hp] || '', oilFilter: f[BOAT.oilFilter] || '',
   };
 }
-const BOAT_READ = [BOAT.name, BOAT.customer, BOAT.type, BOAT.length, BOAT.style, BOAT.mmc, BOAT.hin, BOAT.year];
+const BOAT_READ = [BOAT.name, BOAT.customer, BOAT.type, BOAT.length, BOAT.style, BOAT.mmc, BOAT.hin, BOAT.year, BOAT.engineMake, BOAT.driveType, BOAT.engineModel, BOAT.hp, BOAT.oilFilter];
 const CUST_READ = [CUST.name, CUST.phone, CUST.email, CUST.address, CUST.boats, CUST.portalKey, CUST.quotes];
 
 // ---- customer links (agreement now, boat profile later) ----
@@ -231,5 +235,5 @@ module.exports = {
   json, fail, esc, str, num, date, recId, pick, sel, seasonFor, techForPin,
   QUOTE, ensurePortalKey, newPortalKey, agreementUrl, customerByKey, packageGuess, PKG_NAMES,
   list, byIds, getRec, patch, patchMany, create, del, delMany, uploadAttachment, attUrl,
-  customerOut, boatOut, BOAT_READ, CUST_READ, clientIp,
+  customerOut, boatOut, BOAT_READ, CUST_READ, clientIp, ENGINE_MAKES, DRIVE_TYPES,
 };

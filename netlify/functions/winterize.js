@@ -141,6 +141,12 @@ function boatFields(b) {
   if (num(b.length) != null) f[BOAT.length] = num(b.length);
   if (date(b.lastWint)) f[BOAT.lastWint] = b.lastWint;
   if (date(b.impDate)) f[BOAT.impDate] = b.impDate;
+  // Engine details recorded at check-in
+  if (pick(b.engineMake, W.ENGINE_MAKES)) f[BOAT.engineMake] = b.engineMake;
+  if (pick(b.driveType, W.DRIVE_TYPES)) f[BOAT.driveType] = b.driveType;
+  if (str(b.engineModel, 120).trim()) f[BOAT.engineModel] = str(b.engineModel, 120).trim();
+  if (num(b.hp) != null && num(b.hp) > 0) f[BOAT.hp] = num(b.hp);
+  if (str(b.oilFilter, 80).trim()) f[BOAT.oilFilter] = str(b.oilFilter, 80).trim();
   return f;
 }
 const linkFields = (state, boatF, custF) => {
@@ -338,7 +344,10 @@ const actions = {
     const agrIds = f[CHK.agreement] || [];
     let agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
     if (!agreement && state && state.customer && state.boat) agreement = await coverageFor(token, recId(state.customer.id), recId(state.boat.id));
-    return { id, state, photos, status: sel(f[CHK.status]) || 'In Progress', agreement, jobId: (f[CHK.jobs] || []).slice(-1)[0] || null, stage: f[CHK.stage] || '', battery: f[CHK.battery] || '' };
+    const boatId = (f[CHK.boat] || [])[0];
+    // The Boat record is the source of truth for the Boat Profile (engine details can be edited in Airtable).
+    const liveBoat = boatId ? await W.getRec(token, T.boats, boatId).then(W.boatOut).catch(() => null) : null;
+    return { id, state, photos, status: sel(f[CHK.status]) || 'In Progress', agreement, jobId: (f[CHK.jobs] || []).slice(-1)[0] || null, stage: f[CHK.stage] || '', battery: f[CHK.battery] || '', boat: liveBoat };
   },
   async saveCheckin(token, tech, p) {
     const id = recId(p.id); if (!id) throw W.fail(400, 'Bad check-in id');
