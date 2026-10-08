@@ -42,6 +42,7 @@ const CHK = {
   overrideBy: 'fldwUXbSxelupitLV', synced: 'fld92NDhlOiMsgwCK', state: 'fldLSTQqjFIZjLhGs',
   photos: 'fldBQKoxqnYd0X3LT', jobs: 'fldJ2gA5FhShXUJuc', stage: 'fldx3iFg1PgyppmEd',
   package: 'fldeViIsb3l9Mkkp5', battery: 'fldf4VGYOj322ZAC9', sharePhotos: 'fldHU0GyOHYOrBNUy',
+  partsStatus: 'fldEA3f4BIhbwoJiZ', partsNotes: 'fld869EjGkrAxYSQ5',
 };
 const AGR = {
   ref: 'fldfv4QgeLGdDJJIW', customer: 'fldQR4G3GSBl1hPpm', boats: 'fldgyDe790nfU1vVk',

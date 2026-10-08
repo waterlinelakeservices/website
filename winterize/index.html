@@ -275,6 +275,53 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .addboat { border: 1.5px dashed var(--stone-2); border-radius: 12px; padding: 12px; }
 .addboat .res { display: block; }
 .covers { margin: 0 0 10px; padding-left: 18px; } .covers li { margin: 4px 0; }
+
+/* Boat Profile */
+.bp-wrap{padding-top:16px}
+.bp{font-family:'Work Sans',sans-serif;border-radius:16px;overflow:hidden;border:1px solid var(--stone-2);background:#fff;color:#1C2B30}
+.bp-hd{background:#134E5E;color:#fff;padding:14px 18px 6px}
+.bp-brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:12px;color:#CDE6EC}
+.bp-logo{display:flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff}
+.bp-who{display:flex;align-items:center;gap:14px}
+.bp-who h2{font-family:'Fraunces',serif;font-weight:500;font-size:24px;margin:0;line-height:1.2;color:#fff}
+.bp-who p{font-size:13px;color:#CDE6EC;margin:3px 0 0}
+.bp-av{width:62px;height:62px;border-radius:50%;background:#0C3944;border:2px solid #E7A24C;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;font-weight:500;color:#fff;overflow:hidden}
+.bp-av img{width:100%;height:100%;object-fit:cover}
+.bp-wave{display:block;width:100%;height:22px}
+.bp-sel{padding:4px 16px}
+.bp-selh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px}
+.bp-selh p{font-size:12px;color:#5C6E70;margin:0;letter-spacing:.04em}
+.bp-xb svg,.bp-dl svg{font-size:16px}.bp-xb{font:inherit;font-size:13px;font-weight:500;background:#E7A24C;color:#0C3944;border:0;border-radius:999px;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.bp-boats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.bp-bt{font:inherit;text-align:left;cursor:pointer;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;background:#fff;border:1.5px solid #8CC7D6;color:#1C2B30}
+.bp-n{font-size:15px;display:block;line-height:1.3}.bp-d{font-size:12px;color:#5C6E70;display:block}
+.bp-i{width:30px;height:30px;border-radius:50%;background:rgba(140,199,214,.25);color:#134E5E;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.bp-go{margin-left:auto;font-size:12px;color:#5C6E70;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.bp-bt[aria-selected="true"]{background:#134E5E;border-color:#134E5E;color:#fff;box-shadow:inset 0 -4px 0 #E7A24C}
+.bp-bt[aria-selected="true"] .bp-n{font-weight:500}.bp-bt[aria-selected="true"] .bp-d{color:#CDE6EC}
+.bp-bt[aria-selected="true"] .bp-i{background:#E7A24C;color:#0C3944}.bp-bt[aria-selected="true"] .bp-go{color:#fff}
+.bp-xp{margin-top:8px;background:rgba(231,162,76,.12);border:1px solid rgba(231,162,76,.6);border-radius:12px;padding:12px 14px;font-size:14px}
+.bp-xp p{margin:0 0 4px}.bp-xp label{display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer}
+.bp-xp small{display:block;color:#5C6E70;font-size:12px;margin-left:24px}
+.bp-dl{font:inherit;margin-top:10px;background:#134E5E;color:#fff;border:0;border-radius:999px;padding:9px 18px;font-size:14px;font-weight:500;cursor:pointer}
+.bp-body{padding:6px 16px 16px}
+.bp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.bp-tile{background:rgba(140,199,214,.18);border-radius:10px;padding:10px 12px}
+.bp-tile span{display:block;font-size:12px;color:#5C6E70}.bp-tile b{font-weight:500;font-size:14px}
+.bp-box{background:rgba(140,199,214,.09);border:1px solid rgba(140,199,214,.45);border-radius:12px;padding:12px 14px;margin-top:10px}
+.bp-box.bp-sun{background:rgba(231,162,76,.12);border-color:rgba(231,162,76,.55)}
+.bp-bh{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.bp-bh h3{font-family:'Fraunces',serif;font-weight:500;font-size:17px;margin:0;color:#1C2B30}
+.bp-ic{width:28px;height:28px;border-radius:50%;background:#134E5E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.bp-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 0;border-bottom:1px dashed rgba(140,199,214,.6)}
+.bp-row:last-child{border-bottom:0}.bp-row>span:first-child{color:#5C6E70}.bp-row>span:last-child{text-align:right}
+.bp-pill{font-size:12px;padding:3px 10px;border-radius:999px;display:inline-block;font-weight:500}
+.bp-pill.done{background:#2F5D50;color:#fff}.bp-pill.att{background:#E7A24C;color:#0C3944}.bp-pill.glac{background:#8CC7D6;color:#0C3944}.bp-pill.red{background:#B4412B;color:#fff}
+.bp-ent{margin:0 0 8px}.bp-eh{font-size:14px;font-weight:500;margin:0}.bp-et{font-size:14px;color:#5C6E70;margin:2px 0 0}
+.bp-notes{margin:8px 0 0;padding-left:18px;font-size:13px;color:#5C6E70}
+.bp-rec{display:flex;gap:10px;align-items:flex-start;font-size:14px;padding:5px 0}
+.bp-ft{background:#0C3944;color:#CDE6EC;padding:10px 16px;display:flex;justify-content:space-between;font-size:12px}
+.bp .warn{color:#8A5A12}
 </style>
 </head>
 <body>
@@ -750,6 +797,7 @@ function render() {
   if (S.view === "new") return renderNew();
   if (S.view === "job") return renderJob();
   if (S.view === "gate") return renderGate();
+  if (S.view === "profile") return renderProfile();
 }
 // Stage names match the Stage formula fields in Airtable.
 const STAGES = ["Checking in", "Awaiting signature", "Check-in complete", "In winterization", "Needs review", "Complete"];
@@ -1163,6 +1211,7 @@ function ckEngineCard() {
     </div>
     <label class="f"><span>Engine model (from the tag or decal)</span><input class="in-t" data-eng="model" value="${esc(e.model || "")}" placeholder="e.g. PCM ZR6, MerCruiser 4.5L, Yamaha F150"></label>
     <label class="f"><span>Oil filter part # (if known)</span><input class="in-t" data-eng="filter" value="${esc(e.filter || "")}" placeholder="e.g. R077001"></label>
+    ${S.ck && S.ck.boat && S.ck.boat.id ? `<button class="btn sec" data-bpopen="${S.ck.boat.id}" style="margin:2px 0 10px">${BPI.badge} Open full Boat Profile</button>` : ""}
     <p class="small" style="margin:4px 0 0">${plan.type ? `<b>Winterization checklist:</b> ${esc(TYPES[plan.type].label)}${plan.profile ? ` &middot; <b>Parts profile:</b> ${esc(plan.profile)}` : ""}` : `<span class="muted">Choose the drive type to set the winterization checklist.</span>`}</p>
   </div>`;
 }
@@ -1573,6 +1622,213 @@ async function startCheckin(hinIn, fromJob) {
 }
 
 /* ============================================================
+   BOAT PROFILE: one page per customer, a card per boat. Reads live
+   from Airtable (Boats, Check-ins, Agreements, Winterization Jobs).
+   Opened from the Boat Profile link in Airtable or the check-in card.
+   ============================================================ */
+const bpMoney = n => n;
+function bpPlanFor(b) {
+  const isPontoon = /pontoon|tritoon/i.test([b.type, b.name, b.mmc].join(" "));
+  const type = { "Inboard, V-drive": "VD", "Inboard, direct drive": "DD", "Sterndrive (I/O)": "IO", "Outboard": isPontoon ? "PT" : "OB", "Jet (PWC)": "PWC" }[b.driveType] || "";
+  let profile = "";
+  if (b.engineMake === "PCM") profile = /210/.test([b.engineModel, b.mmc, b.name].join(" ")) ? "SAN 210" : "GS 20";
+  else if (b.engineMake === "Indmar") profile = "NXT20";
+  else if (type === "PT" || type === "OB") profile = Number(b.hp) >= 200 ? "Outboard - 200hp +" : "Outboard - Standard";
+  else if (type === "PWC") profile = b.engineMake === "Rotax (Sea-Doo)" ? "PWC - Rotax" : "PWC - Standard";
+  return { type, profile: PROFILES[profile] ? profile : "" };
+}
+
+// Small inline icons for the Boat Profile (same style as the app's other icons).
+const BPI = (() => {
+  const sv = d => `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  return {
+    engine: sv('<rect x="5" y="8" width="11" height="9" rx="1"/><path d="M8 8V6h5v2M16 11h3v4h-3M5 12H3M10 17v2"/>'),
+    drop: sv('<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/>'),
+    clip: sv('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM8.5 12.5l2 2 4.5-4.5"/>'),
+    tool: sv('<path d="M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>'),
+    bulb: sv('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
+    pdf: sv('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'),
+    down: sv('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+    check: sv('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+    arrow: sv('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+    badge: sv('<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-2 2.2-3 4-3s3.2 1 4 3"/>'),
+    boat: sv('<path d="M3 16h18l-2.5 4h-13zM6 16l2-6h8l2 6M10 10V7h4v3"/>'),
+    pontoon: sv('<path d="M3 15h18M4 18h16M6 15v-5h12v5M9 10V7h6v3"/><circle cx="6" cy="18" r="0.5"/>'),
+    pwc: sv('<path d="M3 16c4 0 6-4 10-4h3l3 4H3zM9 12l2-3h3"/>'),
+  };
+})();
+const bpTitle = b => b.mmc || b.name || "Boat";
+function bpCode(b) {
+  const m = String(b.mmc || "").match(/\b([A-Z]{1,4}\s?\d{2,3})\b/i);
+  if (m) return m[1].replace(/\s/g, "").toUpperCase().slice(0, 5);
+  const word = (String(b.mmc || b.name || b.type || "B").trim().split(/[\s,/]+/)[0] || "B");
+  return (word[0] || "B").toUpperCase() + (b.length ? String(b.length).replace(/\.0+$/, "") : "");
+}
+const bpEngine = b => [b.engineModel && b.engineMake && String(b.engineModel).toLowerCase().startsWith(String(b.engineMake).toLowerCase()) ? "" : b.engineMake, b.engineModel].filter(Boolean).join(" ");
+const bpIcon = b => /pontoon|tritoon/i.test([b.type, b.name].join(" ")) ? BPI.pontoon : b.driveType === "Jet (PWC)" || /pwc|jet ski|sea-?doo|waverunner/i.test([b.type, b.name].join(" ")) ? BPI.pwc : BPI.boat;
+
+// Parts and fluids the boat takes: [label, value, internalOnly]
+function bpParts(b, ck) {
+  const plan = bpPlanFor(b); const P = PROFILES[plan.profile] || {}; const t = plan.type; const rows = [];
+  let oil = "", qt = "";
+  if (P.kind === "inboard") { oil = /Indmar|Ford/i.test(b.engineMake) ? P.oilFord : (P.oilGM || P.oilFord); qt = "about 7 qt"; }
+  else if (P.oil) { oil = P.oil; qt = t === "PWC" ? "about 4 qt" : "about 5.5 qt"; }
+  else if (t === "IO") { oil = b.engineMake === "Volvo Penta" ? "Volvo Penta 15W-40 (confirm)" : "Marine 25W-40"; qt = "about 6 qt"; }
+  if (oil) rows.push(["Engine oil", `${oil}, ${qt}`]);
+  else rows.push(["Engine oil", "Set once the engine details are in", true]);
+  if (b.oilFilter) rows.push(["Oil filter", b.oilFilter.replace(/\s*\(.*\)\s*$/, "")]);
+  else if (t) rows.push(["Oil filter", `<span class="warn">Part # needed</span>`, true]);
+  if (P.kind === "inboard" && P.impeller) rows.push(["Impeller", P.impeller]);
+  if (P.kind === "inboard") rows.push(["Transmission", (t === "VD" ? P.transV : P.transDD) || "Dexron III"]);
+  if (t === "PT" || t === "OB") rows.push(["Gear lube", "about 1 qt"]);
+  if (t === "IO") rows.push(["Gear lube", "about 3 qt (sterndrive)"]);
+  if (t === "VD" || t === "DD" || t === "IO") rows.push(["Antifreeze", "about 5 gal"]);
+  else if (t) rows.push(["Antifreeze", "None (drains itself)"]);
+  if (P.fog || t === "VD" || t === "DD" || t === "IO" || plan.profile === "PWC - Standard") rows.push(["Fogging", "STA-BIL Fogging Oil"]);
+  else if (plan.profile === "PWC - Rotax") rows.push(["Fogging", "Built-in fogging mode"]);
+  rows.push(["Fuel stabilizer", "Sta-Bil 360 Marine"]);
+  if (ck && ck.battery) rows.push(["Battery", ck.battery]);
+  return rows;
+}
+const BP_STATUS = { "Complete": "done", "In Progress": "glac", "Awaiting Review": "att" };
+function bpRecs(b, customer) {
+  const out = [];
+  (b.jobs || []).forEach(j => {
+    if (customer && j.status !== "Complete") return;
+    String(j.recs || "").split("\n").map(x => x.trim()).filter(Boolean).forEach(line => {
+      const m = line.match(/^(Safety: fix before use|Before spring launch|Monitor):\s*(.*)$/);
+      out.push({ pri: m ? m[1] : "", text: m ? m[2] : line, when: j.dateDone || j.dateIn });
+    });
+  });
+  return out;
+}
+const bpSeason = s => s ? s.replace("-", "\u2013") : "";
+
+async function loadProfile(boatId, keepView) {
+  if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); }
+  if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); }
+  S.view = "profile"; S.job = null; S.ck = null; S.sheet = null;
+  S.prof = { loading: true, cur: boatId, exp: null };
+  history.replaceState(null, "", "/winterize/?boat=" + boatId);
+  render(); window.scrollTo(0, 0);
+  try { const r = await api("boatProfile", { boatId }); S.prof = { data: r, cur: r.focus, exp: null }; }
+  catch (e) { S.prof = { err: e.offline ? "You need signal to open the Boat Profile." : "Couldn't load the Boat Profile: " + e.message, cur: boatId }; }
+  if (S.view === "profile") render();
+}
+
+function renderProfile() {
+  const P = S.prof || {};
+  const back = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>Boat Profile</h1></div></header>`;
+  if (P.loading) { $app.innerHTML = back + `<main class="wrap"><p class="empty">Opening the Boat Profile\u2026</p></main>`; return; }
+  if (P.err) { $app.innerHTML = back + `<main class="wrap"><div class="banner">${esc(P.err)} <button class="btn ghost" data-bpopen="${esc(P.cur)}">Try again</button></div></main>`; return; }
+  const d = P.data; const boats = d.boats || []; const b = boats.find(x => x.id === P.cur) || boats[0];
+  const cust = d.customer || { name: "No customer linked" }; const first = String(cust.name || "").split(" ")[0];
+  const ck = (b.checkins || [])[0] || null; const job = (b.jobs || [])[0] || null;
+  const plan = bpPlanFor(b);
+  const pkg = ck && ck.package; const signed = ck && ck.agreement;
+  const rows = a => a.map(r => `<div class="bp-row"><span>${esc(r[0])}</span><span>${r[1]}</span></div>`).join("");
+  const box = (ic, t, inner, cls = "") => `<section class="bp-box ${cls}"><div class="bp-bh"><span class="bp-ic">${ic}</span><h3>${t}</h3></div>${inner}</section>`;
+  const tiles = [["Engine", bpEngine(b) || "Not recorded"], ["Drive", b.driveType || "Not recorded"], ["Checklist", plan.type ? `${TYPES[plan.type].label}${plan.profile ? " \u00b7 " + plan.profile : ""}` : "Set drive type"], ["Length", b.length ? b.length + " ft" : "\u2014"]];
+  const eng = [["Horsepower", b.hp ? esc(b.hp) + " hp" : `<span class="warn">Not recorded</span>`], ["HIN", esc(b.hin || "\u2014") + (b.hin && normHin(b.hin).length !== 12 ? ` <span class="warn">(check)</span>` : (b.year ? ` (${esc(b.year)})` : ""))]];
+  if (b.lastHours) eng.push(["Last engine hours", esc(b.lastHours)]);
+  if (b.lastWint) eng.push(["Last winterized", esc(fmtDate(b.lastWint))]);
+  const cond = (b.checkins || []).map(c => {
+    const bits = [c.where, c.fuel && "Fuel " + c.fuel, c.hours && c.hours !== "N/A" ? c.hours + " hrs" : "", c.damage, c.items && "Aboard: " + c.items, c.keys && "Keys: " + c.keys].filter(Boolean);
+    return `<div class="bp-ent"><p class="bp-eh">${esc((c.season || "").slice(0, 4))} check-in${c.at ? " \u00b7 " + esc(fmtDate(String(c.at).slice(0, 10))) : ""}${c.by ? " by " + esc(c.by) : ""}${c.photos ? ` \u00b7 ${c.photos} photos` : ""}</p><p class="bp-et">${esc(bits.join(". "))}</p></div>`;
+  }).join("") || `<p class="bp-et">No check-ins yet.</p>`;
+  const svc = [];
+  (b.jobs || []).forEach(j => svc.push([`Winterization ${esc((j.dateIn || "").slice(0, 4))}`, `<span class="bp-pill ${BP_STATUS[j.status] || "glac"}">${esc(j.status === "Awaiting Review" ? "Needs review" : j.status)}</span>${j.reportUrl ? ` <a href="${esc(j.reportUrl)}" target="_blank" rel="noopener">Report</a>` : ""}`]));
+  if (ck && !(b.jobs || []).some(j => (j.dateIn || "") >= String(ck.at || "").slice(0, 10))) svc.unshift([`${esc(bpSeason(ck.season))} winterization`, `<span class="bp-pill att">Not started</span>`]);
+  if (ck) svc.push(["Check-in", `<span class="bp-pill ${ck.status === "Signed" || ck.status === "Override" ? "done" : "att"}">${esc(ck.status === "Awaiting Signature" ? "Needs signature" : ck.status || "In progress")}</span>`]);
+  if (signed) svc.push(["Agreement", esc(signed.ref) + (signed.signedAt ? " \u00b7 signed " + esc(fmtDate(String(signed.signedAt).slice(0, 10))) : "")]);
+  if (ck && ck.partsStatus) svc.push(["Parts", `<span class="bp-pill ${ck.partsStatus === "Needed" ? "att" : "done"}">${esc(ck.partsStatus)}</span>`]);
+  const notes = ck && ck.partsNotes ? ck.partsNotes.split("\n").filter(Boolean).map(n => `<li>${esc(n)}</li>`).join("") : "";
+  const recs = bpRecs(b, false);
+  const recHtml = recs.length ? recs.map(r => `<div class="bp-rec"><span class="bp-pill ${/^Safety/.test(r.pri) ? "red" : r.pri === "Monitor" ? "glac" : "att"}">${esc(r.pri || "Note")}</span><span>${esc(r.text)}</span></div>`).join("") : `<p class="bp-et">Added by the tech on the winterization Finish tab.</p>`;
+  const exp = P.exp;
+  $app.innerHTML = back + `<main class="wrap bp-wrap"><div class="bp">
+    <div class="bp-hd">
+      <div class="bp-brand"><span class="bp-logo"><svg width="20" height="20" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="#fff" stroke-width="1.8"/><line x1="1" y1="13" x2="25" y2="13" stroke="#8CC7D6" stroke-width="2.2"/></svg>Waterline</span><span>Boat Profile</span></div>
+      <div class="bp-who"><div class="bp-av">${b.photo ? `<img src="${esc(b.photo)}" alt="" data-code="${esc(bpCode(b))}" onerror="this.parentNode.textContent=this.dataset.code">` : esc(bpCode(b))}</div>
+        <div><h2>${esc(bpTitle(b))}</h2><p>${esc([cust.name, pkg, signed ? "Agreement signed" : ""].filter(Boolean).join(" \u00b7 "))}</p></div></div>
+    </div>
+    <svg class="bp-wave" viewBox="0 0 680 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 H680 V8 C 600 22, 520 2, 440 12 S 280 24, 200 12 S 60 2, 0 14 Z" fill="#134E5E"/><path d="M0 18 C 60 6, 200 16, 280 22 S 460 6, 540 16 S 640 22, 680 12" fill="none" stroke="#8CC7D6" stroke-width="1.5" opacity=".7"/></svg>
+    <div class="bp-sel">
+      <div class="bp-selh"><p>${esc((first || "Customer").toUpperCase())}'S BOATS (${boats.length})</p><button class="bp-xb" data-a="bpexport">${BPI.pdf}Export PDF</button></div>
+      <div class="bp-boats" role="tablist">${boats.map(x => `<button class="bp-bt" role="tab" aria-selected="${x.id === b.id}" data-bpboat="${x.id}"><span class="bp-i">${bpIcon(x)}</span><span><span class="bp-n">${esc(bpTitle(x))}</span><span class="bp-d">${esc([x.length ? x.length + " ft" : "", bpEngine(x)].filter(Boolean).join(" \u00b7 ") || "Details not recorded")}</span></span><span class="bp-go">${x.id === b.id ? `${BPI.check} Viewing` : `Switch ${BPI.arrow}`}</span></button>`).join("")}</div>
+      ${exp ? `<div class="bp-xp"><p><b>Export a PDF</b></p>
+        <label><input type="radio" name="bpw" value="one" ${!exp.all ? "checked" : ""}> This boat (${esc(bpTitle(b))})</label>
+        ${boats.length > 1 ? `<label><input type="radio" name="bpw" value="all" ${exp.all ? "checked" : ""}> All of ${esc(first || "their")}'s boats (${boats.length})</label>` : ""}
+        <label style="margin-top:8px"><input type="checkbox" id="bpcust" ${exp.cust ? "checked" : ""}> Customer copy</label>
+        <small>Leaves out internal items: parts status, part # still needed, HIN checks, and internal notes. Recommendations come only from finished jobs.</small>
+        <button class="bp-dl" data-a="bpdl">${BPI.down} Download PDF</button></div>` : ""}
+    </div>
+    <div class="bp-body">
+      <div class="bp-tiles">${tiles.map(t => `<div class="bp-tile"><span>${esc(t[0])}</span><b>${esc(t[1])}</b></div>`).join("")}</div>
+      ${box(BPI.engine, "Engine and drive", rows(eng))}
+      ${box(BPI.drop, "Parts and fluids it takes", bpParts(b, ck).map(r => `<div class="bp-row"><span>${esc(r[0])}</span><span>${r[1]}</span></div>`).join(""))}
+      ${box(BPI.clip, "Condition history", cond)}
+      ${box(BPI.tool, "Service history", rows(svc) + (notes ? `<ul class="bp-notes">${notes}</ul>` : ""))}
+      ${box(BPI.bulb, "Recommendations", recHtml, "bp-sun")}
+    </div>
+    <div class="bp-ft"><span>Waterline Lake Services \u00b7 Columbus, IN</span><span>(317) 258-8269</span></div>
+  </div></main>`;
+}
+
+// ---- PDF export (jsPDF, already loaded for service reports) ----
+function bpPdf(all, customer) {
+  const d = S.prof.data; const cust = d.customer || { name: "" };
+  const list = all ? d.boats : d.boats.filter(x => x.id === S.prof.cur);
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const W = 612, M = 40; const DEEP = [19, 78, 94], DARK = [12, 57, 68], PINE = [47, 93, 80], GLAC = [140, 199, 214], SUN = [231, 162, 76], INK = [28, 43, 48], MUT = [92, 110, 112];
+  const strip = s => String(s || "").replace(/<[^>]+>/g, "").replace(/&middot;/g, "\u00b7");
+  list.forEach((b, i) => {
+    if (i) doc.addPage();
+    const ck = (b.checkins || [])[0] || null; const plan = bpPlanFor(b);
+    doc.setFillColor(...DEEP); doc.rect(0, 0, W, 112, "F");
+    doc.setDrawColor(...GLAC); doc.setLineWidth(1.5); doc.circle(M + 8, 28, 8); doc.line(M - 2, 28, M + 18, 28);
+    doc.setTextColor(255, 255, 255); doc.setFont("times", "bold"); doc.setFontSize(14); doc.text("Waterline", M + 24, 33);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(205, 230, 236); doc.text("Boat Profile", W - M, 33, { align: "right" });
+    doc.setFillColor(...DARK); doc.setDrawColor(...SUN); doc.setLineWidth(2); doc.circle(M + 22, 76, 22, "FD");
+    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(bpCode(b), M + 22, 79.5, { align: "center" });
+    doc.setFont("times", "bold"); doc.setFontSize(20); doc.text(bpTitle(b), M + 56, 72);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(205, 230, 236);
+    doc.text([cust.name, ck && ck.package, ck && ck.agreement ? "Agreement signed" : ""].filter(Boolean).join("  \u00b7  "), M + 56, 90);
+    let y = 136;
+    const head = t => { if (y > 700) { doc.addPage(); y = 50; } doc.setFillColor(...GLAC); doc.rect(M, y - 11, 3, 14, "F"); doc.setFont("times", "bold"); doc.setFontSize(13); doc.setTextColor(...DEEP); doc.text(t, M + 10, y); y += 14; };
+    const row = (k, v) => { const lines = doc.splitTextToSize(strip(v), W - M * 2 - 150); if (y + lines.length * 13 > 740) { doc.addPage(); y = 50; } doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...MUT); doc.text(strip(k), M + 10, y); doc.setTextColor(...INK); doc.text(lines, M + 160, y); y += lines.length * 13 + 3; };
+    const para = t => { const lines = doc.splitTextToSize(strip(t), W - M * 2 - 10); if (y + lines.length * 13 > 740) { doc.addPage(); y = 50; } doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...INK); doc.text(lines, M + 10, y); y += lines.length * 13 + 3; };
+    head("Engine and drive");
+    row("Engine", bpEngine(b) || "Not recorded"); row("Drive", b.driveType || "Not recorded");
+    if (plan.type) row("Winterization", TYPES[plan.type].label + (plan.profile ? " \u00b7 " + plan.profile : ""));
+    if (b.hp) row("Horsepower", b.hp + " hp"); if (b.length) row("Length", b.length + " ft");
+    if (b.hin && (!customer || normHin(b.hin).length === 12)) row("HIN", b.hin + (b.year ? ` (${b.year})` : ""));
+    y += 8; head("Parts and fluids it takes");
+    bpParts(b, ck).filter(r => !(customer && r[2])).forEach(r => row(r[0], r[1]));
+    y += 8; head("Condition history");
+    (b.checkins || []).forEach(c => { row(`${(c.season || "").slice(0, 4)} check-in`, [c.at ? fmtDate(String(c.at).slice(0, 10)) : "", c.where, c.fuel && "Fuel " + c.fuel, c.hours && c.hours !== "N/A" ? c.hours + " hrs" : "", c.damage, c.items && "Aboard: " + c.items].filter(Boolean).join(". ")); });
+    if (!(b.checkins || []).length) para("No check-ins yet.");
+    y += 8; head("Service history");
+    (b.jobs || []).filter(j => !customer || j.status === "Complete").forEach(j => row(`Winterization ${(j.dateIn || "").slice(0, 4)}`, (j.status === "Awaiting Review" ? "Needs review" : j.status) + (j.dateDone ? ", finished " + fmtDate(j.dateDone) : "")));
+    if (ck) row("Check-in", ck.status === "Awaiting Signature" ? "Needs signature" : ck.status || "In progress");
+    if (ck && ck.agreement) row("Agreement", ck.agreement.ref);
+    if (!customer && ck && ck.partsStatus) row("Parts", ck.partsStatus);
+    if (!customer && ck && ck.partsNotes) ck.partsNotes.split("\n").filter(Boolean).forEach(n => row("Note", n));
+    y += 8; head("Recommendations");
+    const recs = bpRecs(b, customer);
+    if (recs.length) recs.forEach(r => row(r.pri || "Note", r.text)); else para(customer ? "No recommendations from completed service yet." : "Added by the tech on the winterization Finish tab.");
+    const pages = doc.getNumberOfPages();
+    doc.setPage(pages); doc.setFillColor(...DARK); doc.rect(0, 762, W, 30, "F");
+    doc.setFontSize(9); doc.setTextColor(205, 230, 236); doc.text("Waterline Lake Services  \u00b7  Columbus, IN", M, 780); doc.text("(317) 258-8269", W - M, 780, { align: "right" });
+  });
+  const slug = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const last = String(cust.name || "customer").trim().split(" ").slice(-1)[0];
+  const name = `${slug(last)}-${all ? "boats" : slug(bpTitle(list[0]))}-${customer ? "customer" : "internal"}.pdf`;
+  doc.save(name);
+  toast("Saved " + name);
+}
+
+/* ============================================================
    JOBS
    ============================================================ */
 async function loadBoard() {
@@ -1715,6 +1971,10 @@ document.addEventListener("click", e => {
   if (d.delcard !== undefined) { const it = S.board[+d.delcard]; const signedCk = it.checkin && ["Signed", "Override"].includes(it.checkin.status); S.del = { item: it, job: !!it.jobId, ck: !!(it.checkinId && it.checkin) && !(it.jobId && signedCk) }; render(); setTimeout(() => { const b = document.querySelector('[data-a="delcancel"]'); b && b.focus(); }, 30); return; }
   if (d.a === "delcancel" || (d.a === "delcancel-bg" && e.target === t)) { if (S.del && !S.del.busy) { S.del = null; render(); } return; }
   if (d.a === "delconfirm") { if (!S.del.busy) doRemove(); return; }
+  if (d.bpopen) { loadProfile(d.bpopen); return; }
+  if (d.bpboat && S.prof) { S.prof.cur = d.bpboat; history.replaceState(null, "", "/winterize/?boat=" + d.bpboat); render(); return; }
+  if (d.a === "bpexport" && S.prof) { S.prof.exp = S.prof.exp ? null : { all: false, cust: true }; render(); return; }
+  if (d.a === "bpdl" && S.prof && S.prof.exp) { try { bpPdf(S.prof.exp.all, S.prof.exp.cust); } catch (e) { toast("Couldn't build the PDF: " + e.message, 5000); } return; }
   if (d.a === "retryphotos") { S.pendingPhotos.forEach(p => { delete p.failed; }); drainPhotoQueue(); return; }
   if (d.a === "new-ck" || d.a === "new-job") { S.newMode = d.a === "new-ck" ? "ck" : "job"; S.view = "new"; render(); setTimeout(() => { const h = document.getElementById("hin"); h && h.focus(); }, 50); return; }
   if (d.a === "create") { S.newMode === "ck" ? startCheckin(S.newHin) : createJob(); return; }
@@ -1825,6 +2085,8 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   const t = e.target, d = t.dataset;
   if (d.delpick && S.del) { S.del[d.delpick] = t.checked; render(); return; }
+  if (t.name === "bpw" && S.prof && S.prof.exp) { S.prof.exp.all = t.value === "all"; return; }
+  if (t.id === "bpcust" && S.prof && S.prof.exp) { S.prof.exp.cust = t.checked; return; }
   if (d.eng && S.ck && t.tagName === "SELECT") { ckEditEngine(d.eng, t.value, true); return; }
   if (d.cf && S.ck && (t.type === "checkbox" || t.tagName === "SELECT")) { ckSave({ [d.cf]: t.type === "checkbox" ? t.checked : t.value }, true); return; }
   if (d.cf) return; // text boxes save as you type (input event); don't redraw on blur or a tap gets lost
@@ -1983,6 +2245,7 @@ async function buildPdf(j, mode) {
 function afterLogin() {
   const q = new URLSearchParams(location.search);
   drainPhotoQueue();
+  if (q.get("boat")) { loadProfile(q.get("boat")); return; }
   if (q.get("job") || q.get("checkin")) { openWorkspace({ jobId: q.get("job"), checkinId: q.get("checkin") }, q.get("tab") || undefined); return; }
   S.view = "home"; render(); loadBoard();
   if (q.get("hin")) { S.newHin = q.get("hin"); S.newMode = q.get("new") === "job" ? "job" : "ck"; S.view = "new"; render(); }

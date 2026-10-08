@@ -33,7 +33,7 @@ const JOB = {
   synced: 'fldWX6YGNAQlZsWz3', state: 'fld99YXrMOI1bffP6', techSig: 'fldf8EIrncWCzLJgE',
   revSig: 'fldoL0vJAGjoz44WP', reportPdf: 'fldZuXn3XU0X6juv5', customerName: 'fldBTJl9foiFFaxpb',
   photos: 'fldp2r5d1G0Fym19m', checkin: 'fldlZRa0a9inODyyL', override: 'fldqRZbRTziqEai5l',
-  stage: 'fldtjMwsbZJrj18ja',
+  stage: 'fldtjMwsbZJrj18ja', share: 'fldFVrospGz4BkcY7',
 };
 
 const STATUSES = ['In Progress', 'Awaiting Review', 'Complete'];
@@ -373,6 +373,59 @@ const actions = {
     if (prevBoat !== boatId || (st.completedAt && sel(cur.fields[CHK.status]) === 'In Progress')) await relinkPhotos(token, cur, boatId);
     const agreement = agrIds.length ? agreementOut(await W.getRec(token, T.agreements, agrIds[0])) : null;
     return { status, agreement, savedAt: Date.now() };
+  },
+
+  // ---- Boat Profile: everything about a customer's boats, for the profile page ----
+  // Returns the customer and ALL of their boats (so the page can switch between them),
+  // each with its engine details, check-ins, signed agreements, and winterization jobs.
+  async boatProfile(token, tech, p) {
+    const focus = recId(p.boatId); if (!focus) throw W.fail(400, 'Bad boat id');
+    const fb = await W.getRec(token, T.boats, focus);
+    const custId = (fb.fields[BOAT.customer] || [])[0] || null;
+    const cust = custId ? await W.getRec(token, T.customers, custId).catch(() => null) : null;
+    const boatIds = cust ? (cust.fields[CUST.boats] || []) : [focus];
+    if (!boatIds.includes(focus)) boatIds.unshift(focus);
+    const BREAD = [...W.BOAT_READ, BOAT.hours, BOAT.lastWint, BOAT.impDate, BOAT.checkins];
+    const boats = await W.byIds(token, T.boats, boatIds, BREAD);
+    const ckIds = boats.flatMap((b) => b.fields[BOAT.checkins] || []);
+    const cks = ckIds.length ? await W.byIds(token, T.checkins, ckIds, [CHK.boat, CHK.status, CHK.season, CHK.at, CHK.by, CHK.package, CHK.stage, CHK.state, CHK.agreement,
+      CHK.battery, CHK.partsNotes, CHK.partsStatus, CHK.photos, CHK.where, CHK.hours, CHK.fuel, CHK.damage, CHK.items, CHK.keys]) : [];
+    const agrIds = [...new Set(cks.flatMap((c) => c.fields[CHK.agreement] || []))];
+    const agrs = agrIds.length ? await W.byIds(token, T.agreements, agrIds, [AGR.ref, AGR.signedAt, AGR.status]) : [];
+    const agrById = new Map(agrs.map((a) => [a.id, { ref: a.fields[AGR.ref] || '', signedAt: a.fields[AGR.signedAt] || '', status: sel(a.fields[AGR.status]) }]));
+    const hins = boats.map((b) => normHin(b.fields[BOAT.hin] || '')).filter((h) => h.length >= 5);
+    const jobs = hins.length ? await W.list(token, T.jobs, {
+      formula: `OR(${hins.map((h) => `{HIN}="${esc(h)}"`).join(',')})`,
+      fields: [JOB.boat, JOB.hin, JOB.status, JOB.svc, JOB.dateIn, JOB.dateDone, JOB.hours, JOB.recs, JOB.report, JOB.share, JOB.tech], max: 100,
+    }) : [];
+    // One side or bow photo per boat (newest check-in) for the profile circle.
+    const photoFor = new Map();
+    for (const b of boats) {
+      const mine = cks.filter((c) => (c.fields[CHK.boat] || [])[0] === b.id).sort((x, y) => String(y.fields[CHK.at] || '').localeCompare(String(x.fields[CHK.at] || '')));
+      const ids = mine.length ? (mine[0].fields[CHK.photos] || []) : [];
+      if (!ids.length) continue;
+      const ph = await W.byIds(token, T.photos, ids.slice(0, 30), [PHOTO.stepId, PHOTO.photo]).catch(() => []);
+      const pick = ['port', 'stbd', 'bow', 'stern'].map((k) => ph.find((x) => x.fields[PHOTO.stepId] === k)).find(Boolean);
+      if (pick) photoFor.set(b.id, W.attUrl((pick.fields[PHOTO.photo] || [])[0], 'large'));
+    }
+    const out = boats.map((r) => {
+      const f = r.fields || {}; const b = W.boatOut(r); const hin = normHin(f[BOAT.hin] || '');
+      return { ...b, lastHours: f[BOAT.hours] || '', lastWint: f[BOAT.lastWint] || '', impDate: f[BOAT.impDate] || '', photo: photoFor.get(r.id) || '',
+        checkins: cks.filter((c) => (c.fields[CHK.boat] || [])[0] === r.id).map((c) => {
+          const x = c.fields; let st = {}; try { st = JSON.parse(x[CHK.state] || '{}') || {}; } catch (e) {}
+          const ag = (x[CHK.agreement] || []).map((id) => agrById.get(id)).filter(Boolean)[0] || null;
+          return { id: c.id, season: x[CHK.season] || '', at: x[CHK.at] || '', by: x[CHK.by] || '', status: sel(x[CHK.status]), package: sel(x[CHK.package]), stage: x[CHK.stage] || '',
+            where: sel(x[CHK.where]) || st.where || '', hours: x[CHK.hours] || (st.engineHours === 'N/A' ? 'N/A' : ''), fuel: sel(x[CHK.fuel]) || (st.fuel === 'N/A' ? 'N/A' : ''),
+            damage: st.noDamage ? 'None visible at check-in' : (x[CHK.damage] || ''), items: x[CHK.items] || '', keys: x[CHK.keys] || '', battery: x[CHK.battery] || '',
+            partsNotes: x[CHK.partsNotes] || '', partsStatus: sel(x[CHK.partsStatus]), photos: (x[CHK.photos] || []).length, agreement: ag };
+        }).sort((a, z) => String(z.at).localeCompare(String(a.at))),
+        jobs: jobs.filter((j) => (j.fields[JOB.boat] || [])[0] === r.id || normHin(j.fields[JOB.hin] || '') === hin).map((j) => {
+          const x = j.fields; const rep = (x[JOB.report] || [])[0];
+          return { id: j.id, status: sel(x[JOB.status]) || 'In Progress', svc: sel(x[JOB.svc]), dateIn: x[JOB.dateIn] || '', dateDone: x[JOB.dateDone] || '',
+            hours: x[JOB.hours] || '', recs: x[JOB.recs] || '', reportUrl: rep ? rep.url : '', share: !!x[JOB.share], tech: x[JOB.tech] || '' };
+        }).sort((a, z) => String(z.dateIn).localeCompare(String(a.dateIn))) };
+    });
+    return { focus, customer: cust ? W.customerOut(cust) : null, boats: out };
   },
 
   // ---- the jobs board: one card per boat in service ----
