@@ -366,7 +366,8 @@ const SECTIONS = [
  { id:"intake", title:"Before service", types:ALL, note:"Engine hours, condition photos, existing damage, items aboard, and the customer's signature are recorded on the Check-in tab.", items:[
    {id:"in_issues", t:"Review customer-reported issues from check-in and the work order", inputs:[{k:"note",label:"Customer-reported issues",type:"text"}]},
    {id:"in_run", t:"Run test before service: gauges, alarms, temperature, and any fault codes", inputs:[{k:"note",label:"Fault codes / findings",type:"text"}]},
-   {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"}
+   {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"},
+   {id:"in_plug", t:"Open drain plug(s) to drain water from the hull", photo:"opt"}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
    {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
@@ -482,7 +483,6 @@ const SECTIONS = [
  ]},
  /* ---------- Common finish ---------- */
  { id:"interior", title:"Interior and hull", types:BOATS, items:[
-   {id:"ih_plug", t:"Remove drain plug(s); store with keys and tag the helm \u201cPLUG OUT\u201d", photo:"req", spring:"Reinstall the drain plug(s) and remove the \u201cPLUG OUT\u201d tag", types:BOATS},
    {id:"ih_bilge", t:"Drain and dry bilge; clean with bilge cleaner", types:BOATS},
    {id:"ih_bpump", t:"Test bilge pump and float switch before storage", types:BOATS, isNew:true},
    {id:"ih_items", t:"Remove life jackets, electronics, and valuables; return to customer or tag and store", inputs:[{k:"note",label:"Where stored",type:"text"}]},
@@ -501,8 +501,9 @@ const SECTIONS = [
    {id:"cv_cover", t:"Install cover or shrink-wrap with vents; support frame so snow can\u2019t pool", photo:"req", spring:"Remove shrink-wrap or cover"}
  ]},
  { id:"final", title:"Final checks", types:ALL, items:[
+   {id:"fc_plug", t:"Screw drain plug(s) back in"},
    {id:"fc_tags", t:"All drains, plugs, and tags recorded on this work order"},
-   {id:"fc_keys", t:"Keys, drain plug, and removed items stored and labeled", inputs:[{k:"bin",label:"Key tag / bin #",type:"text"}]},
+   {id:"fc_keys", t:"Keys and removed items stored and labeled", inputs:[{k:"bin",label:"Key tag / bin #",type:"text"}]},
    {id:"fc_photos", t:"Photo of the finished, covered boat", photo:"req"}
  ]}
 ];
