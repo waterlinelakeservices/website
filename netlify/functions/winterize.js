@@ -272,6 +272,14 @@ const actions = {
     return { hin, state: st, signed: !!(f[CHK.agreement] || []).length, jobs: (f[CHK.jobs] || []).length };
   },
 
+  // Save an oil filter part # (entered on a checklist oil step) to the boat's record.
+  async setOilFilter(token, tech, p) {
+    const id = recId(p.boatId); const part = str(p.part, 80).trim();
+    if (!id || !part) throw W.fail(400, 'Boat and part # required');
+    await W.patch(token, T.boats, id, { [BOAT.oilFilter]: part });
+    return { ok: true, part };
+  },
+
   // ---- check-ins ----
   async listCheckins(token) {
     const season = W.seasonFor();
@@ -528,7 +536,10 @@ const actions = {
       });
       history = prev.map((x) => ({ id: x.id, status: sel(x.fields[JOB.status]), dateIn: x.fields[JOB.dateIn] || '', hours: x.fields[JOB.hours] || '', impeller: x.fields[JOB.impeller] || '', recs: x.fields[JOB.recs] || '' }));
     }
-    return { id, state, photos, history, checkinId: (f[JOB.checkin] || [])[0] || null };
+    // The boat's engine details (for the oil filter prompt); the Boat record is the source of truth.
+    const jb = (f[JOB.boat] || [])[0];
+    const boat = jb ? await W.getRec(token, T.boats, jb).then(W.boatOut).catch(() => null) : null;
+    return { id, state, photos, history, checkinId: (f[JOB.checkin] || [])[0] || null, boat };
   },
   // Everything needed to start a job for a HIN: last job (to prefill), the CRM
   // boat/customer, and this season's check-in (winterization requires a signed one).
