@@ -369,19 +369,10 @@ const SECTIONS = [
    {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
-   {id:"fu_stab", t:"Add marine fuel stabilizer at label dose for the tank size", photo:"opt", part:"stabilizer", types:BOATS},
-   {id:"fu_stab_pwc", t:"Add marine fuel stabilizer", part:"stabilizer", types:["PWC"]},
-   {id:"fu_top", t:"Top off tank to about 90\u201395% full (leave room for expansion)", inputs:[{k:"gal",label:"Gallons added",type:"number"}], types:BOATS},
-   {id:"fu_run", t:"Run engine 10\u201315 min to circulate stabilized fuel through lines and injectors/carb", types:BOATS},
-   {id:"fu_filter", t:"Replace fuel/water-separator filter", photo:"opt", inputs:[{k:"part",label:"Filter part #",type:"text"}], types:BOATS},
-   {id:"fu_lines", t:"Inspect fuel lines, primer bulb, and vent for cracks or leaks", types:BOATS}
+   {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
  ]},
  { id:"battery", title:"Battery and electrical", types:ALL, items:[
-   {id:"ba_volt", t:"Fully charge battery and record voltage", photo:"opt", inputs:[{k:"v",label:"Voltage (V)",type:"number",job:"batteryVoltage"}], types:BOATS},
-   {id:"ba_disc", t:"Disconnect negative cable (or remove battery for heated storage)", spring:"Reconnect the battery (or reinstall it if it was removed)", types:BOATS},
-   {id:"ba_term", t:"Clean and grease terminals with dielectric grease", types:BOATS},
-   {id:"ba_sw", t:"Turn battery switch OFF", spring:"Turn the battery switch back ON", types:BOATS},
-   {id:"ba_pwc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery", types:["PWC"]}
+   {id:"ba_disc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery"}
  ]},
  /* ---------- Direct drive & V-drive ---------- */
  { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
