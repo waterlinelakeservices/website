@@ -371,9 +371,6 @@ const SECTIONS = [
  { id:"fuel", title:"Fuel system", types:ALL, items:[
    {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
  ]},
- { id:"battery", title:"Battery and electrical", types:ALL, items:[
-   {id:"ba_disc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery"}
- ]},
  /* ---------- Direct drive & V-drive ---------- */
  { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
    {id:"eo_warm", t:"Warm engine to operating temp on hose / fake-a-lake"},
@@ -478,6 +475,10 @@ const SECTIONS = [
    {id:"pw_fog", t:"Fog engine per manual (Sea-Doo: winterization/fogging mode in the gauge menu)"},
    {id:"pw_af", t:"Add antifreeze through flush fitting if required; Sea-Doo closed-loop: test coolant", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
    {id:"pw_plugs", t:"Remove, inspect, and replace spark plugs if due"}
+ ]},
+ /* Battery last: the battery powers the oil pump, fogging, ballast, and trim work above. */
+ { id:"battery", title:"Battery and electrical", types:ALL, items:[
+   {id:"ba_disc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery"}
  ]},
  /* ---------- Common finish ---------- */
  { id:"interior", title:"Interior and hull", types:BOATS, items:[
