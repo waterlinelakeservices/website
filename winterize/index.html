@@ -369,17 +369,19 @@ const SECTIONS = [
    {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
-   {id:"fu_stab", t:"Add marine fuel stabilizer at label dose for the tank size", photo:"opt", part:"stabilizer"},
-   {id:"fu_top", t:"Top off tank to about 90\u201395% full (leave room for expansion)", inputs:[{k:"gal",label:"Gallons added",type:"number"}]},
-   {id:"fu_run", t:"Run engine 10\u201315 min to circulate stabilized fuel through lines and injectors/carb"},
-   {id:"fu_filter", t:"Replace fuel/water-separator filter", photo:"opt", inputs:[{k:"part",label:"Filter part #",type:"text"}]},
-   {id:"fu_lines", t:"Inspect fuel lines, primer bulb, and vent for cracks or leaks"}
+   {id:"fu_stab", t:"Add marine fuel stabilizer at label dose for the tank size", photo:"opt", part:"stabilizer", types:BOATS},
+   {id:"fu_stab_pwc", t:"Add marine fuel stabilizer", part:"stabilizer", types:["PWC"]},
+   {id:"fu_top", t:"Top off tank to about 90\u201395% full (leave room for expansion)", inputs:[{k:"gal",label:"Gallons added",type:"number"}], types:BOATS},
+   {id:"fu_run", t:"Run engine 10\u201315 min to circulate stabilized fuel through lines and injectors/carb", types:BOATS},
+   {id:"fu_filter", t:"Replace fuel/water-separator filter", photo:"opt", inputs:[{k:"part",label:"Filter part #",type:"text"}], types:BOATS},
+   {id:"fu_lines", t:"Inspect fuel lines, primer bulb, and vent for cracks or leaks", types:BOATS}
  ]},
  { id:"battery", title:"Battery and electrical", types:ALL, items:[
-   {id:"ba_volt", t:"Fully charge battery and record voltage", photo:"opt", inputs:[{k:"v",label:"Voltage (V)",type:"number",job:"batteryVoltage"}]},
-   {id:"ba_disc", t:"Disconnect negative cable (or remove battery for heated storage)", spring:"Reconnect the battery (or reinstall it if it was removed)"},
-   {id:"ba_term", t:"Clean and grease terminals with dielectric grease"},
-   {id:"ba_sw", t:"Turn battery switch OFF", spring:"Turn the battery switch back ON"}
+   {id:"ba_volt", t:"Fully charge battery and record voltage", photo:"opt", inputs:[{k:"v",label:"Voltage (V)",type:"number",job:"batteryVoltage"}], types:BOATS},
+   {id:"ba_disc", t:"Disconnect negative cable (or remove battery for heated storage)", spring:"Reconnect the battery (or reinstall it if it was removed)", types:BOATS},
+   {id:"ba_term", t:"Clean and grease terminals with dielectric grease", types:BOATS},
+   {id:"ba_sw", t:"Turn battery switch OFF", spring:"Turn the battery switch back ON", types:BOATS},
+   {id:"ba_pwc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery", types:["PWC"]}
  ]},
  /* ---------- Direct drive & V-drive ---------- */
  { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
@@ -484,23 +486,10 @@ const SECTIONS = [
    {id:"pw_oil", t:"Change engine oil and filter (4-stroke)", photo:"opt", part:"oil", inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"}]},
    {id:"pw_fog", t:"Fog engine per manual (Sea-Doo: winterization/fogging mode in the gauge menu)"},
    {id:"pw_af", t:"Add antifreeze through flush fitting if required; Sea-Doo closed-loop: test coolant", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
-   {id:"pw_sc", t:"Supercharged models: check supercharger service interval", inputs:[{k:"h",label:"SC hours",type:"number"}]},
    {id:"pw_plugs", t:"Remove, inspect, and replace spark plugs if due"}
  ]},
- { id:"pwc_pump", title:"Jet pump and hull", types:["PWC"], items:[
-   {id:"pj_grate", t:"Clean intake grate; inspect impeller and wear ring for nicks or gap", photo:"req"},
-   {id:"pj_grease", t:"Grease drive shaft splines / PTO and pump bearings where fitted"},
-   {id:"pj_nozzle", t:"Inspect steering nozzle, reverse gate, and cables; lubricate pivots"},
-   {id:"pj_bilge", t:"Open bilge drain plugs; dry hull interior; spray corrosion inhibitor on engine and electrical", spring:"Close the PWC bilge drain plugs"},
-   {id:"pj_seat", t:"Clean and treat seat; stow seat slightly propped for airflow"}
- ]},
- { id:"pwc_store", title:"PWC battery and storage", types:["PWC"], items:[
-   {id:"ps_batt", t:"Remove battery and store on maintainer", spring:"Reinstall the charged battery"},
-   {id:"ps_nose", t:"Store nose-high on trailer so water drains from the pump and exhaust"},
-   {id:"ps_plug", t:"Plug exhaust outlet and cover intake grate against rodents; install cover", photo:"req", spring:"Remove the exhaust plug and intake grate cover"}
- ]},
  /* ---------- Common finish ---------- */
- { id:"interior", title:"Interior and hull", types:ALL, items:[
+ { id:"interior", title:"Interior and hull", types:BOATS, items:[
    {id:"ih_plug", t:"Remove drain plug(s); store with keys and tag the helm \u201cPLUG OUT\u201d", photo:"req", spring:"Reinstall the drain plug(s) and remove the \u201cPLUG OUT\u201d tag", types:BOATS},
    {id:"ih_bilge", t:"Drain and dry bilge; clean with bilge cleaner", types:BOATS},
    {id:"ih_bpump", t:"Test bilge pump and float switch before storage", types:BOATS, isNew:true},
@@ -516,7 +505,7 @@ const SECTIONS = [
    {id:"fw_live", t:"Blow out or antifreeze livewells and washdown pumps"}
  ]},
  { id:"cover", title:"Cover and storage", types:ALL, items:[
-   {id:"cv_grease", t:"Grease steering and control cables per manual"},
+   {id:"cv_grease", t:"Grease steering and control cables per manual", types:BOATS},
    {id:"cv_plugs", t:"Plug exhaust outlets and air intakes; tag the helm \u201cREMOVE PLUGS BEFORE START\u201d", photo:"req", types:BOATS, spring:"Remove exhaust and air intake plugs and the helm tag"},
    {id:"cv_cover", t:"Install cover or shrink-wrap with vents; support frame so snow can\u2019t pool", photo:"req", spring:"Remove shrink-wrap or cover"}
  ]},
