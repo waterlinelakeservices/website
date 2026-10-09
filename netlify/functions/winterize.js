@@ -396,7 +396,7 @@ const actions = {
     const hins = boats.map((b) => normHin(b.fields[BOAT.hin] || '')).filter((h) => h.length >= 5);
     const jobs = hins.length ? await W.list(token, T.jobs, {
       formula: `OR(${hins.map((h) => `{HIN}="${esc(h)}"`).join(',')})`,
-      fields: [JOB.boat, JOB.hin, JOB.status, JOB.svc, JOB.dateIn, JOB.dateDone, JOB.hours, JOB.recs, JOB.report, JOB.share, JOB.tech], max: 100,
+      fields: [JOB.boat, JOB.hin, JOB.status, JOB.svc, JOB.dateIn, JOB.dateDone, JOB.hours, JOB.recs, JOB.report, JOB.share, JOB.tech, JOB.spring], max: 100,
     }) : [];
     // One side or bow photo per boat (newest check-in) for the profile circle.
     const photoFor = new Map();
@@ -422,7 +422,7 @@ const actions = {
         jobs: jobs.filter((j) => (j.fields[JOB.boat] || [])[0] === r.id || normHin(j.fields[JOB.hin] || '') === hin).map((j) => {
           const x = j.fields; const rep = (x[JOB.report] || [])[0];
           return { id: j.id, status: sel(x[JOB.status]) || 'In Progress', svc: sel(x[JOB.svc]), dateIn: x[JOB.dateIn] || '', dateDone: x[JOB.dateDone] || '',
-            hours: x[JOB.hours] || '', recs: x[JOB.recs] || '', reportUrl: rep ? rep.url : '', share: !!x[JOB.share], tech: x[JOB.tech] || '' };
+            hours: x[JOB.hours] || '', recs: x[JOB.recs] || '', spring: x[JOB.spring] || '', reportUrl: rep ? rep.url : '', share: !!x[JOB.share], tech: x[JOB.tech] || '' };
         }).sort((a, z) => String(z.dateIn).localeCompare(String(a.dateIn))) };
     });
     return { focus, customer: cust ? W.customerOut(cust) : null, boats: out };

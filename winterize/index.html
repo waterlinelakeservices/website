@@ -571,7 +571,8 @@ function photosOf(id) { return [...S.photos.filter(p => p.item === id), ...S.pen
 function progress(job) { const items = liveItems(job); if (!items.length) return { done: 0, total: 0, pct: 0 }; const done = items.filter(i => st(job, i.id)).length; return { done, total: items.length, pct: Math.round(done / items.length * 100) }; }
 function missingPhotos(job) { return liveItems(job).filter(i => i.photo === "req" && st(job, i.id) !== "na" && photosOf(i.id).length < (i.minPhotos || 1)); }
 function flagged(job) { return liveItems(job).filter(i => st(job, i.id) === "flag"); }
-function springList(job) { return liveItems(job).filter(i => i.spring && st(job, i.id) === "done").map(i => i.spring); }
+function springAuto(job) { return liveItems(job).filter(i => i.spring && st(job, i.id) === "done").map(i => i.spring); }
+function springList(job) { return [...springAuto(job), ...(job.springNotes || []).map(n => (n.text || "").trim()).filter(Boolean)]; }
 const IMP_IDS = ["cr_pump", "cc_imp", "od_imp", "ob_imp"];
 const impellerOf = j => { const id = IMP_IDS.find(x => j.checks && j.checks[x] && j.checks[x].v && j.checks[x].v.imp); return id ? j.checks[id].v.imp : ""; };
 
@@ -881,7 +882,7 @@ function renderJob() {
   <div class="rule" title="${p.pct}% complete"><i style="width:${p.pct}%"></i></div>
   <main class="wrap">${body}</main>
   <nav class="tabs six" aria-label="Boat sections"><div class="in" role="tablist">
-    ${[["checkin", "Check-in", I.clip, ckBadge], ["info", "Boat", I.boat, j && !j.type ? "!" : ""], ["check", "Checklist", I.list, ""], ["photos", "Photos", I.photo, miss || ""], ["parts", "Parts", I.wrench, ""], ["finish", "Finish", I.sign, ""]]
+    ${[["checkin", "Check-in", I.clip, ckBadge], ["info", "Boat", I.boat, j && !j.type ? "!" : ""], ["check", "Checklist", I.list, ""], ["photos", "Photos", I.photo, miss || ""], ["parts", "Notes", I.wrench, ""], ["finish", "Finish", I.sign, ""]]
       .map(([key, l, ic, b]) => `<button role="tab" aria-selected="${S.tab === key}" data-tab="${key}" ${!j && key !== "checkin" ? 'class="locked"' : ""}>${ic}${l}${b ? `<span class="badge">${b}</span>` : ""}</button>`).join("")}
   </div></nav>${S.sheet ? S.sheet : ""}`;
   updateUploadLabel();
@@ -1007,6 +1008,13 @@ function tabParts(j) {
       ${photosOf(r.id).length ? `<div class="thumbs" style="margin-left:0">${photosOf(r.id).map(thumbHtml).join("")}</div>` : ""}
       <div class="iact" style="margin-left:0">${camBtn(r.id, false, "Photo of the problem")}</div></div>`).join("")}
     <button class="btn sec" data-a="addrec">Add a recommendation</button>
+  </div>
+  <div class="card"><h2>Spring launch notes</h2>
+    <p class="small muted" style="margin-top:-6px">What to do when the boat goes back in the water. These print on the customer report and save to the boat's service record.</p>
+    ${springAuto(j).length ? `<p style="margin:10px 0 4px;font-weight:600">From the checklist</p><ul class="small" style="margin:0 0 10px;padding-left:18px">${springAuto(j).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+    ${(j.springNotes || []).map((n, i) => `<div class="rec"><textarea class="in-t" data-spring="${i}" rows="2" placeholder="e.g. Reconnect the negative battery terminal">${esc(n.text)}</textarea>
+      <div class="iact" style="margin-left:0"><button data-delspring="${i}" style="color:var(--danger)">Remove</button></div></div>`).join("")}
+    <button class="btn sec" data-a="addspring">Add a spring note</button>
   </div>
   <div class="card"><h2>Items removed or stored</h2><textarea class="in-t" data-f="removed" rows="3" placeholder="Life jackets to customer; stereo remote in bin 14\u2026">${esc(j.removed || "")}</textarea></div>`;
 }
@@ -1723,7 +1731,7 @@ function renderProfile() {
   if (ck && ck.partsStatus) svc.push(["Parts", `<span class="bp-pill ${ck.partsStatus === "Needed" ? "att" : "done"}">${esc(ck.partsStatus)}</span>`]);
   const notes = ck && ck.partsNotes ? ck.partsNotes.split("\n").filter(Boolean).map(n => `<li>${esc(n)}</li>`).join("") : "";
   const recs = bpRecs(b, false);
-  const recHtml = recs.length ? recs.map(r => `<div class="bp-rec"><span class="bp-pill ${/^Safety/.test(r.pri) ? "red" : r.pri === "Monitor" ? "glac" : "att"}">${esc(r.pri || "Note")}</span><span>${esc(r.text)}</span></div>`).join("") : `<p class="bp-et">Added by the tech on the winterization Finish tab.</p>`;
+  const recHtml = recs.length ? recs.map(r => `<div class="bp-rec"><span class="bp-pill ${/^Safety/.test(r.pri) ? "red" : r.pri === "Monitor" ? "glac" : "att"}">${esc(r.pri || "Note")}</span><span>${esc(r.text)}</span></div>`).join("") : `<p class="bp-et">Added by the tech on the winterization Notes tab.</p>`;
   const exp = P.exp;
   $app.innerHTML = back + `<main class="wrap bp-wrap"><div class="bp">
     <div class="bp-hd">
@@ -1749,6 +1757,7 @@ function renderProfile() {
       ${box(BPI.clip, "Condition history", cond)}
       ${box(BPI.tool, "Service history", rows(svc) + (notes ? `<ul class="bp-notes">${notes}</ul>` : ""))}
       ${box(BPI.bulb, "Recommendations", recHtml, "bp-sun")}
+      ${(() => { const jb = (b.jobs || []).find(x => x.spring); return jb ? box(BPI.check, "For spring launch", `<ul class="bp-notes" style="margin:0">${jb.spring.split("\n").filter(Boolean).map(t => `<li>${esc(t)}</li>`).join("")}</ul><p class="bp-et" style="margin-top:6px">From the ${esc((jb.dateIn || "").slice(0, 4))} winterization</p>`) : ""; })()}
     </div>
     <div class="bp-ft"><span>Waterline Lake Services \u00b7 Columbus, IN</span><span>(317) 258-8269</span></div>
   </div></main>`;
@@ -1795,7 +1804,9 @@ function bpPdf(all, customer) {
     if (!customer && ck && ck.partsNotes) ck.partsNotes.split("\n").filter(Boolean).forEach(n => row("Note", n));
     y += 8; head("Recommendations");
     const recs = bpRecs(b, customer);
-    if (recs.length) recs.forEach(r => row(r.pri || "Note", r.text)); else para(customer ? "No recommendations from completed service yet." : "Added by the tech on the winterization Finish tab.");
+    const spJob = (b.jobs || []).find(x => x.spring && (!customer || x.status === "Complete"));
+    if (recs.length) recs.forEach(r => row(r.pri || "Note", r.text)); else para(customer ? "No recommendations from completed service yet." : "Added by the tech on the winterization Notes tab.");
+    if (spJob) { y += 8; head("For spring launch"); spJob.spring.split("\n").filter(Boolean).forEach(t => para("\u2022  " + t)); }
     const pages = doc.getNumberOfPages();
     doc.setPage(pages); doc.setFillColor(...DARK); doc.rect(0, 762, W, 30, "F");
     doc.setFontSize(9); doc.setTextColor(205, 230, 236); doc.text("Waterline Lake Services  \u00b7  Columbus, IN", M, 780); doc.text("(317) 258-8269", W - M, 780, { align: "right" });
@@ -1988,6 +1999,8 @@ document.addEventListener("click", e => {
   if (d.delpart !== undefined) { const ps = [...S.job.parts]; ps.splice(+d.delpart, 1); save({ parts: ps }, true); return; }
   if (d.a === "addrec") { save({ recs: [...(S.job.recs || []), { id: "rc_" + Date.now().toString(36), text: "", pri: "Before spring launch" }] }, true); return; }
   if (d.delrec !== undefined) { const rs = [...S.job.recs]; rs.splice(+d.delrec, 1); save({ recs: rs }, true); return; }
+  if (d.a === "addspring") { save({ springNotes: [...(S.job.springNotes || []), { id: "sp_" + Date.now().toString(36), text: "" }] }, true); setTimeout(() => { const el = document.querySelectorAll("[data-spring]"); el.length && el[el.length - 1].focus(); }, 30); return; }
+  if (d.delspring !== undefined) { const ns = [...(S.job.springNotes || [])]; ns.splice(+d.delspring, 1); save({ springNotes: ns }, true); return; }
   if (d.delphoto) { removePhoto(d.delphoto); return; }
   if (d.sigsave) { saveSig(d.sigsave); return; }
   if (d.sigwipe) { render(); return; }
@@ -2059,6 +2072,7 @@ document.addEventListener("input", e => {
   if (d.iv && t.tagName !== "SELECT") { const c = (S.job.checks && S.job.checks[d.iv]) || {}; setCheck(d.iv, { v: { ...(c.v || {}), [d.k]: t.value } }); if (d.job) save({ [d.job]: t.value }); return; }
   if (d.fnote) { setCheck(d.fnote, { note: t.value }); return; }
   if (d.part !== undefined) { save({ parts: S.job.parts.map((p, i) => i === +d.part ? { ...p, [d.k]: t.value } : p) }); return; }
+  if (d.spring !== undefined && t.tagName === "TEXTAREA" && S.job) { save({ springNotes: (S.job.springNotes || []).map((n, i) => i === +d.spring ? { ...n, text: t.value } : n) }); return; }
   if (d.rec !== undefined && t.tagName === "TEXTAREA") { save({ recs: S.job.recs.map((r, i) => i === +d.rec ? { ...r, text: t.value } : r) }); return; }
 });
 document.addEventListener("change", e => {
