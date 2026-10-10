@@ -376,51 +376,34 @@ const SECTIONS = [
  { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
    {id:"eo_warm", t:"Warm engine to operating temp on hose / fake-a-lake"},
    {id:"eo_oil", t:"Change engine oil and filter", photo:"opt", part:"oil", filter:true, inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
-   {id:"eo_trans", t:"Check transmission fluid level and condition; change if due or milky", part:"transDD"},
-   {id:"eo_leaks", t:"Inspect for oil, fuel, or coolant leaks"}
+   {id:"eo_trans", t:"Change transmission fluid", part:"transDD"}
  ]},
  { id:"inb_fog", title:"Fogging and ignition", types:INB, items:[
-   {id:"fg_fog", t:"Fog engine: EFI through the throttle body while running until it stalls or smokes heavily; carb through the carb", part:"fog"},
-   {id:"fg_cyl", t:"Pull spark plugs, fog each cylinder, turn over briefly (coil/fuel pump fuse out), reinstall or replace plugs"},
+   {id:"fg_cyl", t:"Fog engine through the spark plug holes: pull plugs, fog each cylinder, reinstall plugs", photo:"req", part:"fog"},
    {id:"fg_belt", t:"Inspect serpentine/alternator belt and tension"}
  ]},
  { id:"inb_raw", title:"Cooling system: raw-water cooled", types:INB, cooling:"raw", items:[
-   {id:"cr_block", t:"Open all block drain plugs/petcocks (both sides) and drain fully; probe drains with wire", photo:"req", spring:"Close or reinstall all block drains"},
-   {id:"cr_man", t:"Drain exhaust manifolds and risers", spring:"Close or reinstall manifold and riser drains"},
-   {id:"cr_pump", t:"Remove and drain raw-water pump; inspect impeller (replace if cracked, set, or 2+ seasons old)", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}]},
-   {id:"cr_hoses", t:"Drain or remove circulating pump hoses, thermostat housing, and oil/trans coolers", spring:"Reconnect hoses and coolers removed for draining"},
-   {id:"cr_heater", t:"Blow out heater core and hoses (if equipped) or fill with antifreeze"},
-   {id:"cr_af", t:"Optional antifreeze method: pull through pickup until pink exits the exhaust", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
-   {id:"cr_tag", t:"Leave drains open or reinstall per shop policy; tag the helm \u201cENGINE DRAINED\u201d", photo:"req", spring:"Remove the \u201cENGINE DRAINED\u201d tag after drains are closed"}
+   {id:"cr_flush", t:"Antifreeze flush: let the raw-water impeller pull antifreeze (not water) through the cooling system until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
  ]},
  { id:"inb_closed", title:"Cooling system: closed (freshwater) cooled", types:INB, cooling:"closed", items:[
    {id:"cc_test", t:"Test coolant freeze point with refractometer; replace if above \u221230\u00b0F", photo:"req", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
    {id:"cc_raw", t:"Drain raw-water side: heat exchanger, exhaust manifolds, raw-water pump, and coolers", photo:"opt", spring:"Close raw-water side drains"},
    {id:"cc_imp", t:"Inspect raw-water pump impeller", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}], isNew:true}
  ]},
- { id:"inb_gear", title:"Running gear", types:INB, items:[
-   {id:"rg_shaft", t:"Check shaft for play at strut / cutless bearing"},
-   {id:"rg_seal", t:"Inspect shaft seal or packing gland; drain any water trapped around it"},
-   {id:"rg_rudder", t:"Inspect rudder, rudder packing, and fin; grease rudder post"}
- ]},
  { id:"dd_ballast", title:"Ballast and extras", types:["DD"], equip:true, items:[
    {id:"bl_pumps", t:"Run ballast pumps both directions until dry; blow out ballast lines and pumps", photo:"opt"},
-   {id:"bl_bags", t:"Open and drain any bilge-mounted ballast bags"},
    {id:"bl_shower", t:"Blow out shower and transom washdown lines"}
  ]},
  { id:"vd_drive", title:"V-drive gearbox and driveline", types:["VD"], items:[
    {id:"vd_box", t:"Check V-drive gearbox fluid level and condition (separate from transmission on many models); change if due or milky", part:"transV"},
    {id:"vd_coupler", t:"Inspect coupler / U-joint between transmission and V-drive; grease if fitted"},
    {id:"vd_mounts", t:"Check V-drive and engine mounts for cracks or movement"},
-   {id:"vd_drains", t:"Locate rear-facing block and manifold drains (often tight to the transom); confirm each one drained", photo:"req"},
    {id:"vd_exh", t:"Drain water trapped in exhaust tips, mufflers, and surf-system exhaust diverters"}
  ]},
  { id:"vd_surf", title:"Ballast, surf systems, and tower", types:["VD"], items:[
-   {id:"vs_ballast", t:"Run every ballast pump (hard tanks and bags) both ways until dry; blow out lines with low-pressure air", photo:"opt"},
-   {id:"vs_bags", t:"Drain or remove plug-in surf/wedge bags; dry and store folded"},
+   {id:"vs_ballast", t:"Run every ballast tank pump both ways until dry; blow out lines with low-pressure air", photo:"opt"},
    {id:"vs_shower", t:"Blow out shower and transom washdown lines"},
-   {id:"vs_tabs", t:"Cycle surf tabs / wake plates fully up; inspect actuators and hydraulic lines"},
-   {id:"vs_tower", t:"Lower or fold tower if required for cover; grease tower pivots", spring:"Raise the tower and check the pivot hardware"},
+   {id:"vs_tower", t:"Lower or fold tower if required for cover", spring:"Raise the tower"},
    {id:"vs_acc", t:"Inspect tower speakers, lights, and board racks for loose hardware"}
  ]},
  /* ---------- Sterndrive ---------- */
@@ -465,7 +448,7 @@ const SECTIONS = [
    {id:"ba_disc", t:"Disconnect battery and prep for winter", spring:"Reconnect the battery"}
  ]},
  /* ---------- Common finish ---------- */
- { id:"interior", title:"Interior and hull", types:["DD","VD","IO","OB"], items:[
+ { id:"interior", title:"Interior and hull", types:["IO","OB"], items:[
    {id:"ih_bilge", t:"Drain and dry bilge; clean with bilge cleaner", types:BOATS},
    {id:"ih_bpump", t:"Test bilge pump and float switch before storage", types:BOATS, isNew:true},
    {id:"ih_items", t:"Remove life jackets, electronics, and valuables; return to customer or tag and store", inputs:[{k:"note",label:"Where stored",type:"text"}]},
@@ -474,7 +457,7 @@ const SECTIONS = [
    {id:"ih_rodent", t:"Place rodent deterrent in engine bay and storage compartments", spring:"Remove rodent deterrent", isNew:true},
    {id:"ih_wash", t:"Wash hull, remove waterline stains, wax if ordered", photo:"opt"}
  ]},
- { id:"fresh", title:"Freshwater, head, and accessories", types:["DD","VD","IO","OB"], equip:true, items:[
+ { id:"fresh", title:"Freshwater, head, and accessories", types:["IO","OB"], equip:true, items:[
    {id:"fw_tank", t:"Drain freshwater tank, water heater, and lines; pump RV antifreeze through faucets and shower", spring:"Flush antifreeze from freshwater system"},
    {id:"fw_head", t:"Pump out and flush holding tank; add antifreeze to head"},
    {id:"fw_live", t:"Blow out or antifreeze livewells and washdown pumps"}
@@ -564,6 +547,7 @@ const impellerOf = j => { const id = IMP_IDS.find(x => j.checks && j.checks[x] &
 function partFor(job, key) {
   const p = PROFILES[job.profile] || {};
   if (key === "stabilizer") return STABILIZER;
+  if (key === "fog") return p.fog || "STA-BIL Fogging Oil (12 oz, 22001)";
   if (key === "oil") { if (p.kind === "inboard") { if (GM_BLOCKS.includes(job.block)) return p.oilGM || ""; if (FORD_BLOCKS.includes(job.block)) return p.oilFord || ""; return ""; } return p.oil || ""; }
   if (key === "transDD") return job.type === "VD" ? (p.transV || "") : (p.transDD || "");
   if (key === "transV") return p.transV || "";
