@@ -322,6 +322,10 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .bp-rec{display:flex;gap:10px;align-items:flex-start;font-size:14px;padding:5px 0}
 .bp-ft{background:#0C3944;color:#CDE6EC;padding:10px 16px;display:flex;justify-content:space-between;font-size:12px}
 .bp .warn{color:#8A5A12}
+.sigwarn { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; background: var(--sun-tint); color: var(--sun-ink); border: 1px solid var(--sun); font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; width: fit-content; }
+.jobhead .sigwarn { background: var(--sun); color: var(--deep-dark); border-color: var(--sun); }
+.jobrow .sigwarn { white-space: normal; line-height: 1.25; font-size: 11.5px; }
+.sigbanner { margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -771,7 +775,8 @@ function renderLogin() {
 const FILTERS = [
   ["active", "Active", it => it.stage !== "Complete"],
   ["checkin", "Checking in", it => it.stage === "Checking in" || it.stage === "Awaiting signature"],
-  ["ready", "Ready to winterize", it => it.stage === "Check-in complete"],
+  ["ready", "Ready to winterize", it => it.stage === "Check-in complete" || (!it.job && it.stage === "Awaiting signature")],
+  ["sig", "Needs signature", it => !!it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" && it.stage !== "Checking in"],
   ["wint", "In winterization", it => it.stage === "In winterization"],
   ["review", "Needs review", it => it.stage === "Needs review"],
   ["complete", "Complete", it => it.stage === "Complete"],
@@ -789,7 +794,7 @@ function cardHtml(it, idx) {
   const sub = [boat, it.package, job && job.svc].filter(Boolean).join(", ");
   const when = it.updated ? fmtTime(Date.parse(it.updated)) : "";
   const icon = ringPct === null ? `<span class="ckicon" aria-hidden="true">${I.clip}</span>` : ring(ringPct);
-  return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div><div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
+  return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div>${it.job && it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" ? SIG_WARN : ""}<div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
     <button class="jobdel" data-delcard="${idx}" aria-label="Remove ${esc(it.customer || "this job")}" title="Remove">${I.trash}</button></div>`;
 }
 function renderHome() {
@@ -847,7 +852,7 @@ function renderJob() {
   const body = S.tab === "checkin" ? tabCheckin() : !j ? tabNoJob() : S.tab === "info" ? tabInfo(j) : S.tab === "check" ? tabCheck(j) : S.tab === "photos" ? tabPhotos(j) : S.tab === "parts" ? tabParts(j) : tabFinish(j);
   $app.innerHTML = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>${esc(title)}</h1><span class="saving" id="savestate">${S.saved || S.ckSaved ? "Saved" : ""}</span></div></header>
   <div class="jobhead"><div class="in"><div class="plate"><small>HULL ID</small><b>${esc(hin || "NO HIN")}</b></div>
-    <div class="who"><b>${esc(cust || "Customer not linked")}</b><span>${esc(boatTxt || "Boat not linked yet")}</span></div>${stageChip(stageNow())}</div></div>
+    <div class="who"><b>${esc(cust || "Customer not linked")}</b><span>${esc(boatTxt || "Boat not linked yet")}</span>${j && unsignedCk() ? SIG_WARN : ""}</div>${stageChip(stageNow())}</div></div>
   <div class="rule" title="${p.pct}% complete"><i style="width:${p.pct}%"></i></div>
   <main class="wrap">${body}</main>
   <nav class="tabs six" aria-label="Boat sections"><div class="in" role="tablist">
@@ -858,12 +863,22 @@ function renderJob() {
   if (S.tab === "finish" && j) { initSig(); restoreInk(inked); }
 }
 // Winterization tabs before a job exists for this boat.
+// Unsigned check-in: the winterization can go ahead, but the boat is flagged until the customer signs.
+const unsignedCk = () => !!(S.ck && S.ck.completedAt && S.ckStatus !== "Signed" && S.ckStatus !== "Override");
+const SIG_WARN = `<span class="sigwarn" title="The customer hasn't signed the agreement yet">\u26a0 Signature needed</span>`;
+function sigBanner() {
+  return unsignedCk() ? `<div class="banner sigbanner"><b>\u26a0 The customer hasn't signed yet.</b> Keep going with the winterization; send or resend the signing link from the Check-in tab.
+    <button class="btn sec" data-tab="checkin" style="margin-top:8px">Go to the signature</button></div>` : "";
+}
 function tabNoJob() {
   const c = S.ck; const cleared = S.ckStatus === "Signed" || S.ckStatus === "Override";
   return `<div class="card" style="margin-top:20px;border-top:4px solid ${cleared ? "var(--pine)" : "var(--sun)"}"><h2>Winterization not started</h2>
     ${cleared ? `<p>This boat is checked in${S.agreement ? " and the agreement is signed" : " (override recorded)"}. Start the winterization when you're ready.</p>
       <button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>${S.busy ? "Starting\u2026" : "Start the winterization"}</button>`
-    : `<p>${c && c.completedAt ? "The check-in is done, but the customer hasn't signed the agreement yet." : "Finish the check-in first: condition photos, damage, and the customer's signature."}</p>
+    : c && c.completedAt ? `<p>${SIG_WARN}</p><p>The check-in is done, but the customer hasn't signed the agreement yet. You can start the winterization now; the boat stays flagged until they sign.</p>
+      <button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>${S.busy ? "Starting\u2026" : "Start the winterization"}</button>
+      <button class="btn ghost" data-tab="checkin" style="padding-left:0">Send the signing link</button>`
+    : `<p>Finish the check-in first: condition photos and damage.</p>
       <button class="btn block" data-tab="checkin">Go to the check-in</button>
       <details style="margin-top:16px"><summary class="small" style="cursor:pointer">Owner override: start without a signed check-in</summary>
         <label class="f" style="margin-top:10px"><span>Reason (saved on the job in Airtable and printed on the work order)</span><input class="in-t" id="gateReason" placeholder="Paper agreement signed at office on 10/2"></label>
@@ -906,7 +921,7 @@ function tabInfo(j) {
 function tabCheck(j) {
   if (!j.type) return `<div class="card" style="margin-top:20px"><h2>Choose the service type first</h2><p>The checklist depends on the drivetrain.</p><button class="btn" data-tab="info">Go to boat details</button></div>`;
   const p = progress(j); const miss = missingPhotos(j);
-  return `<p class="muted" style="margin:16px 0 4px">${p.done} of ${p.total} steps done${miss.length ? `, ${miss.length} required photo${miss.length > 1 ? "s" : ""} still needed` : ""}. Follow the engine maker's manual where it differs.</p>
+  return `${sigBanner()}<p class="muted" style="margin:16px 0 4px">${p.done} of ${p.total} steps done${miss.length ? `, ${miss.length} required photo${miss.length > 1 ? "s" : ""} still needed` : ""}. Follow the engine maker's manual where it differs.</p>
   <details class="card" style="padding:13px 18px"><summary style="cursor:pointer;font-weight:600;color:var(--deep)">Safety before starting</summary>
     <p class="small">Run engines only with water supplied (hose adapter or fake-a-lake). Ventilate the engine bay and run blowers before starting inboards. Keep antifreeze and fogging oil away from open flame. Disconnect the battery before electrical work.</p>
     <p class="small"><b>Antifreeze:</b> propylene glycol (pink, marine/RV rated to \u221250\u00b0F or \u2212100\u00b0F). Never automotive ethylene glycol in raw-water systems.</p></details>
@@ -1009,7 +1024,7 @@ function tabFinish(j) {
   const miss = missingPhotos(j); const open = liveItems(j).filter(i => !st(j, i.id));
   const ready = j.type && open.length === 0 && miss.length === 0; const sp = springList(j); const so = j.signoff || {};
   const pend = S.pendingPhotos.filter(p => p.jobId === j.id).length;
-  return `<div class="card" style="margin-top:20px"><h2>Ready to sign off?</h2>
+  return `${sigBanner()}<div class="card" style="margin-top:20px"><h2>Ready to sign off?</h2>
     <div class="cp"><span class="dot ${j.customer ? "ok" : ""}"></span><span class="t">Customer linked${j.customer ? ": " + esc(j.customer.name) : ""}</span></div>
     <div class="cp"><span class="dot ${open.length ? "" : "ok"}"></span><span class="t">${open.length ? open.length + " checklist step" + (open.length > 1 ? "s" : "") + " not marked done, N/A, or flagged" : "Every checklist step resolved"}</span>${open.length ? `<button class="btn ghost" data-jump="${open[0].id}">Next</button>` : ""}</div>
     <div class="cp"><span class="dot ${miss.length ? "" : "ok"}"></span><span class="t">${miss.length ? miss.length + " required photo" + (miss.length > 1 ? "s" : "") + " missing" : "All required photos taken"}</span>${miss.length ? `<button class="btn ghost" data-tab="photos">Show</button>` : ""}</div>
@@ -1338,7 +1353,7 @@ function ckFinishCard() {
       ${ready.map(([ok, t]) => `<div class="cp"><span class="dot ${ok ? "ok" : ""}"></span><span class="t">${esc(t)}</span></div>`).join("")}
       <div class="cp"><span class="dot ${S.agreement ? "ok" : ""}"></span><span class="t">${S.agreement ? "Agreement signed" : c.override && c.override.reason ? "Override: " + esc(c.override.reason) : "Agreement not signed yet (you can finish now and collect it later)"}</span></div>
       ${complete ? `<p style="margin:14px 0 6px">Completed ${esc(fmtTime(c.completedAt))} by ${esc(c.completedBy || "")}. Status: <b>${esc(S.ckStatus === "Awaiting Signature" ? "Needs signature" : S.ckStatus)}</b></p>
-        ${S.job ? `<button class="btn block" data-tab="check">Go to the winterization checklist</button>` : cleared ? `<button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>Start the winterization</button>` : `<p class="small muted">Winterization unlocks once the customer signs.</p>`}
+        ${S.job ? `<button class="btn block" data-tab="check">Go to the winterization checklist</button>` : `<button class="btn block" data-a="startwint" ${S.busy ? "disabled" : ""}>Start the winterization</button>${cleared ? "" : `<p class="small muted" style="margin:6px 0 0">${SIG_WARN} You can start now; the boat stays flagged until the customer signs.</p>`}`}
         <button class="btn ghost" data-a="ckreopen">Reopen check-in</button>`
       : `<button class="btn block" data-a="ckcomplete" ${allReady ? "" : "disabled"}>Complete check-in</button>${allReady ? "" : `<p class="small muted" style="margin:8px 0 0">Finish the items above first.</p>`}`}`;
 }
@@ -1822,10 +1837,11 @@ async function createJob(overrideReason, fromCk) {
   catch (e) { S.busy = false; render(); toast(e.offline ? "You need signal to start a job." : "Couldn't look up the boat: " + e.message, 4500); return; }
   if (pre.openJobId) { S.busy = false; toast("This boat already has an open winterization job. Opening it.", 3500); openWorkspace({ jobId: pre.openJobId }); return; }
   const ck = fromCk ? { id: S.ck.id, status: S.ckStatus, at: S.ck.checkedInAt ? new Date(S.ck.checkedInAt).toISOString() : "", by: S.ck.checkedInBy } : pre.checkin;
-  const cleared = ck && (ck.status === "Signed" || ck.status === "Override");
+  // A finished check-in is enough to start; an unsigned one just keeps the boat flagged "Signature needed".
+  const cleared = ck && (ck.status === "Signed" || ck.status === "Override" || ck.status === "Awaiting Signature");
   if (!cleared && !overrideReason) {
     S.busy = false;
-    if (ck) { toast("Finish this boat's check-in and signature first.", 4000); openWorkspace({ checkinId: ck.id }, "checkin"); return; }
+    if (ck) { toast("Finish this boat's check-in first.", 4000); openWorkspace({ checkinId: ck.id }, "checkin"); return; }
     S.gate = { hin }; S.view = "gate"; render(); return;
   }
   const prev = pre.prev || {};
