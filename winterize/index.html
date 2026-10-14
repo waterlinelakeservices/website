@@ -774,9 +774,10 @@ function renderLogin() {
 }
 const FILTERS = [
   ["active", "Active", it => it.stage !== "Complete"],
+  // Every boat in check-in or winterization whose agreement isn't signed yet (an owner override counts as cleared).
+  ["sig", "Needs signature", it => !!it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" && it.stage !== "Complete"],
   ["checkin", "Checking in", it => it.stage === "Checking in" || it.stage === "Awaiting signature"],
   ["ready", "Ready to winterize", it => it.stage === "Check-in complete" || (!it.job && it.stage === "Awaiting signature")],
-  ["sig", "Needs signature", it => !!it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" && it.stage !== "Checking in"],
   ["wint", "In winterization", it => it.stage === "In winterization"],
   ["review", "Needs review", it => it.stage === "Needs review"],
   ["complete", "Complete", it => it.stage === "Complete"],
