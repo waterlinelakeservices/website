@@ -375,10 +375,10 @@ const SECTIONS = [
  ]},
 /* Ski boats start with the cooling system (antifreeze flush) right after Before service. */
  { id:"inb_raw", title:"Cooling system: raw-water cooled", types:INB, cooling:"raw", items:[
-   {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"temp",label:"Running temp reached (\u00b0F)",type:"number"},{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
+   {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
  ]},
  { id:"inb_closed", title:"Cooling system: closed (freshwater) cooled", types:INB, cooling:"closed", items:[
-   {id:"cc_warm", t:"Warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F)", inputs:[{k:"temp",label:"Running temp reached (\u00b0F)",type:"number"}]},
+   {id:"cc_warm", t:"Warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F)"},
    {id:"cc_test", t:"Test coolant freeze point with refractometer; replace if above \u221230\u00b0F", photo:"req", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
    {id:"cc_raw", t:"Drain raw-water side: heat exchanger, exhaust manifolds, raw-water pump, and coolers", photo:"opt", spring:"Close raw-water side drains"},
    {id:"cc_imp", t:"Inspect raw-water pump impeller", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}], isNew:true}
