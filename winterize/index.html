@@ -373,19 +373,7 @@ const SECTIONS = [
    {id:"in_trailer", t:"Check trailer tires, lights, bearings, and winch strap (if stored on trailer)", photo:"opt"},
    {id:"in_plug", t:"Open drain plug(s) to drain water from the hull", photo:"opt", types:["DD","VD","IO","OB","PWC"]}
  ]},
- { id:"fuel", title:"Fuel system", types:ALL, items:[
-   {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
- ]},
- /* ---------- Direct drive & V-drive ---------- */
- { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
-   {id:"eo_warm", t:"Warm engine to operating temp on hose / fake-a-lake"},
-   {id:"eo_oil", t:"Change engine oil and filter", photo:"opt", part:"oil", filter:true, inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
-   {id:"eo_trans", t:"Change transmission fluid", part:"transDD"}
- ]},
- { id:"inb_fog", title:"Fogging and ignition", types:INB, items:[
-   {id:"fg_cyl", t:"Fog engine through the spark plug holes: pull plugs, fog each cylinder, reinstall plugs", photo:"req", part:"fog"},
-   {id:"fg_belt", t:"Inspect serpentine/alternator belt and tension"}
- ]},
+/* Ski boats start with the cooling system (antifreeze flush) right after Before service. */
  { id:"inb_raw", title:"Cooling system: raw-water cooled", types:INB, cooling:"raw", items:[
    {id:"cr_flush", t:"Antifreeze flush: let the raw-water impeller pull antifreeze (not water) through the cooling system until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
  ]},
@@ -393,6 +381,20 @@ const SECTIONS = [
    {id:"cc_test", t:"Test coolant freeze point with refractometer; replace if above \u221230\u00b0F", photo:"req", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
    {id:"cc_raw", t:"Drain raw-water side: heat exchanger, exhaust manifolds, raw-water pump, and coolers", photo:"opt", spring:"Close raw-water side drains"},
    {id:"cc_imp", t:"Inspect raw-water pump impeller", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}], isNew:true}
+ ]},
+ { id:"fuel", title:"Fuel system", types:ALL, items:[
+   {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
+ ]},
+ /* ---------- Direct drive & V-drive ---------- */
+ { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
+   {id:"eo_drain", t:"Drain the engine oil (pump it out with the battery connected)", photo:"opt"},
+   {id:"eo_filter", t:"Change the oil filter", filter:true, inputs:[{k:"filter",label:"Filter part #",type:"text"}]},
+   {id:"eo_fill", t:"Add new engine oil and check the dipstick", part:"oil", inputs:[{k:"qty",label:"Oil added (qt)",type:"number"}]},
+   {id:"eo_trans", t:"Change transmission fluid", part:"transDD"}
+ ]},
+ { id:"inb_fog", title:"Fogging and ignition", types:INB, items:[
+   {id:"fg_cyl", t:"Fog engine through the spark plug holes: pull plugs, fog each cylinder, reinstall plugs", photo:"req", part:"fog"},
+   {id:"fg_belt", t:"Inspect serpentine/alternator belt and tension"}
  ]},
  { id:"dd_ballast", title:"Ballast and extras", types:["DD"], equip:true, items:[
    {id:"bl_pumps", t:"Run ballast pumps both directions until dry; blow out ballast lines and pumps", photo:"opt"},
@@ -552,7 +554,12 @@ function partFor(job, key) {
   const p = PROFILES[job.profile] || {};
   if (key === "stabilizer") return STABILIZER;
   if (key === "fog") return p.fog || "STA-BIL Fogging Oil (12 oz, 22001)";
-  if (key === "oil") { if (p.kind === "inboard") { if (GM_BLOCKS.includes(job.block)) return p.oilGM || ""; if (FORD_BLOCKS.includes(job.block)) return p.oilFord || ""; return ""; } return p.oil || ""; }
+  if (key === "oil") { if (p.kind === "inboard") { if (GM_BLOCKS.includes(job.block)) return p.oilGM || ""; if (FORD_BLOCKS.includes(job.block)) return p.oilFord || "";
+    // No block chosen: go by the engine make on the Boat Profile.
+    const mk = String((typeof jobBoat === "function" && jobBoat(job).engineMake) || "");
+    if (/PCM|Ilmor|GM|Chevrolet/i.test(mk)) return p.oilGM || "";
+    if (/Indmar|Ford/i.test(mk)) return p.oilFord || "";
+    return [p.oilGM && p.oilGM + " (GM block)", p.oilFord && p.oilFord + " (Ford block)"].filter(Boolean).join(" or "); } return p.oil || ""; }
   if (key === "transDD") return job.type === "VD" ? (p.transV || "") : (p.transDD || "");
   if (key === "transV") return p.transV || "";
   if (key === "impeller") return p.impeller || "";
