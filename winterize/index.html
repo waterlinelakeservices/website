@@ -374,14 +374,8 @@ const SECTIONS = [
    {id:"in_plug", t:"Open drain plug(s) to drain water from the hull", photo:"opt", types:["DD","VD","IO","OB","PWC"]}
  ]},
 /* Ski boats start with the cooling system (antifreeze flush) right after Before service. */
- { id:"inb_raw", title:"Cooling system: raw-water cooled", types:INB, cooling:"raw", items:[
+ { id:"inb_raw", title:"Cooling system", types:INB, items:[
    {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
- ]},
- { id:"inb_closed", title:"Cooling system: closed (freshwater) cooled", types:INB, cooling:"closed", items:[
-   {id:"cc_warm", t:"Warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F)"},
-   {id:"cc_test", t:"Test coolant freeze point with refractometer; replace if above \u221230\u00b0F", photo:"req", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
-   {id:"cc_raw", t:"Drain raw-water side: heat exchanger, exhaust manifolds, raw-water pump, and coolers", photo:"opt", spring:"Close raw-water side drains"},
-   {id:"cc_imp", t:"Inspect raw-water pump impeller", photo:"req", part:"impeller", inputs:[{k:"imp",label:"Impeller",type:"select",opts:["Inspected OK","Replaced","Needs replacement"]}], isNew:true}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
    {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
@@ -397,9 +391,8 @@ const SECTIONS = [
    {id:"fg_cyl", t:"Fog engine through the spark plug holes: pull plugs, fog each cylinder, reinstall plugs", photo:"req", part:"fog"},
    {id:"fg_belt", t:"Inspect serpentine/alternator belt and tension"}
  ]},
- { id:"dd_ballast", title:"Ballast and extras", types:["DD"], equip:true, items:[
-   {id:"bl_pumps", t:"Run ballast pumps both directions until dry; blow out ballast lines and pumps", photo:"opt"},
-   {id:"bl_shower", t:"Blow out shower and transom washdown lines"}
+ { id:"dd_ballast", title:"Ballast", types:["DD"], equip:true, items:[
+   {id:"bl_pumps", t:"Run ballast pumps both directions until dry; blow out ballast lines and pumps", photo:"opt"}
  ]},
  { id:"vd_drive", title:"V-drive gearbox and driveline", types:["VD"], items:[
    {id:"vd_box", t:"Check V-drive gearbox fluid level and condition (separate from transmission on many models); change if due or milky", part:"transV"},
@@ -407,19 +400,20 @@ const SECTIONS = [
    {id:"vd_mounts", t:"Check V-drive and engine mounts for cracks or movement"},
    {id:"vd_exh", t:"Drain water trapped in exhaust tips, mufflers, and surf-system exhaust diverters"}
  ]},
- { id:"vd_surf", title:"Ballast, surf systems, and tower", types:["VD"], items:[
-   {id:"vs_ballast", t:"Run every ballast tank pump both ways until dry; blow out lines with low-pressure air", photo:"opt"},
-   {id:"vs_shower", t:"Blow out shower and transom washdown lines"},
-   {id:"vs_tower", t:"Lower or fold tower if required for cover", spring:"Raise the tower"},
+ { id:"vd_surf", title:"Ballast", types:["VD"], equip:true, items:[
+   {id:"vs_ballast", t:"Run every ballast tank pump both ways until dry; blow out lines with low-pressure air", photo:"opt"}
+ ]},
+ { id:"vd_tower", title:"Tower", types:["VD"], equip:true, items:[
+   {id:"vs_tower", t:"Lower or fold tower if required for cover", spring:"Raise the tower"}
+ ]},
+ { id:"vd_audio", title:"Tower speakers and accessories", types:["VD"], equip:true, items:[
    {id:"vs_acc", t:"Inspect tower speakers, lights, and board racks for loose hardware"}
  ]},
  /* ---------- Sterndrive ---------- */
  { id:"io_engine", title:"Sterndrive engine", types:["IO"], items:[
+   {id:"io_flush", t:"Antifreeze flush: warm the engine on the hose / muffs to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the pump pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
    {id:"io_oil", t:"Change engine oil and filter warm", photo:"opt", part:"oil", filter:true, inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
    {id:"io_fog", t:"Fog engine (throttle body or carb) and cylinders", part:"fog"},
-   {id:"io_drain", t:"Raw-water: drain block, exhaust manifolds, and risers, or fill with antifreeze", photo:"req", cooling:"raw", spring:"Close block, manifold, and riser drains", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
-   {id:"io_coolant", t:"Closed-cooled: test coolant freeze point", photo:"req", cooling:"closed", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
-   {id:"io_pump", t:"Drain seawater pump and hoses; on Volvo, drain lower hoses at the thermostat housing", spring:"Reconnect seawater pump hoses"},
    {id:"io_belts", t:"Inspect belts, hoses, and flame arrestor; clean arrestor"}
  ]},
  { id:"io_drive", title:"Outdrive", types:["IO"], items:[
@@ -942,7 +936,7 @@ function secHtml(j, s) {
   return `<details class="sec" data-sec="${s.id}" data-complete="${complete ? 1 : 0}" ${S.open.has(s.id) ? "open" : ""}>
     <summary>${I.chev}<h3>${esc(s.title)}</h3><span class="cnt">${na ? "Not equipped" : done + "/" + s.items.length}</span></summary>
     ${s.note ? `<p class="secnote">${esc(s.note)}</p>` : ""}
-    ${s.equip ? `<div class="secbar"><button class="btn sec" style="min-height:40px;padding:6px 14px;font-size:14px" data-na-sec="${s.id}">${na ? "Boat has this equipment" : "Boat doesn't have this"}</button></div>` : ""}
+    ${s.equip ? `<div class="secbar"><button class="btn sec" style="min-height:40px;padding:6px 14px;font-size:14px" data-na-sec="${s.id}">${na ? "Undo N/A" : "N/A: boat doesn\u2019t have this"}</button></div>` : ""}
     ${na ? "" : s.items.map(i => itemHtml(j, i)).join("")}</details>`;
 }
 // Oil filter prompt: the confirmed part # if we have it, else the filter family from the
