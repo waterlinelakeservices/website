@@ -375,7 +375,8 @@ const SECTIONS = [
  ]},
 /* Ski boats start with the cooling system (antifreeze flush) right after Before service. */
  { id:"inb_raw", title:"Cooling system", types:INB, items:[
-   {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"},{k:"imp",label:"Impeller",type:"select",opts:["Not replaced","Replaced"]}]}
+   {id:"cr_imp", t:"Replace the raw-water pump impeller", photo:"opt", part:"impeller"},
+   {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
    {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
@@ -543,7 +544,9 @@ function flagged(job) { return liveItems(job).filter(i => st(job, i.id) === "fla
 function springAuto(job) { return liveItems(job).filter(i => i.spring && st(job, i.id) === "done").map(i => i.spring); }
 function springList(job) { return [...springAuto(job), ...(job.springNotes || []).map(n => (n.text || "").trim()).filter(Boolean)]; }
 const IMP_IDS = ["cr_pump", "cc_imp", "od_imp", "ob_imp"];
-const impellerOf = j => { const id = IMP_IDS.find(x => j.checks && j.checks[x] && j.checks[x].v && j.checks[x].v.imp); return id ? j.checks[id].v.imp : ""; };
+const impellerOf = j => { if (j.checks && j.checks.cr_imp && j.checks.cr_imp.s === "done") return "Replaced";
+  return impellerOfInputs(j); };
+const impellerOfInputs = j => { const id = IMP_IDS.find(x => j.checks && j.checks[x] && j.checks[x].v && j.checks[x].v.imp); return id ? j.checks[id].v.imp : ""; };
 
 function partFor(job, key) {
   const p = PROFILES[job.profile] || {};
