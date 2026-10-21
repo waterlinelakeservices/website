@@ -1191,6 +1191,41 @@ function ckEngine() {
   const c = S.ck || {}, b = c.boat || {}, e = c.engine || {};
   return { drive: e.drive ?? b.driveType ?? "", make: e.make ?? b.engineMake ?? "", model: e.model ?? b.engineModel ?? "", hp: e.hp ?? b.hp ?? "", filter: e.filter ?? b.oilFilter ?? "" };
 }
+// ---- Engine suggestions (Engines table), filtered to the boat's category ----
+const ENG_CAT = { "Inboard, V-drive": "Ski / Inboard", "Inboard, direct drive": "Ski / Inboard", "Sterndrive (I/O)": "Sterndrive (I/O)", "Outboard": "Outboard / Pontoon", "Jet (PWC)": "PWC" };
+function engCategory() {
+  const e = ckEngine(), b = (S.ck && S.ck.boat) || {};
+  return ENG_CAT[e.drive] || { "Pontoon": "Outboard / Pontoon", "Jet Ski / PWC": "PWC" }[b.type] || "";
+}
+function loadEngines(force) {
+  if ((S.engines && !force) || S.enginesLoading) return;
+  S.enginesLoading = true;
+  api("engines").then(r => { S.engines = r.engines || []; const dl = document.getElementById("engsugg"); if (dl) dl.outerHTML = engDatalist(); })
+    .catch(() => {}).finally(() => { S.enginesLoading = false; });
+}
+function engDatalist() {
+  const cat = engCategory();
+  const list = (S.engines || []).filter(x => !cat || !x.category || x.category === cat);
+  return `<datalist id="engsugg">${list.map(x => `<option value="${esc(x.name)}">${esc([x.hp && x.hp + " hp", x.filter && "filter " + x.filter].filter(Boolean).join(" \u00b7 "))}</option>`).join("")}</datalist>`;
+}
+function engSuggestions() {
+  if (!S.engines) loadEngines();
+  const cat = engCategory();
+  return engDatalist() + `<p class="small muted" style="margin:-6px 0 10px">Start typing for suggestions${cat ? ` from engines we\u2019ve seen on <b>${esc(cat)}</b> boats` : ""}. A new model is added to the Engines list automatically.</p>`;
+}
+// Picking a known engine fills in the make, horsepower, and filter (only where they're blank).
+function engPicked(value) {
+  const x = (S.engines || []).find(k => k.name.toLowerCase() === String(value || "").trim().toLowerCase());
+  if (!x) return false;
+  if (String(value) !== x.name) ckEditEngine("model", x.name);
+  const e = ckEngine(); const filled = [];
+  const mk = ENGINE_MAKES.find(m => x.make && m.toLowerCase().startsWith(x.make.toLowerCase().split(" ")[0]));
+  if (!e.make && mk) { ckEditEngine("make", mk); filled.push(mk); }
+  if (!e.hp && x.hp) { ckEditEngine("hp", String(x.hp)); filled.push(x.hp + " hp"); }
+  if (!e.filter && x.filter) { ckEditEngine("filter", x.filter); filled.push("filter " + x.filter); }
+  if (filled.length || String(value) !== x.name) { render(); const el = document.querySelector('[data-eng="model"]'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } if (filled.length) toast(`${x.name}: ${filled.join(", ")}`); }
+  return true;
+}
 function ckEngineCard() {
   const e = ckEngine();
   const plan = ckChecklistPlan();
@@ -1202,7 +1237,8 @@ function ckEngineCard() {
       <label class="f"><span>Engine make</span><select class="in-t" data-eng="make"><option value="">Choose\u2026</option>${ENGINE_MAKES.map(m => `<option ${e.make === m ? "selected" : ""}>${esc(m)}</option>`).join("")}</select></label>
       <label class="f"><span>Horsepower</span><input class="in-t" type="number" inputmode="numeric" data-eng="hp" value="${esc(e.hp || "")}" placeholder="e.g. 150"></label>
     </div>
-    <label class="f"><span>Engine model (from the tag or decal)</span><input class="in-t" data-eng="model" value="${esc(e.model || "")}" placeholder="e.g. PCM ZR6, MerCruiser 4.5L, Yamaha F150"></label>
+    <label class="f"><span>Engine model (from the tag or decal)</span><input class="in-t" data-eng="model" list="engsugg" autocomplete="off" value="${esc(e.model || "")}" placeholder="e.g. PCM ZR6, MerCruiser 4.5L, Yamaha F150"></label>
+    ${engSuggestions()}
     <label class="f"><span>Oil filter part # (if known)</span><input class="in-t" data-eng="filter" value="${esc(e.filter || "")}" placeholder="e.g. R077001"></label>
     ${S.ck && S.ck.boat && S.ck.boat.id ? `<button class="btn sec" data-bpopen="${S.ck.boat.id}" style="margin:2px 0 10px">${BPI.badge} Open full Boat Profile</button>` : ""}
     <p class="small" style="margin:4px 0 0">${plan.type ? `<b>Winterization checklist:</b> ${esc(TYPES[plan.type].label)}${plan.profile ? ` &middot; <b>Parts profile:</b> ${esc(plan.profile)}` : ""}` : `<span class="muted">Choose the drive type to set the winterization checklist.</span>`}</p>
@@ -2023,7 +2059,7 @@ document.addEventListener("click", e => {
 function ckClick(t, d) {
   if (d.ckcam !== undefined) { pickKind = "ck"; pickFor = d.ckcam; document.getElementById("filepick").click(); return true; }
   if (d.fuel) { ckSave({ fuel: S.ck.fuel === d.fuel ? "" : d.fuel }, true); return true; }
-  if (d.drive) { const e = ckEngine(); ckEditEngine("drive", e.drive === d.drive ? "" : d.drive, true); return true; }
+  if (d.drive) { const e = ckEngine(); ckEditEngine("drive", e.drive === d.drive ? "" : d.drive, true); return true; } // re-render refreshes the suggestion list
   if (d.pkg) { // Anchor boats stay put, so they're never "picked up by Waterline"
     const w = S.ck.where; const anchorWhere = !w || w === "Picked up by Waterline" ? { where: "Customer's lift or dock" } : {};
     ckSave({ package: d.pkg, ...(d.pkg === "Anchor" ? anchorWhere : {}) }, true); return true; }
@@ -2068,7 +2104,7 @@ document.addEventListener("input", e => {
   if (t.id === "ckcrmq") { S.ckCrm.q = t.value; return; }
   if (t.id === "hinNew" && S.hinFix) { S.hinFix.value = t.value; const m = document.getElementById("hinNewMsg"); if (m) { const p = parseHin(normHin(t.value)); m.textContent = t.value ? p.msg : ""; m.style.color = p.ok ? "var(--pine)" : "var(--muted)"; } return; }
   if (t.id === "hinReason" && S.hinFix) { S.hinFix.reason = t.value; return; }
-  if (d.eng && S.ck && t.tagName !== "SELECT") { ckEditEngine(d.eng, t.value); return; }
+  if (d.eng && S.ck && t.tagName !== "SELECT") { ckEditEngine(d.eng, t.value); if (d.eng === "model") engPicked(t.value); return; }
   if (d.cf === "engineHours" && S.ck && /^\s*n\s*\/?\s*a\s*$/i.test(t.value)) { ckSave({ engineHours: "N/A" }, true); return; }
   if (d.cf && S.ck && t.type !== "checkbox" && t.tagName !== "SELECT") { ckSave({ [d.cf]: t.value }); ckRefreshFinish(); return; }
   if (t.id === "q") { S.q = t.value; const el = document.getElementById("boardlist"); if (el && S.board) el.innerHTML = boardHtml(boardList(), S.board); return; }

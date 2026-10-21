@@ -14,6 +14,13 @@ const T = {
   photos: 'tbl4gpVQ7JJ9pgi8j',
   checkins: 'tbllaqyuT5tSkpWb2',
   agreements: 'tblIVdd4AILcTlXzw',
+  engines: 'tbl0MQZlQzQcRaODY',
+};
+// Engines table: one row per engine model, shared by every boat with that engine.
+const ENG = {
+  name: 'fldOfivLnV79n8Lez', category: 'fld0HyzKI4Ai4OiFD', make: 'fldnC3nFbdUrc9RiS', hp: 'fldeKvAJoPbBpgOxo', oil: 'fldKvb3AbTmBR8Dus',
+  qty: 'fld3rZOYQLwDxfwWF', filter: 'fldCuGHNmbUZ7JQfb', verified: 'fldO3s5NlPXQdGYnS', impeller: 'fld3nT5LwIICQhdUw', notes: 'fldleOnQ0AoL7PLgh',
+  boats: 'fldOkyNU6yUYbY5Lz',
 };
 
 const CUST = {
@@ -31,6 +38,7 @@ const BOAT = {
   hours: 'fldvB5aNhOKKi1XD7', lastWint: 'fldMzSQ3j552j0w7b', impDate: 'fldB0nT11QmiQBlpl',
   checkins: 'fldtkaf2mkplF4908', agreements: 'fld6Oui8hnVlz4bDx',
   engineMake: 'fldpzJHCJDuj3i0nn', driveType: 'fldlKIim0erxx0zfO', engineModel: 'flduQ30S2BV3GzCuG', hp: 'fldZoUzYfTi6ptBRF', oilFilter: 'fldVJpdXfkVt5GLFl',
+  engine: 'fldA45P9Xgq1O5aOu',
 };
 const CHK = {
   title: 'fldUAYRbqlHsRgwsV', boat: 'fldtopXF2ao919TmK', customer: 'fldQBwFPaxRc28c14',
@@ -189,9 +197,10 @@ function boatOut(r) {
     drive: sel(f[BOAT.style]), mmc: f[BOAT.mmc] || '', hin: f[BOAT.hin] || '', year: f[BOAT.year] || '',
     custIds: f[BOAT.customer] || [],
     engineMake: sel(f[BOAT.engineMake]), driveType: sel(f[BOAT.driveType]), engineModel: f[BOAT.engineModel] || '', hp: f[BOAT.hp] || '', oilFilter: f[BOAT.oilFilter] || '',
+    engineId: (f[BOAT.engine] || [])[0] || null,
   };
 }
-const BOAT_READ = [BOAT.name, BOAT.customer, BOAT.type, BOAT.length, BOAT.style, BOAT.mmc, BOAT.hin, BOAT.year, BOAT.engineMake, BOAT.driveType, BOAT.engineModel, BOAT.hp, BOAT.oilFilter];
+const BOAT_READ = [BOAT.name, BOAT.customer, BOAT.type, BOAT.length, BOAT.style, BOAT.mmc, BOAT.hin, BOAT.year, BOAT.engineMake, BOAT.driveType, BOAT.engineModel, BOAT.hp, BOAT.oilFilter, BOAT.engine];
 const CUST_READ = [CUST.name, CUST.phone, CUST.email, CUST.address, CUST.boats, CUST.portalKey, CUST.quotes];
 
 // ---- customer links (agreement now, boat profile later) ----
@@ -232,6 +241,7 @@ const clientIp = (event) => {
 };
 
 module.exports = {
+  ENG,
   BASE_ID, T, CUST, BOAT, CHK, AGR, PHOTO, REC_RE,
   json, fail, esc, str, num, date, recId, pick, sel, seasonFor, techForPin,
   QUOTE, ensurePortalKey, newPortalKey, agreementUrl, customerByKey, packageGuess, PKG_NAMES,

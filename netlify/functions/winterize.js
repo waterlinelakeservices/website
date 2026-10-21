@@ -18,7 +18,7 @@
 // Requires AIRTABLE_TOKEN with data.records:read and data.records:write.
 
 const W = require('./_wl');
-const { T, CUST, BOAT, CHK, AGR, PHOTO } = W;
+const { T, CUST, BOAT, CHK, AGR, PHOTO, ENG } = W;
 
 const JOB = {
   title: 'fldbOKhHgP76OppgA', boat: 'fldy6IAbehJhCLvB5', customer: 'fldaClMCLegvwjpMB',
@@ -127,6 +127,48 @@ function jobSummaryFields(s, tech) {
   Object.keys(f).forEach((k) => f[k] === undefined && delete f[k]);
   return f;
 }
+// ---- Engines table ----
+const ENGINE_CATEGORY = { 'Inboard, V-drive': 'Ski / Inboard', 'Inboard, direct drive': 'Ski / Inboard', 'Sterndrive (I/O)': 'Sterndrive (I/O)', 'Outboard': 'Outboard / Pontoon', 'Jet (PWC)': 'PWC' };
+const engineCategory = (drive, boatType) => ENGINE_CATEGORY[drive] || ({ 'Pontoon': 'Outboard / Pontoon', 'Jet Ski / PWC': 'PWC', 'Ski / Inboard': 'Ski / Inboard' }[boatType]) || '';
+// "F200XSA2, 6LH X 1002272" + Yamaha -> "Yamaha F200XSA2" (serials after a comma are dropped; the make goes in front)
+function engineName(make, model) {
+  let m = String(model || '').split(',')[0].replace(/\s+/g, ' ').trim();
+  if (!m) return '';
+  const mk = String(make || '').replace(/\s*\(.*\)$/, '').trim();
+  if (mk && mk !== 'Other' && !m.toLowerCase().startsWith(mk.toLowerCase())) m = mk + ' ' + m;
+  return m.slice(0, 120);
+}
+const engineOut = (r) => { const f = r.fields || {}; return { id: r.id, name: f[ENG.name] || '', category: sel(f[ENG.category]), make: f[ENG.make] || '', hp: f[ENG.hp] || '',
+  oil: f[ENG.oil] || '', qty: f[ENG.qty] || '', filter: f[ENG.filter] || '', verified: !!f[ENG.verified], impeller: f[ENG.impeller] || '' }; };
+// Link a boat to its engine row (creating the row the first time a model is seen) and share
+// the filter part # / horsepower between the boat and the engine, filling only blanks.
+async function syncEngine(token, boatId, b) {
+  if (!boatId || !b || !(b.engineModel || b.oilFilter)) return null;
+  const boat = await W.getRec(token, T.boats, boatId); const bf = boat.fields || {};
+  const make = b.engineMake || sel(bf[BOAT.engineMake]); const model = b.engineModel || bf[BOAT.engineModel] || '';
+  const hp = num(b.hp) || bf[BOAT.hp] || null; const boatFilter = String(b.oilFilter || bf[BOAT.oilFilter] || '').trim();
+  let engId = (bf[BOAT.engine] || [])[0] || null; let eng = null;
+  const name = engineName(make, model);
+  if (b.engineModel && name) {
+    const hit = await W.list(token, T.engines, { formula: `LOWER(TRIM({Engine}))="${esc(name.toLowerCase())}"`, max: 1 });
+    if (hit[0]) eng = hit[0];
+    else eng = await W.create(token, T.engines, { [ENG.name]: name, [ENG.category]: engineCategory(b.driveType || sel(bf[BOAT.driveType]), sel(bf[BOAT.type])) || undefined,
+      [ENG.make]: make && make !== 'Other' ? make.replace(/\s*\(.*\)$/, '') : undefined, [ENG.hp]: hp || undefined, [ENG.filter]: boatFilter || undefined,
+      [ENG.notes]: 'Added automatically from a check-in.' });
+    engId = eng.id;
+  } else if (engId) eng = await W.getRec(token, T.engines, engId).catch(() => null);
+  if (!eng) return null;
+  const ef = eng.fields || {}; const boatPatch = {}; const engPatch = {};
+  if ((bf[BOAT.engine] || [])[0] !== eng.id) boatPatch[BOAT.engine] = [eng.id];
+  if (!boatFilter && ef[ENG.filter]) boatPatch[BOAT.oilFilter] = ef[ENG.filter];
+  if (boatFilter && !ef[ENG.filter]) engPatch[ENG.filter] = boatFilter;
+  if (hp && !ef[ENG.hp]) engPatch[ENG.hp] = hp;
+  if (!bf[BOAT.hp] && ef[ENG.hp] && !b.hp) boatPatch[BOAT.hp] = ef[ENG.hp];
+  if (Object.keys(boatPatch).length) await W.patch(token, T.boats, boatId, boatPatch);
+  if (Object.keys(engPatch).length) await W.patch(token, T.engines, eng.id, engPatch);
+  return engineOut({ id: eng.id, fields: { ...ef, ...engPatch } });
+}
+
 function boatFields(b) {
   b = b || {};
   const f = {};
@@ -277,7 +319,13 @@ const actions = {
     const id = recId(p.boatId); const part = str(p.part, 80).trim();
     if (!id || !part) throw W.fail(400, 'Boat and part # required');
     await W.patch(token, T.boats, id, { [BOAT.oilFilter]: part });
+    await syncEngine(token, id, { oilFilter: part }).catch((e) => console.error('syncEngine', e.message));
     return { ok: true, part };
+  },
+  // Every engine we've seen, for check-in suggestions (the app filters by category).
+  async engines(token) {
+    const rows = await W.list(token, T.engines, { fields: Object.values(ENG).filter((f) => f !== ENG.boats && f !== ENG.notes), max: 1000 });
+    return { engines: rows.map(engineOut).filter((e) => e.name).sort((a, z) => a.name.localeCompare(z.name)) };
   },
 
   // ---- check-ins ----
@@ -374,7 +422,7 @@ const actions = {
       [CHK.agreement]: agrIds, [CHK.status]: status, [CHK.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); }
     // Re-point photos when the boat changes, and once more when the check-in is completed
     // (catches a photo that uploaded in the moment before the boat was linked).
     const prevBoat = (cur.fields[CHK.boat] || [])[0] || null;
@@ -578,7 +626,7 @@ const actions = {
       [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); }
     return { savedAt: Date.now() };
   },
 
@@ -677,3 +725,6 @@ exports.handler = async function (event) {
     return W.json(status, { ok: false, error: err.message || 'Airtable request failed' });
   }
 };
+
+// For tests only.
+exports._test = { syncEngine, engineName, engineCategory };
