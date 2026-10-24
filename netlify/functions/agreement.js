@@ -27,7 +27,7 @@ const { T, CUST, BOAT, CHK, AGR, PHOTO } = W;
 // One fingerprint per version of the text: storage terms, Anchor terms, or both.
 const DOCS = {};
 ['storage', 'anchor', 'both'].forEach((c) => { const doc = AT.compose(c); DOCS[c] = { doc, sha: crypto.createHash('sha256').update(VERSION + '\n' + c + '\n' + JSON.stringify(doc)).digest('hex') }; });
-const ACCESS_TEXT = 'I authorize Waterline Lake Services to access my property, dock, and lift at the location above to pick up, deliver, and/or service my boat(s) as this agreement describes.';
+const ACCESS_TEXT = 'I authorize Waterline Lake Services to access my property, dock, and lift at the address on file with Waterline to pick up, deliver, and/or service my boat(s) as this agreement describes.';
 const FACILITY = 'Waterline Storage Facility';
 const storageOf = (pkg) => AT.STORAGE_PACKAGES.includes(pkg) ? FACILITY : "Owner's lift or property";
 // Where the customer wants each battery kept after we disconnect it.
@@ -152,7 +152,7 @@ async function buildPdf(p) {
   y = H_ - 112;
 
   heading('Owner');
-  text(`Name: ${p.signer.name}`); text(`Email: ${p.signer.email}`);
+  text(`Name: ${p.signer.name}`); if (p.signer.email) text(`Email: ${p.signer.email}`);
   if (p.signer.phone) text(`Phone: ${p.signer.phone}`);
   if (p.signer.address) text(`Mailing address: ${p.signer.address}`);
   if (p.signer.quoteRef) text(`Quote / invoice reference: ${p.signer.quoteRef}`);
@@ -278,13 +278,15 @@ const actions = {
     if (!p.consent || !p.agree) throw W.fail(400, 'Please check the boxes to agree and consent to signing electronically.');
     if (!p.accessAck) throw W.fail(400, 'Please confirm we may access your property to pick up, deliver, or service your boat.');
     const access = { address: W.str(p.access && p.access.address, 250).trim(), notes: W.str(p.access && p.access.notes, 1000).trim() };
-    if (access.address.length < 5) throw W.fail(400, 'Please tell us where we pick up or service your boat (address, lake, or dock).');
     const signer = {
       name: W.str(p.signer && p.signer.name, 120).trim(), email: W.str(p.signer && p.signer.email, 160).trim(),
       phone: W.str(p.signer && p.signer.phone, 40).trim(), address: W.str(p.signer && p.signer.address, 250).trim(),
       quoteRef: W.str(p.signer && p.signer.quoteRef, 80).trim(),
     };
-    if (signer.name.length < 2 || !/^\S+@\S+\.\S+$/.test(signer.email)) throw W.fail(400, 'Please enter your full name and a valid email.');
+    if (signer.name.length < 2) throw W.fail(400, 'Please enter your full name.');
+    if (signer.email && !/^\S+@\S+\.\S+$/.test(signer.email)) signer.email = '';
+    // The pickup/service location is the address on file (the page no longer asks).
+    if (access.address.length < 5) access.address = signer.address || 'On file with Waterline';
     const sigType = p.sigType === 'Drawn' ? 'Drawn' : 'Typed';
     let sigPng = null, sigTyped = '';
     if (sigType === 'Drawn') {
@@ -385,7 +387,7 @@ const actions = {
 
     const rec = await W.create(token, T.agreements, {
       [AGR.ref]: ref, [AGR.customer]: [d.customer.id], [AGR.boats]: chosen, [AGR.status]: 'Signed', [AGR.season]: SEASON,
-      [AGR.signedAt]: signedAt.toISOString(), [AGR.name]: signer.name, [AGR.email]: signer.email, [AGR.phone]: signer.phone || undefined,
+      [AGR.signedAt]: signedAt.toISOString(), [AGR.name]: signer.name, [AGR.email]: signer.email || undefined, [AGR.phone]: signer.phone || undefined,
       [AGR.address]: signer.address, [AGR.quoteRef]: signer.quoteRef,
       [AGR.vessels]: vessels.map((v, i) => `${i + 1}. ${v.label}${v.hin ? ' | HIN ' + v.hin : ''} | ${v.package}`).join('\n'),
       [AGR.packages]: [...new Set(vessels.map((v) => v.package))],

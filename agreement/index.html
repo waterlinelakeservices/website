@@ -103,6 +103,9 @@ fieldset.pk legend { margin-bottom: 4px; }
 .pkopt > span { display: grid; gap: 1px; }
 .pkopt.on { border-color: #134E5E; box-shadow: inset 3px 0 0 #134E5E; }
 @media (max-width: 480px) { .answers { padding-left: 4px; } }
+dl.info { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 6px 0 0; font-size: 15px; }
+dl.info dt { color: var(--muted, #5c6e70); }
+dl.info dd { margin: 0; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -237,20 +240,10 @@ function render() {
         <dt>Existing damage</dt><dd>${esc(ci.damage || 'None noted')}</dd>${ci.items ? `<dt>Items aboard</dt><dd>${esc(ci.items)}</dd>` : ''}${ci.keys ? `<dt>Keys</dt><dd>${esc(ci.keys)}</dd>` : ''}</dl>
       ${ci.photos && ci.photos.length ? `<div class="pgrid">${ci.photos.map((p, i) => `<button data-photo="${ci.id}:${i}" aria-label="View photo: ${esc(p.cap)}"><img src="${esc(p.thumb)}" alt="${esc(p.cap)}" loading="lazy"></button>`).join('')}</div>`
         : ci.photoCount ? `<p class="small muted" style="margin:6px 0 0">${ci.photoCount} time-stamped photo${ci.photoCount === 1 ? '' : 's'} on file with us. Ask if you'd like copies.</p>` : ''}</div>`; }).join('')}
-    <label class="check"><input type="checkbox" id="condAck" ${S.condAck ? 'checked' : ''}><span>${esc(d.agreement.conditionText)}${photoCount ? ` (${photoCount} photo${photoCount === 1 ? '' : 's'} shown above)` : ''}</span></label>
   </section>` : ''}
 
   <section class="card">
-    <p class="label">Step ${n(3)}</p><h2>${combo() === 'anchor' ? 'Where we\u2019ll service your boat' : combo() === 'storage' ? 'Pickup location' : 'Pickup and service location'}</h2>
-    <p class="small muted" style="margin-top:-6px">${combo() === 'anchor' ? 'We\u2019ll winterize your boat at your lift or property, and it stays there for the winter.' : combo() === 'storage' ? 'We\u2019ll pick your boat up here, store it for the winter at the Waterline Storage Facility, and deliver it back here in the spring.' : 'We\u2019ll pick up your Harbor/Flagship boats here and store them at the Waterline Storage Facility; your Anchor boats are winterized here and stay put.'}</p>
-    ${storageSummary()}
-    <label class="f"><span>Address of your lift or dock (street, lake, dock)</span><input class="in-t" id="accessAddress" value="${esc(S.accessAddress ?? c.address)}" autocomplete="street-address"></label>
-    <label class="f"><span>Anything we should know to get there? (gate code, dock location, pets, lift notes)</span><textarea class="in-t" id="accessNotes" rows="2">${esc(S.accessNotes || '')}</textarea></label>
-    <label class="check"><input type="checkbox" id="accessAck" ${S.accessAck ? 'checked' : ''}><span>${esc(d.agreement.accessText)}</span></label>
-  </section>
-
-  <section class="card">
-    <p class="label">Step ${n(4)}</p><h2>Review the agreement</h2>
+    <p class="label">Step ${n(3)}</p><h2>Review the agreement</h2>
     ${(() => { const doc = d.agreement.docs[combo()].doc; return `
     <p class="small muted" style="margin-top:-6px">${combo() === 'both' ? 'You have boats on both on-site and storage packages, so this includes both sets of terms, labeled for each package.' : combo() === 'anchor' ? 'On-site (Anchor) terms: your boat stays at your lift or property.' : 'Storage terms: your boat is stored at our facility.'}</p>
     <div class="agreement" tabindex="0" aria-label="Agreement text">
@@ -261,21 +254,19 @@ function render() {
   </section>
 
   <section class="card">
-    <p class="label">Step ${n(5)}</p><h2>Your information</h2>
-    <div class="grid2">
-      <label class="f"><span>Full legal name</span><input class="in-t" id="name" autocomplete="name" value="${esc(S.name ?? c.name)}"></label>
-      <label class="f"><span>Email</span><input class="in-t" id="email" type="email" autocomplete="email" value="${esc(S.email ?? c.email)}"></label>
-      <label class="f"><span>Phone</span><input class="in-t" id="phone" type="tel" autocomplete="tel" value="${esc(S.phone ?? c.phone)}"></label>
-      <label class="f"><span>Quote / invoice # (if you have one)</span><input class="in-t" id="quoteRef" value="${esc(S.quoteRef ?? '')}"></label>
-    </div>
-    <label class="f"><span>Mailing address</span><input class="in-t" id="address" autocomplete="street-address" value="${esc(S.address ?? c.address)}"></label>
+    <p class="label">Step ${n(4)}</p><h2>Your information</h2>
+    <p class="small muted" style="margin-top:-6px">From our records. If anything's wrong, call or text us at (317) 258-8269 and we'll fix it.</p>
+    <dl class="info">${[['Name', c.name], ['Email', c.email], ['Cell', c.phone], ['Address', c.address]].filter(x => x[1]).map(x => `<dt>${x[0]}</dt><dd>${esc(x[1])}</dd>`).join('')}</dl>
+    ${(c.name || '').trim().length > 1 ? '' : `<label class="f"><span>Your full name</span><input class="in-t" id="name" autocomplete="name" value="${esc(S.name || '')}"></label>`}
   </section>
 
   <section class="card">
-    <p class="label">Step ${n(6)}</p><h2>Sign</h2>
+    <p class="label">Step ${n(5)}</p><h2>Sign</h2>
     <div class="tabs" role="tablist"><button role="tab" data-mode="Typed" aria-selected="${S.sigMode === 'Typed'}">Type</button><button role="tab" data-mode="Drawn" aria-selected="${S.sigMode === 'Drawn'}">Draw</button></div>
     ${S.sigMode === 'Typed' ? `<label class="f"><span>Type your full name</span><input class="in-t" id="typed" value="${esc(S.typed || '')}" autocomplete="off"></label><div class="typed" id="typedPreview">${esc(S.typed || '')}</div>`
       : `<canvas class="sig" id="sig" aria-label="Draw your signature with your finger"></canvas><button class="btn ghost" data-a="clearsig">Clear signature</button>`}
+    ${d.checkins.length ? `<label class="check"><input type="checkbox" id="condAck" ${S.condAck ? 'checked' : ''}><span>${esc(d.agreement.conditionText)}${photoCount ? ` (${photoCount} photo${photoCount === 1 ? '' : 's'} shown above)` : ''}</span></label>` : ''}
+    <label class="check"><input type="checkbox" id="accessAck" ${S.accessAck ? 'checked' : ''}><span>${esc(d.agreement.accessText)}</span></label>
     <label class="check"><input type="checkbox" id="agree" ${S.agree ? 'checked' : ''}><span>${esc(d.agreement.agreeText)}</span></label>
     <label class="check"><input type="checkbox" id="consent" ${S.consent ? 'checked' : ''}><span>${esc(d.agreement.consentText)}</span></label>
     ${S.err ? `<div class="banner err">${esc(S.err)}</div>` : ''}
@@ -293,10 +284,10 @@ function validate() {
   const sigOk = S.sigMode === 'Typed' ? (S.typed || '').trim().length > 1 : S.inked;
   const needAck = S.data.checkins.length > 0;
   const answersOk = included().every(x => { const b = S.bat[x.key] || {}; const o = S.data.battery.find(z => z.id === b.choice); return S.pkg[x.key] && o && (!o.needsNote || (b.note || '').trim().length > 1) && (!o.storageOnly || isStorage(S.pkg[x.key])); });
-  const accessOk = S.accessAck && (S.accessAddress ?? S.data.customer.address ?? '').trim().length >= 5;
+  const accessOk = !!S.accessAck;
   const hint = document.getElementById('hint');
-  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Tell us where we pick up or service your boat, and check the access box.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition report.' : '';
-  const ok = hasBoat && answersOk && accessOk && sigOk && S.agree && S.consent && (!needAck || S.condAck) && (S.name ?? S.data.customer.name).trim().length > 1 && /^\S+@\S+\.\S+$/.test((S.email ?? S.data.customer.email).trim());
+  if (hint) hint.textContent = !hasBoat ? 'Choose at least one boat.' : !answersOk ? 'Choose a package and battery option for each boat (Step 1).' : !accessOk ? 'Check the box allowing us to access your property.' : (needAck && !S.condAck) ? 'Confirm you reviewed the condition report.' : '';
+  const ok = hasBoat && answersOk && accessOk && sigOk && S.agree && S.consent && (!needAck || S.condAck) && ((S.data.customer.name || '').trim().length > 1 || (S.name || '').trim().length > 1);
   b.disabled = !ok;
 }
 
@@ -327,8 +318,9 @@ async function submit() {
     const r = await api('submit', {
       ...who, sha: d.agreement.docs[combo()].sha, boatIds: [...S.boats], extraVessels: S.extras,
       packages: Object.fromEntries(included().map(x => [x.key, S.pkg[x.key]])), battery: Object.fromEntries(included().map(x => [x.key, S.bat[x.key]])),
-      accessAck: !!S.accessAck, access: { address: (S.accessAddress ?? d.customer.address ?? '').trim(), notes: (S.accessNotes || '').trim() },
-      signer: { name: (S.name ?? d.customer.name).trim(), email: (S.email ?? d.customer.email).trim(), phone: (S.phone ?? d.customer.phone).trim(), address: (S.address ?? d.customer.address).trim(), quoteRef: (S.quoteRef || '').trim() },
+      accessAck: !!S.accessAck, access: { address: (d.customer.address || '').trim(), notes: '' },
+      // Customer details come from our records; the name box only shows when we don't have one.
+      signer: { name: (((d.customer.name || '').trim().length > 1 ? d.customer.name : S.name) || '').trim(), email: (d.customer.email || '').trim(), phone: (d.customer.phone || '').trim(), address: (d.customer.address || '').trim(), quoteRef: '' },
       sigType: S.sigMode, signature, agree: !!S.agree, consent: !!S.consent, conditionAck: !!S.condAck, submissionId: SUBMISSION_ID,
     });
     S.done = r; S.busy = false; render(); window.scrollTo(0, 0);
