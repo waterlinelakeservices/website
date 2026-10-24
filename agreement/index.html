@@ -181,15 +181,19 @@ function combo() {
   return st && an ? 'both' : an ? 'anchor' : 'storage';
 }
 function boatAnswers(k, fixed) {
-  const d = S.data; const pkg = S.pkg[k]; const b = S.bat[k] || {};
+  const d = S.data; const pkg = S.pkg[k];
+  // Stored boats (Harbor, Flagship): the battery always stays with the boat at Waterline, so no choice to make.
+  if (pkg && isStorage(pkg) && (!S.bat[k] || S.bat[k].choice !== 'waterline')) S.bat[k] = { choice: 'waterline' };
+  const b = S.bat[k] || {};
   const opts = d.battery.filter(o => !o.storageOnly || !pkg || isStorage(pkg));
   const opt = d.battery.find(o => o.id === b.choice);
   return `<div class="answers">
     ${fixed ? `<p class="small" style="margin:0 0 8px"><b>Package:</b> ${esc(pkg)} <span class="muted">(${esc((d.packages.find(p => p.name === pkg) || {}).blurb || '')})</span></p>` : `
     <fieldset class="pk"><legend class="small"><b>Package</b></legend>${d.packages.map(p => `<label class="pkopt${pkg === p.name ? ' on' : ''}"><input type="radio" name="pkg-${k}" data-pkg="${k}" value="${p.name}" ${pkg === p.name ? 'checked' : ''}><span><b>${esc(p.name)}</b><span class="small muted">${esc(p.blurb)}</span></span></label>`).join('')}</fieldset>`}
     ${pkg ? `<p class="small" style="margin:6px 0 0"><b>Winter storage:</b> ${isStorage(pkg) ? 'Waterline Storage Facility' : 'Stays at your lift or property'}</p>` : ''}
+    ${pkg && isStorage(pkg) ? `<p class="small" style="margin:8px 0 0"><b>Battery:</b> We\u2019ll disconnect it and store it with your boat at the Waterline Storage Facility.</p>` : `
     <label class="f" style="margin:8px 0 0"><span><b>Battery.</b> We'll disconnect it. Where should we keep it for the winter?</span>
-      <select class="in-t" data-bat="${k}"><option value="">Choose\u2026</option>${opts.map(o => `<option value="${o.id}" ${b.choice === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+      <select class="in-t" data-bat="${k}"><option value="">Choose\u2026</option>${opts.map(o => `<option value="${o.id}" ${b.choice === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>`}
     ${opt && opt.needsNote ? `<label class="f" style="margin:6px 0 0"><span>${b.choice === 'property' ? 'Where at your property? (garage, shed, basement\u2026)' : 'Tell us what you\u2019d like'}</span><input class="in-t" data-batnote="${k}" value="${esc(b.note || '')}"></label>` : ''}
   </div>`;
 }

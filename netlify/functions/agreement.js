@@ -326,8 +326,10 @@ const actions = {
     const vessel = (label, hin, key, boatId) => {
       const a = answers(key); const pkg = (boatId && ciPkg.get(boatId)) || a.pkg;
       if (!AT.PACKAGES.includes(pkg)) throw W.fail(400, `Please choose a package for ${label}.`);
-      const choice = a.bat && BATTERY[a.bat.choice] ? a.bat.choice : '';
-      const note = W.str(a.bat && a.bat.note, 200).trim();
+      // Stored boats (Harbor, Flagship) always keep the battery at Waterline with the boat; the page doesn't ask.
+      const stored = AT.STORAGE_PACKAGES.includes(pkg);
+      const choice = stored ? 'waterline' : (a.bat && BATTERY[a.bat.choice] ? a.bat.choice : '');
+      const note = stored ? '' : W.str(a.bat && a.bat.note, 200).trim();
       if (!choice || ((choice === 'property' || choice === 'other') && note.length < 2)) throw W.fail(400, `Please tell us where to keep the battery for ${label}.`);
       if (choice === 'waterline' && !AT.STORAGE_PACKAGES.includes(pkg)) throw W.fail(400, `We can only keep the battery for boats stored with us. Please choose another option for ${label}.`);
       return { label, hin, package: pkg, battery: batteryText({ choice, note }), boatId };
