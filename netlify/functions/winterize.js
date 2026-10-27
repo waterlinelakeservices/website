@@ -169,6 +169,35 @@ async function syncEngine(token, boatId, b) {
   return engineOut({ id: eng.id, fields: { ...ef, ...engPatch } });
 }
 
+// ---- HIN decoding: maker, build month, and model year from a standard 12-character HIN ----
+const HIN_MAKERS = { CTC: 'Correct Craft (Nautique)', YAM: 'Yamaha', KAW: 'Kawasaki', YDV: 'BRP (Sea-Doo)', ETW: 'Bennington', SYL: 'Sylvan',
+  SER: 'Sea Ray', FGE: 'Cobalt', FGB: 'Chaparral', GDY: 'Godfrey (Hurricane)', MBC: 'MasterCraft' };
+const MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+function decodeHin(hin) {
+  const h = String(hin || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!h) return null;
+  const maker = HIN_MAKERS[h.slice(0, 3)] || '';
+  if (h.length !== 12 || !/^[A-L]$/.test(h[8]) || !/^\d$/.test(h[9]) || !/^\d\d$/.test(h.slice(10))) {
+    return { maker, check: `Not a standard 12-character HIN (${h.length} characters); check for a typo (boats built before about 1985 can use an older format)` };
+  }
+  const yy = Number(h.slice(10)); const now = new Date().getFullYear();
+  const year = 2000 + yy <= now + 1 ? 2000 + yy : 1900 + yy;
+  let built = year; while (String(built).slice(-1) !== h[9] && built > year - 10) built -= 1;
+  return { maker, year, built: `${MONTHS['ABCDEFGHIJKL'.indexOf(h[8])]} ${built}`, check: maker ? '' : `Maker code ${h.slice(0, 3)} not in our list yet; look it up and add it` };
+}
+// Fill only the blank HIN-derived fields on a boat (never overwrites what's been entered).
+async function fillFromHin(token, boatId) {
+  if (!boatId) return;
+  const r = await W.getRec(token, T.boats, boatId); const f = r.fields || {};
+  const d = decodeHin(f[BOAT.hin]); if (!d) return;
+  const patch = {};
+  if (d.maker && !f[BOAT.hinMaker]) patch[BOAT.hinMaker] = d.maker;
+  if (d.built && !f[BOAT.hinBuilt]) patch[BOAT.hinBuilt] = d.built;
+  if (d.year && !f[BOAT.year]) patch[BOAT.year] = d.year;
+  if ((f[BOAT.hinCheck] || '') !== (d.check || '')) patch[BOAT.hinCheck] = d.check || null;
+  if (Object.keys(patch).length) await W.patch(token, T.boats, boatId, patch);
+}
+
 function boatFields(b) {
   b = b || {};
   const f = {};
@@ -422,7 +451,7 @@ const actions = {
       [CHK.agreement]: agrIds, [CHK.status]: status, [CHK.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); }
     // Re-point photos when the boat changes, and once more when the check-in is completed
     // (catches a photo that uploaded in the moment before the boat was linked).
     const prevBoat = (cur.fields[CHK.boat] || [])[0] || null;
@@ -626,7 +655,7 @@ const actions = {
       [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); }
     return { savedAt: Date.now() };
   },
 
@@ -727,4 +756,4 @@ exports.handler = async function (event) {
 };
 
 // For tests only.
-exports._test = { syncEngine, engineName, engineCategory };
+exports._test = { syncEngine, engineName, engineCategory, decodeHin, fillFromHin };

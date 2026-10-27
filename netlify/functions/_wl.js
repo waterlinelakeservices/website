@@ -39,6 +39,7 @@ const BOAT = {
   checkins: 'fldtkaf2mkplF4908', agreements: 'fld6Oui8hnVlz4bDx',
   engineMake: 'fldpzJHCJDuj3i0nn', driveType: 'fldlKIim0erxx0zfO', engineModel: 'flduQ30S2BV3GzCuG', hp: 'fldZoUzYfTi6ptBRF', oilFilter: 'fldVJpdXfkVt5GLFl',
   engine: 'fldA45P9Xgq1O5aOu',
+  hinMaker: 'fld2ST392NLLP3m1h', hinBuilt: 'fldMsT5dPZ8bIgw3P', hinCheck: 'fld4kRBQ7l0d4JD9T',
 };
 const CHK = {
   title: 'fldUAYRbqlHsRgwsV', boat: 'fldtopXF2ao919TmK', customer: 'fldQBwFPaxRc28c14',
