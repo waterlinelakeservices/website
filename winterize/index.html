@@ -1134,13 +1134,14 @@ async function linkBoat(b) {
 const CK_POINTS = [
   { id: "hin", t: "HIN plate", req: true, hint: "Upper right of the transom (starboard side); PWCs at the rear of the hull" },
   { id: "hours", t: "Hour meter and dash, key on", req: true },
+  { id: "helm", t: "Helm and console", req: true },
   { id: "bow", t: "Bow", req: true },
   { id: "port", t: "Port side (left)", req: true },
   { id: "stbd", t: "Starboard side (right)", req: true },
   { id: "stern", t: "Stern and transom", req: true },
-  { id: "helm", t: "Helm and console", req: true },
   { id: "interior", t: "Seats and interior" },
   { id: "engine", t: "Engine or motor" },
+  { id: "oilfilter", t: "Oil filter", hint: "Shows the filter brand and part number, for our records" },
   { id: "enginetag", t: "Engine label or tag", hint: "Make, model, and serial plate, for our records" },
   { id: "drive", t: "Prop and lower unit or drive" },
   { id: "trailer", t: "Trailer and tires" },
@@ -1188,6 +1189,8 @@ function ckEditEngine(key, value, rerender) {
 }
 // Engine details: what's been entered on this check-in, falling back to what's on the boat record.
 const ENGINE_MAKES = ["PCM", "Indmar", "Ilmor", "MerCruiser", "Volvo Penta", "Mercury", "Yamaha", "Suzuki", "Honda", "Evinrude", "Rotax (Sea-Doo)", "Other"];
+// Horsepower is only recorded for sterndrives and outboards (pontoons included).
+const HP_DRIVES = ["Sterndrive (I/O)", "Outboard"];
 const DRIVE_TYPES = ["Inboard, V-drive", "Inboard, direct drive", "Sterndrive (I/O)", "Outboard", "Jet (PWC)"];
 function ckEngine() {
   const c = S.ck || {}, b = c.boat || {}, e = c.engine || {};
@@ -1235,9 +1238,9 @@ function ckEngineCard() {
     <p class="small muted" style="margin-top:-6px">This boat's permanent record. Engine details save to the boat in Airtable (and can be edited there); they set the oil, filters, and parts we order and the winterization checklist steps.</p>
     <div class="f"><span class="small muted" style="display:block;margin-bottom:5px;font-weight:500">Drive type</span>
       <div class="filters" style="padding:0;flex-wrap:wrap">${DRIVE_TYPES.map(d => `<button data-drive="${d}" aria-pressed="${e.drive === d}">${esc(d)}</button>`).join("")}</div></div>
-    <div class="grid2">
+    <div class="${HP_DRIVES.includes(e.drive) ? "grid2" : ""}">
       <label class="f"><span>Engine make</span><select class="in-t" data-eng="make"><option value="">Choose\u2026</option>${ENGINE_MAKES.map(m => `<option ${e.make === m ? "selected" : ""}>${esc(m)}</option>`).join("")}</select></label>
-      <label class="f"><span>Horsepower</span><input class="in-t" type="number" inputmode="numeric" data-eng="hp" value="${esc(e.hp || "")}" placeholder="e.g. 150"></label>
+      ${HP_DRIVES.includes(e.drive) ? `<label class="f"><span>Horsepower</span><input class="in-t" type="number" inputmode="numeric" data-eng="hp" value="${esc(e.hp || "")}" placeholder="e.g. 150"></label>` : ""}
     </div>
     <label class="f"><span>Engine model (from the tag or decal)</span><input class="in-t" data-eng="model" list="engsugg" autocomplete="off" value="${esc(e.model || "")}" placeholder="e.g. PCM ZR6, MerCruiser 4.5L, Yamaha F150"></label>
     ${engSuggestions()}
@@ -1760,7 +1763,7 @@ function renderProfile() {
   const rows = a => a.map(r => `<div class="bp-row"><span>${esc(r[0])}</span><span>${r[1]}</span></div>`).join("");
   const box = (ic, t, inner, cls = "") => `<section class="bp-box ${cls}"><div class="bp-bh"><span class="bp-ic">${ic}</span><h3>${t}</h3></div>${inner}</section>`;
   const tiles = [["Engine", bpEngine(b) || "Not recorded"], ["Drive", b.driveType || "Not recorded"], ["Checklist", plan.type ? `${TYPES[plan.type].label}${plan.profile ? " \u00b7 " + plan.profile : ""}` : "Set drive type"], ["Length", b.length ? b.length + " ft" : "\u2014"]];
-  const eng = [["Horsepower", b.hp ? esc(b.hp) + " hp" : `<span class="warn">Not recorded</span>`], ["HIN", esc(b.hin || "\u2014") + (b.hin && normHin(b.hin).length !== 12 ? ` <span class="warn">(check)</span>` : (b.year ? ` (${esc(b.year)})` : ""))]];
+  const eng = [...(HP_DRIVES.includes(b.driveType) ? [["Horsepower", b.hp ? esc(b.hp) + " hp" : `<span class="warn">Not recorded</span>`]] : []), ["HIN", esc(b.hin || "\u2014") + (b.hin && normHin(b.hin).length !== 12 ? ` <span class="warn">(check)</span>` : (b.year ? ` (${esc(b.year)})` : ""))]];
   if (b.lastHours) eng.push(["Last engine hours", esc(b.lastHours)]);
   if (b.lastWint) eng.push(["Last winterized", esc(fmtDate(b.lastWint))]);
   const cond = (b.checkins || []).map(c => {
@@ -1833,7 +1836,7 @@ function bpPdf(all, customer) {
     head("Engine and drive");
     row("Engine", bpEngine(b) || "Not recorded"); row("Drive", b.driveType || "Not recorded");
     if (plan.type) row("Winterization", TYPES[plan.type].label + (plan.profile ? " \u00b7 " + plan.profile : ""));
-    if (b.hp) row("Horsepower", b.hp + " hp"); if (b.length) row("Length", b.length + " ft");
+    if (b.hp && HP_DRIVES.includes(b.driveType)) row("Horsepower", b.hp + " hp"); if (b.length) row("Length", b.length + " ft");
     if (b.hin && (!customer || normHin(b.hin).length === 12)) row("HIN", b.hin + (b.year ? ` (${b.year})` : ""));
     y += 8; head("Parts and fluids it takes");
     bpParts(b, ck).filter(r => !(customer && r[2])).forEach(r => row(r[0], r[1]));
