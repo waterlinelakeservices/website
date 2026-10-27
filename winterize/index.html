@@ -326,12 +326,14 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .jobhead .sigwarn { background: var(--sun); color: var(--deep-dark); border-color: var(--sun); }
 .jobrow .sigwarn { white-space: normal; line-height: 1.25; font-size: 11.5px; }
 .sigbanner { margin-top: 16px; }
+.camup { background: none; border: 0; color: var(--deep); font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 8px 6px; min-height: 40px; cursor: pointer; }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="toast" class="toast hide" role="status" aria-live="polite"></div>
 <input type="file" id="filepick" accept="image/*" capture="environment" multiple hidden>
+<input type="file" id="filepick2" accept="image/*" multiple hidden>
 <script>
 /* ============================================================
    PARTS & FLUIDS REFERENCE (from the shop's reference sheet)
@@ -719,10 +721,11 @@ async function removePhoto(id) {
 }
 // One camera input that is never redrawn, so a photo can't be lost if the screen refreshes while the camera is open.
 function camBtn(item, need, label) {
-  return `<button type="button" class="cam${need ? " need" : ""}" data-cam="${esc(item || "")}">${I.cam}${esc(label || "Photo")}</button>`;
+  return `<button type="button" class="cam${need ? " need" : ""}" data-cam="${esc(item || "")}">${I.cam}${esc(label || "Photo")}</button><button type="button" class="camup" data-camup="${esc(item || "")}" aria-label="Upload a photo from your phone">Upload</button>`;
 }
 let pickFor = null, pickKind = "job";
 document.getElementById("filepick").addEventListener("change", e => { const files = [...e.target.files]; e.target.value = ""; if (!files.length || pickFor === null) return; if (pickKind === "ck" ? S.ck : S.job) addPhotos(files, pickFor); });
+document.getElementById("filepick2").addEventListener("change", e => { const files = [...e.target.files]; e.target.value = ""; if (!files.length || pickFor === null) return; if (pickKind === "ck" ? S.ck : S.job) addPhotos(files, pickFor); });
 const thumbHtml = p => `<span class="th${p.qid ? " pending" : ""}"><img src="${esc(p.thumb || p.url || "")}" alt="${esc(p.cap || p.caption || "")}" loading="lazy"></span>`;
 
 /* ============================================================
@@ -1331,7 +1334,7 @@ async function removeCkPhoto(id) {
   try { await api("deletePhoto", { id, checkinId: S.ck.id }); S.ckPhotos = S.ckPhotos.filter(p => p.id !== id); ckRefreshPhotos(); ckSave({}); }
   catch (e) { toast(e.offline ? "You're offline. Delete it once you have signal." : "Couldn't delete: " + e.message, 4000); }
 }
-const ckCam = (item, need, label) => `<button type="button" class="cam${need ? " need" : ""}" data-ckcam="${item}">${I.cam}${esc(label)}</button>`;
+const ckCam = (item, need, label) => `<button type="button" class="cam${need ? " need" : ""}" data-ckcam="${item}">${I.cam}${esc(label)}</button><button type="button" class="camup" data-ckcamup="${item}" aria-label="Upload a photo from your phone">Upload</button>`;
 const CK_CHIP = { "In Progress": "prog", "Awaiting Signature": "rev", "Signed": "done", "Override": "prog" };
 const ckChip = s => `<span class="chip ${CK_CHIP[s] || ""}">${esc(s === "Awaiting Signature" ? "Needs signature" : s)}</span>`;
 
@@ -2028,6 +2031,7 @@ document.addEventListener("click", e => {
   if (S.ck && ckClick(t, d)) return;
   if (!S.job) return;
   if (d.cam !== undefined) { pickKind = "job"; pickFor = d.cam; document.getElementById("filepick").click(); return; }
+  if (d.camup !== undefined) { pickKind = "job"; pickFor = d.camup; document.getElementById("filepick2").click(); return; }
   if (d.tick) { setCheck(d.tick, { s: st(S.job, d.tick) === "done" ? "" : "done" }); rerenderItem(d.tick); return; }
   if (d.more) { S.openItems.has(d.more) ? S.openItems.delete(d.more) : S.openItems.add(d.more); rerenderItem(d.more); return; }
   if (d.na) { setCheck(d.na, { s: st(S.job, d.na) === "na" ? "" : "na" }); rerenderItem(d.na); return; }
@@ -2063,6 +2067,7 @@ document.addEventListener("click", e => {
 });
 function ckClick(t, d) {
   if (d.ckcam !== undefined) { pickKind = "ck"; pickFor = d.ckcam; document.getElementById("filepick").click(); return true; }
+  if (d.ckcamup !== undefined) { pickKind = "ck"; pickFor = d.ckcamup; document.getElementById("filepick2").click(); return true; }
   if (d.fuel) { ckSave({ fuel: S.ck.fuel === d.fuel ? "" : d.fuel }, true); return true; }
   if (d.drive) { const e = ckEngine(); ckEditEngine("drive", e.drive === d.drive ? "" : d.drive, true); return true; } // re-render refreshes the suggestion list
   if (d.pkg) { // Anchor boats stay put, so they're never "picked up by Waterline"
