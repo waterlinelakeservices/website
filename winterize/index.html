@@ -442,13 +442,11 @@ const SECTIONS = [
    {id:"lu_down", t:"Store motor trimmed fully DOWN (vertical) so cooling passages drain", photo:"opt"}
  ]},
  /* ---------- PWC ---------- */
- { id:"pwc_engine", title:"PWC engine", types:["PWC"], note:"Never run a PWC out of water for more than 15 seconds without water through the flush fitting.", items:[
-   {id:"pw_flush", t:"Flush cooling system per manual: start engine first, then turn on hose; run ~90 sec; hose off before engine"},
-   {id:"pw_blow", t:"Blow out water: rev briefly with hose off (10\u201315 sec max)"},
-   {id:"pw_oil", t:"Change engine oil and filter (4-stroke)", photo:"opt", part:"oil", filter:true, inputs:[{k:"qty",label:"Oil qty (qt)",type:"number"},{k:"filter",label:"Filter part #",type:"text"}]},
-   {id:"pw_fog", t:"Fog engine per manual (Sea-Doo: winterization/fogging mode in the gauge menu)"},
-   {id:"pw_af", t:"Add antifreeze through flush fitting if required; Sea-Doo closed-loop: test coolant", inputs:[{k:"f",label:"Freeze point (\u00b0F)",type:"number",job:"coolantF"}]},
-   {id:"pw_plugs", t:"Remove, inspect, and replace spark plugs if due"}
+ { id:"pwc_engine", title:"PWC engine", types:["PWC"], note:"Start the engine before turning on the hose, and turn the hose off before shutting the engine down. Never run a PWC out of water for more than 15 seconds.", items:[
+   {id:"pw_flush", t:"Antifreeze flush: start the engine, run it on the hose to a stable running temp, then switch the hose to antifreeze until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]},
+   {id:"pw_drain", t:"Drain the engine oil"},
+   {id:"pw_filter", t:"Change the oil filter", photo:"opt", filter:true, inputs:[{k:"filter",label:"Filter part #",type:"text"}]},
+   {id:"pw_fill", t:"Add new engine oil and check the level", part:"oil", inputs:[{k:"qty",label:"Oil added (qt)",type:"number"}]}
  ]},
  /* Battery last: the battery powers the oil pump, fogging, ballast, and trim work above. */
  { id:"battery", title:"Battery and electrical", types:ALL, items:[
