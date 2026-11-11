@@ -198,6 +198,15 @@ async function fillFromHin(token, boatId) {
   if (Object.keys(patch).length) await W.patch(token, T.boats, boatId, patch);
 }
 
+// Overnight lows for Columbus, IN (Open-Meteo, no key needed).
+async function forecastLows() {
+  const u = 'https://api.open-meteo.com/v1/forecast?latitude=39.2014&longitude=-85.9214&daily=temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FIndiana%2FIndianapolis&forecast_days=4';
+  const r = await fetch(u, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
+  if (!r.ok) return [];
+  const d = await r.json();
+  return (d.daily && d.daily.time || []).map((t, i) => ({ date: t, low: Math.round(d.daily.temperature_2m_min[i]) }));
+}
+
 function boatFields(b) {
   b = b || {};
   const f = {};
@@ -559,6 +568,52 @@ const actions = {
     }
     items.sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
     return { season, items };
+  },
+  // ---- Season dashboard: pipeline, freeze risk by boat type, needs check-in, in service ----
+  async dashboard(token) {
+    const season = W.seasonFor();
+    const QT = 'tblm3InsiBnTS1bqg';
+    const Q = { name: 'fld8v9zdSeO93a81d', phone: 'fldfSZkyJtdgHRDO6', status: 'fld5YYU6Sh9PvnxIK', desired: 'fldOI1Y7GHI5fG6LO', pkg: 'fldeBSzWondYxrmWG', boat: 'fldgPck8s39xsFFtx', type: 'fldt861BpC41uQlzj' };
+    const [cks, jobs, quotes, weather] = await Promise.all([
+      W.list(token, T.checkins, { formula: `{Season}="${season}"`, fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.jobs, CHK.stage, CHK.package, CHK.boat], max: 400 }),
+      W.list(token, T.jobs, { fields: [JOB.title, JOB.status, JOB.steps, JOB.state, JOB.checkin, JOB.tech, JOB.synced], max: 400 }),
+      W.list(token, QT, { formula: `OR({Status}="Quote Accepted",{Status}="Invoiced",{Status}="Paid",{Status}="Booked")`, fields: Object.values(Q), max: 400 }).catch(() => []),
+      forecastLows().catch(() => []),
+    ]);
+    const boatIds = [...new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean))];
+    const boats = boatIds.length ? await W.byIds(token, T.boats, boatIds, [BOAT.name, BOAT.type, BOAT.driveType, BOAT.mmc]) : [];
+    const boatById = new Map(boats.map((b) => [b.id, b.fields || {}]));
+    const jobById = new Map(jobs.map((j) => [j.id, j]));
+    const part = (t, i) => (String(t || '').split(' - ')[i] || '').trim();
+    const CAT_BY_TYPE = { DD: 'ski', VD: 'ski', IO: 'io', PT: 'outboard', OB: 'outboard', PWC: 'pwc' };
+    const CAT_BY_DRIVE = { 'Inboard, V-drive': 'ski', 'Inboard, direct drive': 'ski', 'Sterndrive (I/O)': 'io', 'Outboard': 'outboard', 'Jet (PWC)': 'pwc' };
+    const CAT_BY_BOATTYPE = { 'Pontoon': 'outboard', 'Jet Ski / PWC': 'pwc', 'Ski / Inboard': 'ski' };
+    const FLUSH = { ski: 'cr_flush', io: 'io_flush', pwc: 'pw_flush' };
+    const now = Date.now();
+    const out = cks.map((c) => {
+      const f = c.fields || {};
+      const j = (f[CHK.jobs] || []).map((id) => jobById.get(id)).filter(Boolean)
+        .sort((a, b) => String(b.fields[JOB.synced] || '').localeCompare(String(a.fields[JOB.synced] || '')))[0];
+      let st = null; if (j) { try { st = JSON.parse(j.fields[JOB.state] || 'null'); } catch (e) { st = null; } }
+      const bf = boatById.get((f[CHK.boat] || [])[0]) || {};
+      const cat = (st && CAT_BY_TYPE[st.type]) || CAT_BY_DRIVE[sel(bf[BOAT.driveType])] || CAT_BY_BOATTYPE[sel(bf[BOAT.type])] || 'unknown';
+      const jobStatus = j ? (sel(j.fields[JOB.status]) || 'In Progress') : '';
+      const stage = f[CHK.stage] || 'Checking in';
+      const flushId = FLUSH[cat];
+      const flushed = !!(flushId && st && st.checks && st.checks[flushId] && st.checks[flushId].s === 'done');
+      const done = stage === 'Complete' || jobStatus === 'Complete';
+      const at = f[CHK.at] ? Date.parse(f[CHK.at]) : null;
+      return { checkinId: c.id, jobId: j ? j.id : null, customer: part(f[CHK.title], 1), boat: bf[BOAT.mmc] || bf[BOAT.name] || part(f[CHK.title], 2),
+        hin: f[CHK.hin] || '', stage, signed: ['Signed', 'Override'].includes(sel(f[CHK.status])), package: sel(f[CHK.package]), cat,
+        protected: done || flushed, flushed, days: at ? Math.floor((now - at) / 86400000) : null,
+        steps: j ? (j.fields[JOB.steps] || '') : '', tech: j ? (j.fields[JOB.tech] || '') : '', jobStatus };
+    });
+    const inBoats = new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean));
+    const needsCheckin = quotes.filter((q) => { const b = (q.fields[Q.boat] || [])[0]; return !b || !inBoats.has(b); }).map((q) => {
+      const f = q.fields || {};
+      return { quoteId: q.id, customer: f[Q.name] || '', phone: f[Q.phone] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
+    });
+    return { season, today: new Date().toISOString().slice(0, 10), weather, boats: out, needsCheckin };
   },
   // Remove a winterization job and/or a check-in, with their photos.
   // Customers, boats, and signed agreements are never deleted here.

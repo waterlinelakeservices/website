@@ -328,6 +328,20 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .sigbanner { margin-top: 16px; }
 .camup { background: none; border: 0; color: var(--deep); font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 8px 6px; min-height: 40px; cursor: pointer; }
 #wl-upd { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; background: var(--sun); color: var(--deep-dark); border: 0; border-radius: 14px; padding: 14px 16px; font: inherit; font-weight: 700; font-size: 15px; box-shadow: 0 8px 24px rgba(12,57,68,.25); cursor: pointer; }
+.dhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dhead h2{margin:0}
+.dweather{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--glacier-tint,#E6F2F5);font-size:14px}
+.dweather.cold{background:#FBE4DF;color:#7A2414}.dweather em{font-style:normal;font-weight:600;flex-basis:100%}
+.dcat{border:1px solid var(--stone-2,#DCE4E5);border-radius:12px;margin-top:8px;overflow:hidden}
+.dcathead{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:56px}
+.dcathead b,.drow b{display:block;font-size:15px}.dcat.open{background:var(--glacier-tint,#F1F7F8)}.dcat .dlist{padding:0 10px 10px}
+.dright{display:flex;align-items:center;gap:10px;flex:none}.dcount{font-size:22px;font-weight:700;min-width:28px;text-align:right}.dchev{color:var(--muted)}
+.dpill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}.dpill.hi{background:#FBE4DF;color:#7A2414}.dpill.md{background:var(--sun-tint,#FBEEDB);color:var(--sun-ink,#8A5A12)}.dpill.lo{background:#E3EDE9;color:#2F5D50}
+.dlist{display:flex;flex-direction:column;gap:6px}
+.drow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--stone-2,#DCE4E5);background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.drow.static{cursor:default}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.dbar{display:grid;grid-template-columns:130px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.dbar.on{background:var(--glacier-tint,#E6F2F5)}.dbl{font-size:14px}.dtrack{height:18px;border-radius:6px;background:#EEF2F2;overflow:hidden;display:block}.dtrack span{display:block;height:100%;border-radius:6px}.dbn{text-align:right;font-weight:700}
+.dprog{display:block;height:8px;border-radius:4px;background:#EEF2F2;overflow:hidden;margin:6px 0 3px}.dprog i{display:block;height:100%;background:var(--pine,#2F5D50)}
 </style>
 </head>
 <body>
@@ -760,6 +774,7 @@ function render() {
   if (S.view === "job") return renderJob();
   if (S.view === "gate") return renderGate();
   if (S.view === "profile") return renderProfile();
+  if (S.view === "dash") return renderDash();
 }
 // Stage names match the Stage formula fields in Airtable.
 const STAGES = ["Checking in", "Awaiting signature", "Check-in complete", "In winterization", "Needs review", "Complete"];
@@ -812,7 +827,8 @@ function renderHome() {
   const pend = S.pendingPhotos.length;
   $app.innerHTML = topbar(false) + `<main class="wrap">
     <section class="hero"><h2>Boats in service${S.season ? ` <span class="muted" style="font-size:18px">${esc(S.season)}</span>` : ""}</h2><p class="muted" style="margin:6px 0 16px">Check each boat in first: condition photos and the customer's signature. Then run the winterization checklist from the same boat.</p>
-      <div class="startbtns"><button class="btn" data-a="new-ck">Check in a boat</button><button class="btn sec" data-a="new-job">Start a winterization</button></div></section>
+      <div class="startbtns"><button class="btn" data-a="new-ck">Check in a boat</button><button class="btn sec" data-a="new-job">Start a winterization</button></div>
+      <button class="btn sec block" data-a="dash" style="margin-top:10px">Season dashboard: freeze risk and pipeline</button></section>
     ${pend ? `<div class="banner">${pend} photo${pend > 1 ? "s" : ""} waiting to upload. ${navigator.onLine === false ? "They'll send when you have signal." : `<button class="btn ghost" data-a="retryphotos">Try now</button>`}</div>` : ""}
     <label class="f" style="margin-top:20px"><span>Find a boat</span><input class="in-t" id="q" type="search" placeholder="HIN, customer, or boat" value="${esc(S.q)}"></label>
     <div class="filters" role="group" aria-label="Filter by stage">${FILTERS.map(([key, label, fn]) => `<button data-filter="${key}" aria-pressed="${S.filter === key}">${label} (${items.filter(fn).length})</button>`).join("")}</div>
@@ -1868,6 +1884,79 @@ function bpPdf(all, customer) {
 }
 
 /* ============================================================
+   SEASON DASHBOARD: freeze risk by boat type, pipeline, needs check-in, in service
+   ============================================================ */
+const DASH_CATS = [
+  { k: "ski", label: "Ski boats", sub: "Inboard, raw-water or closed-cooled (heat exchanger)", risk: "High", tone: "hi", how: "Antifreeze flush step not checked off" },
+  { k: "io", label: "I/O (sterndrives)", sub: "Engine block and manifolds", risk: "High", tone: "hi", how: "Antifreeze flush step not checked off" },
+  { k: "pwc", label: "PWC", sub: "Jet skis and WaveRunners", risk: "Medium", tone: "md", how: "Antifreeze flush step not checked off" },
+  { k: "outboard", label: "Outboard / pontoon", sub: "Self-draining when tilted down", risk: "Lower", tone: "lo", how: "Winterization not finished" },
+  { k: "unknown", label: "Type not set", sub: "Set the drive type on the Boat Profile", risk: "Check", tone: "md", how: "Boat type unknown" },
+];
+const DASH_STAGES = ["Checking in", "Awaiting signature", "Check-in complete", "In winterization", "Needs review", "Complete"];
+const STAGE_LABEL = { "Checking in": "Checking in", "Awaiting signature": "Needs signature", "Check-in complete": "Ready to winterize", "In winterization": "In winterization", "Needs review": "Needs review", "Complete": "Complete" };
+async function loadDash() {
+  S.view = "dash"; S.dash = { loading: true, open: (S.dash && S.dash.open) || null };
+  history.replaceState(null, "", "/winterize/?view=dashboard"); render(); window.scrollTo(0, 0);
+  try { const r = await api("dashboard"); S.dash = { data: r, open: S.dash.open }; }
+  catch (e) { S.dash = { err: e.offline ? "You need signal to load the dashboard." : "Couldn't load the dashboard: " + e.message }; }
+  if (S.view === "dash") render();
+}
+function dashBoatRows(list) {
+  const all = S.dash.data.boats;
+  if (!list.length) return `<p class="small muted" style="margin:8px 0 0">None right now.</p>`;
+  return `<div class="dlist">${list.map(b => `<button type="button" class="drow" data-dashboat="${all.indexOf(b)}">
+    <span><b>${esc(b.customer || "No customer")}</b><span class="small muted">${esc([b.boat, b.hin].filter(Boolean).join(" \u00b7 "))}</span></span>
+    <span class="dmeta">${stageChip(b.stage)}${b.days != null ? `<span class="small muted">${b.days} day${b.days === 1 ? "" : "s"} in</span>` : ""}${b.steps ? `<span class="small muted">${esc(b.steps)} steps</span>` : ""}</span></button>`).join("")}</div>`;
+}
+function renderDash() {
+  const D = S.dash || {};
+  const head = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>Season dashboard</h1><button class="btn ghost" data-a="dashrefresh" style="margin-left:auto;color:#fff">Refresh</button></div></header>`;
+  if (D.loading) { $app.innerHTML = head + `<main class="wrap"><p class="empty">Loading the dashboard\u2026</p></main>`; return; }
+  if (D.err) { $app.innerHTML = head + `<main class="wrap"><div class="banner">${esc(D.err)}</div></main>`; return; }
+  const d = D.data; const boats = d.boats; const open = D.open;
+  const atRisk = boats.filter(b => !b.protected);
+  const lows = (d.weather || []).slice(0, 3);
+  const minLow = lows.length ? Math.min(...lows.map(w => w.low)) : null;
+  const dayName = iso => iso === d.today ? "Tonight" : new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  // 1. freeze risk by boat type
+  const cats = DASH_CATS.map(c => ({ ...c, list: atRisk.filter(b => b.cat === c.k).sort((a, z) => (z.days || 0) - (a.days || 0)) })).filter(c => c.k !== "unknown" || c.list.length);
+  const freeze = `<section class="card">
+    <div class="dhead"><h2>Freeze risk</h2><span class="small muted">${atRisk.length} boat${atRisk.length === 1 ? "" : "s"} not protected yet</span></div>
+    ${lows.length ? `<div class="dweather ${minLow <= 32 ? "cold" : ""}">${lows.map(w => `<span><b>${esc(dayName(w.date))}</b> ${w.low}\u00b0F</span>`).join("")}${minLow <= 32 ? `<em>Freezing temps forecast: flush high-risk boats first.</em>` : ""}</div>` : ""}
+    <p class="small muted" style="margin:6px 0 10px">Boats checked in this season whose antifreeze flush isn't checked off yet (outboards and pontoons: until their winterization is finished). Tap a type to see the boats.</p>
+    ${cats.map(c => `<div class="dcat${open === "cat:" + c.k ? " open" : ""}"><button type="button" class="dcathead" data-dashopen="cat:${c.k}" aria-expanded="${open === "cat:" + c.k}">
+      <span><b>${esc(c.label)}</b><span class="small muted">${esc(c.sub)}</span></span>
+      <span class="dright"><span class="dpill ${c.tone}">${esc(c.risk)}</span><span class="dcount">${c.list.length}</span><span class="dchev">${open === "cat:" + c.k ? "\u25b4" : "\u25be"}</span></span></button>
+      ${open === "cat:" + c.k ? `<p class="small muted" style="margin:2px 0 6px">${esc(c.how)}. Longest waiting first.</p>` + dashBoatRows(c.list) : ""}</div>`).join("")}
+  </section>`;
+  // 2. pipeline
+  const nc = d.needsCheckin || [];
+  const counts = DASH_STAGES.map(st => ({ st, n: boats.filter(b => b.stage === st).length }));
+  const max = Math.max(nc.length, ...counts.map(c => c.n), 1);
+  const barRow = (key, label, n, color) => `<button type="button" class="dbar${open === key ? " on" : ""}" data-dashopen="${key}"><span class="dbl">${esc(label)}</span><span class="dtrack"><span style="width:${Math.max(3, Math.round(n / max * 100))}%;background:${color}"></span></span><span class="dbn">${n}</span></button>`;
+  const color = st => ({ "Checking in": "var(--glacier)", "Awaiting signature": "var(--sun)", "Check-in complete": "var(--glacier)", "In winterization": "var(--deep)", "Needs review": "var(--sun)", "Complete": "var(--pine)" }[st]);
+  let pipeList = "";
+  if (open && open.startsWith("stage:")) { const st = open.slice(6); pipeList = dashBoatRows(boats.filter(b => b.stage === st)); }
+  if (open === "needs") {
+    const byDate = [...nc].sort((a, z) => String(a.desired || "9999").localeCompare(String(z.desired || "9999")));
+    pipeList = byDate.length ? `<div class="dlist">${byDate.map(q => `<div class="drow static"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.package, q.phone].filter(Boolean).join(" \u00b7 "))}</span></span>
+      <span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}</span></div>`).join("")}</div>` : `<p class="small muted">Everyone committed is checked in.</p>`;
+  }
+  const pipeline = `<section class="card"><div class="dhead"><h2>Season pipeline</h2><span class="small muted">Tap a bar to see the boats</span></div>
+    ${barRow("needs", "Needs check-in", nc.length, "var(--sun)")}
+    ${counts.map(c => barRow("stage:" + c.st, STAGE_LABEL[c.st], c.n, color(c.st))).join("")}
+    ${(open === "needs" || (open && open.startsWith("stage:"))) ? `<div style="margin-top:10px">${pipeList}</div>` : ""}</section>`;
+  // 3. in service
+  const insvc = boats.filter(b => b.jobId && b.jobStatus !== "Complete").map(b => { const m = String(b.steps || "").match(/(\d+)\s*\/\s*(\d+)/); return { b, done: m ? +m[1] : 0, total: m ? +m[2] : 0 }; })
+    .sort((a, z) => (a.total ? a.done / a.total : 0) - (z.total ? z.done / z.total : 0));
+  const service = `<section class="card"><div class="dhead"><h2>In service</h2><span class="small muted">${insvc.length} winterization${insvc.length === 1 ? "" : "s"} open, least done first</span></div>
+    ${insvc.length ? `<div class="dlist">${insvc.map(({ b, done, total }) => `<button type="button" class="drow" data-dashboat="${boats.indexOf(b)}"><span style="flex:1;min-width:0"><b>${esc(b.customer)}</b><span class="small muted">${esc([b.boat, b.tech].filter(Boolean).join(" \u00b7 "))}</span>
+      <span class="dprog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></span><span class="small muted">${total ? `${done} of ${total} steps` : "Not started"}${b.protected ? "" : " \u00b7 not flushed yet"}</span></span></button>`).join("")}</div>` : `<p class="small muted">No winterizations open.</p>`}</section>`;
+  $app.innerHTML = head + `<main class="wrap" style="padding-top:16px">${freeze}${pipeline}${service}</main>`;
+}
+
+/* ============================================================
    JOBS
    ============================================================ */
 async function loadBoard() {
@@ -2013,6 +2102,10 @@ document.addEventListener("click", e => {
   if (d.a === "delcancel" || (d.a === "delcancel-bg" && e.target === t)) { if (S.del && !S.del.busy) { S.del = null; render(); } return; }
   if (d.a === "delconfirm") { if (!S.del.busy) doRemove(); return; }
   if (d.bpopen) { loadProfile(d.bpopen); return; }
+  if (d.a === "dash") { loadDash(); return; }
+  if (d.dashopen !== undefined && S.dash) { S.dash.open = S.dash.open === d.dashopen ? null : d.dashopen; render(); return; }
+  if (d.dashboat !== undefined && S.dash) { const b = S.dash.data.boats[+d.dashboat]; S.view = "home"; openWorkspace({ checkinId: b.checkinId, jobId: b.jobId }, b.jobId ? "check" : "checkin"); return; }
+  if (d.a === "dashrefresh") { loadDash(); return; }
   if (d.bpboat && S.prof) { S.prof.cur = d.bpboat; history.replaceState(null, "", "/winterize/?boat=" + d.bpboat); render(); return; }
   if (d.a === "bpexport" && S.prof) { S.prof.exp = S.prof.exp ? null : { all: false, cust: true }; render(); return; }
   if (d.a === "bpdl" && S.prof && S.prof.exp) { try { bpPdf(S.prof.exp.all, S.prof.exp.cust); } catch (e) { toast("Couldn't build the PDF: " + e.message, 5000); } return; }
@@ -2299,6 +2392,7 @@ function afterLogin() {
   const q = new URLSearchParams(location.search);
   drainPhotoQueue();
   if (q.get("boat")) { loadProfile(q.get("boat")); return; }
+  if (q.get("view") === "dashboard") { loadDash(); return; }
   if (q.get("job") || q.get("checkin")) { openWorkspace({ jobId: q.get("job"), checkinId: q.get("checkin") }, q.get("tab") || undefined); return; }
   S.view = "home"; render(); loadBoard();
   if (q.get("hin")) { S.newHin = q.get("hin"); S.newMode = q.get("new") === "job" ? "job" : "ck"; S.view = "new"; render(); }
