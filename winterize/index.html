@@ -338,7 +338,11 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .dpill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}.dpill.hi{background:#FBE4DF;color:#7A2414}.dpill.md{background:var(--sun-tint,#FBEEDB);color:var(--sun-ink,#8A5A12)}.dpill.lo{background:#E3EDE9;color:#2F5D50}
 .dlist{display:flex;flex-direction:column;gap:6px}
 .drow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--stone-2,#DCE4E5);background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.drow.static{cursor:default}.drow.col{flex-direction:column;align-items:stretch;cursor:default}.drowtop{display:flex;justify-content:space-between;gap:10px}.dacts{display:flex;gap:8px;margin-top:8px}.btn.sm{min-height:40px;padding:6px 14px;font-size:14px}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.drow.static{cursor:default}.drow.col{flex-direction:column;align-items:stretch;cursor:default}.drowtop{display:flex;justify-content:space-between;gap:10px}.dacts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dbtn{font:inherit;font-size:13px;font-weight:600;min-height:34px;padding:4px 12px;border-radius:999px;cursor:pointer;border:1.5px solid transparent;line-height:1.2}
+.dbtn.win{background:var(--deep);color:#fff;border-color:var(--deep)}
+.dbtn.ck{background:var(--sun);color:var(--deep-dark);border-color:var(--sun)}
+.dbtn.prof{background:#fff;color:var(--deep);border-color:var(--stone-2,#DCE4E5)}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
 .dbar{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .dbar.on{background:var(--glacier-tint,#E6F2F5)}.dbl{font-size:14px}.dtrack{height:18px;border-radius:6px;background:#EEF2F2;overflow:hidden;display:block}.dtrack span{display:block;height:100%;border-radius:6px}.dbn{text-align:right;font-weight:700}
 .dprog{display:block;height:8px;border-radius:4px;background:#EEF2F2;overflow:hidden;margin:6px 0 3px}.dprog i{display:block;height:100%;background:var(--pine,#2F5D50)}
@@ -1903,7 +1907,7 @@ async function loadDash() {
   if (S.view === "dash") render();
 }
 function dashActs(b, i) {
-  return `<div class="dacts"><button type="button" class="btn sm" data-dashboat="${i}">${b.jobId ? "Checklist" : "Check-in"}</button>${b.boatId ? `<button type="button" class="btn sec sm" data-bpopen="${esc(b.boatId)}">Boat Profile</button>` : ""}</div>`;
+  return `<div class="dacts"><button type="button" class="dbtn ${b.jobId ? "win" : "ck"}" data-dashboat="${i}">${b.jobId ? "Winterization" : "Check-in"}</button>${b.boatId ? `<button type="button" class="dbtn prof" data-bpopen="${esc(b.boatId)}">Boat Profile</button>` : ""}</div>`;
 }
 function dashBoatRows(list) {
   const all = S.dash.data.boats;
@@ -1949,7 +1953,7 @@ function renderDash() {
   if (open === "needs") {
     const byDate = [...nc].sort((a, z) => String(a.desired || "9999").localeCompare(String(z.desired || "9999")));
     pipeList = byDate.length ? `<div class="dlist">${byDate.map(q => `<div class="drow static"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.package, q.phone].filter(Boolean).join(" \u00b7 "))}</span></span>
-      <span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}${q.boatId ? `<button type="button" class="btn sec sm" data-bpopen="${esc(q.boatId)}" style="margin-top:4px">Boat Profile</button>` : ""}</span></div>`).join("")}</div>` : `<p class="small muted">Everyone committed is checked in.</p>`;
+      <span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}${q.boatId ? `<button type="button" class="dbtn prof" data-bpopen="${esc(q.boatId)}" style="margin-top:4px">Boat Profile</button>` : ""}</span></div>`).join("")}</div>` : `<p class="small muted">Everyone committed is checked in.</p>`;
   }
   const pipeline = `<section class="card"><div class="dhead"><h2>Season pipeline</h2><span class="small muted">Tap a bar to see the boats</span></div>
     ${barRow("needs", "Needs check-in", nc.length, "var(--sun)")}
