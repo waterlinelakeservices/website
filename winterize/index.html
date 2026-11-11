@@ -330,7 +330,7 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 #wl-upd { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; background: var(--sun); color: var(--deep-dark); border: 0; border-radius: 14px; padding: 14px 16px; font: inherit; font-weight: 700; font-size: 15px; box-shadow: 0 8px 24px rgba(12,57,68,.25); cursor: pointer; }
 .dhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dhead h2{margin:0}
 .dweather{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--glacier-tint,#E6F2F5);font-size:14px}
-.dweather.cold{background:#FBE4DF;color:#7A2414}.dweather em{font-style:normal;font-weight:600;flex-basis:100%}
+.dweather.cold{background:#FBE4DF;color:#7A2414}.dweather .frz{font-weight:700;color:#7A2414}.dweather small{font-size:12px}.dweather em{font-style:normal;font-weight:600;flex-basis:100%}
 .dcat{border:1px solid var(--stone-2,#DCE4E5);border-radius:12px;margin-top:8px;overflow:hidden}
 .dcathead{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:56px}
 .dcathead b,.drow b{display:block;font-size:15px}.dcat.open{background:var(--glacier-tint,#F1F7F8)}.dcat .dlist{padding:0 10px 10px}
@@ -339,7 +339,7 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .dlist{display:flex;flex-direction:column;gap:6px}
 .drow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--stone-2,#DCE4E5);background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .drow.static{cursor:default}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
-.dbar{display:grid;grid-template-columns:130px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.dbar{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .dbar.on{background:var(--glacier-tint,#E6F2F5)}.dbl{font-size:14px}.dtrack{height:18px;border-radius:6px;background:#EEF2F2;overflow:hidden;display:block}.dtrack span{display:block;height:100%;border-radius:6px}.dbn{text-align:right;font-weight:700}
 .dprog{display:block;height:8px;border-radius:4px;background:#EEF2F2;overflow:hidden;margin:6px 0 3px}.dprog i{display:block;height:100%;background:var(--pine,#2F5D50)}
 </style>
@@ -1916,14 +1916,14 @@ function renderDash() {
   if (D.err) { $app.innerHTML = head + `<main class="wrap"><div class="banner">${esc(D.err)}</div></main>`; return; }
   const d = D.data; const boats = d.boats; const open = D.open;
   const atRisk = boats.filter(b => !b.protected);
-  const lows = (d.weather || []).slice(0, 3);
+  const lows = (d.weather || []).slice(0, 7);
   const minLow = lows.length ? Math.min(...lows.map(w => w.low)) : null;
   const dayName = iso => iso === d.today ? "Tonight" : new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
   // 1. freeze risk by boat type
   const cats = DASH_CATS.map(c => ({ ...c, list: atRisk.filter(b => b.cat === c.k).sort((a, z) => (z.days || 0) - (a.days || 0)) })).filter(c => c.k !== "unknown" || c.list.length);
   const freeze = `<section class="card">
     <div class="dhead"><h2>Freeze risk</h2><span class="small muted">${atRisk.length} boat${atRisk.length === 1 ? "" : "s"} not protected yet</span></div>
-    ${lows.length ? `<div class="dweather ${minLow <= 32 ? "cold" : ""}">${lows.map(w => `<span><b>${esc(dayName(w.date))}</b> ${w.low}\u00b0F</span>`).join("")}${minLow <= 32 ? `<em>Freezing temps forecast: flush high-risk boats first.</em>` : ""}</div>` : ""}
+    ${lows.length ? `<div class="dweather ${minLow <= 32 ? "cold" : ""}">${lows.map(w => `<span class="${w.low <= 32 ? "frz" : ""}"><b>${esc(dayName(w.date))}</b> ${w.low}\u00b0F</span>`).join("")}${minLow <= 32 ? `<em>Freezing temps in the 7-day forecast: flush high-risk boats first.</em>` : ""}<small class="muted" style="flex-basis:100%">Overnight lows for Columbus, IN (Open-Meteo forecast)</small></div>` : ""}
     <p class="small muted" style="margin:6px 0 10px">Boats checked in this season whose antifreeze flush isn't checked off yet (outboards and pontoons: until their winterization is finished). Tap a type to see the boats.</p>
     ${cats.map(c => `<div class="dcat${open === "cat:" + c.k ? " open" : ""}"><button type="button" class="dcathead" data-dashopen="cat:${c.k}" aria-expanded="${open === "cat:" + c.k}">
       <span><b>${esc(c.label)}</b><span class="small muted">${esc(c.sub)}</span></span>
@@ -1932,12 +1932,16 @@ function renderDash() {
   </section>`;
   // 2. pipeline
   const nc = d.needsCheckin || [];
+  const wint = boats.filter(b => b.stage === "In winterization");
   const counts = DASH_STAGES.map(st => ({ st, n: boats.filter(b => b.stage === st).length }));
+  const wRisk = wint.filter(b => !b.protected), wSafe = wint.filter(b => b.protected);
   const max = Math.max(nc.length, ...counts.map(c => c.n), 1);
   const barRow = (key, label, n, color) => `<button type="button" class="dbar${open === key ? " on" : ""}" data-dashopen="${key}"><span class="dbl">${esc(label)}</span><span class="dtrack"><span style="width:${Math.max(3, Math.round(n / max * 100))}%;background:${color}"></span></span><span class="dbn">${n}</span></button>`;
   const color = st => ({ "Checking in": "var(--glacier)", "Awaiting signature": "var(--sun)", "Check-in complete": "var(--glacier)", "In winterization": "var(--deep)", "Needs review": "var(--sun)", "Complete": "var(--pine)" }[st]);
   let pipeList = "";
-  if (open && open.startsWith("stage:")) { const st = open.slice(6); pipeList = dashBoatRows(boats.filter(b => b.stage === st)); }
+  if (open === "wint:risk") pipeList = dashBoatRows(wRisk);
+  else if (open === "wint:safe") pipeList = dashBoatRows(wSafe);
+  else if (open && open.startsWith("stage:")) { const st = open.slice(6); pipeList = dashBoatRows(boats.filter(b => b.stage === st)); }
   if (open === "needs") {
     const byDate = [...nc].sort((a, z) => String(a.desired || "9999").localeCompare(String(z.desired || "9999")));
     pipeList = byDate.length ? `<div class="dlist">${byDate.map(q => `<div class="drow static"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.package, q.phone].filter(Boolean).join(" \u00b7 "))}</span></span>
@@ -1945,8 +1949,11 @@ function renderDash() {
   }
   const pipeline = `<section class="card"><div class="dhead"><h2>Season pipeline</h2><span class="small muted">Tap a bar to see the boats</span></div>
     ${barRow("needs", "Needs check-in", nc.length, "var(--sun)")}
-    ${counts.map(c => barRow("stage:" + c.st, STAGE_LABEL[c.st], c.n, color(c.st))).join("")}
-    ${(open === "needs" || (open && open.startsWith("stage:"))) ? `<div style="margin-top:10px">${pipeList}</div>` : ""}</section>`;
+    ${counts.map(c => c.st === "In winterization"
+      ? barRow("wint:risk", "In winterization: at risk", wRisk.length, "#C0472F") + barRow("wint:safe", "In winterization: protected", wSafe.length, "var(--deep)")
+      : barRow("stage:" + c.st, STAGE_LABEL[c.st], c.n, color(c.st))).join("")}
+    <p class="small muted" style="margin:6px 0 0">At risk = antifreeze flush not checked off yet (outboards and pontoons: winterization not finished).</p>
+    ${(open === "needs" || (open && (open.startsWith("stage:") || open.startsWith("wint:")))) ? `<div style="margin-top:10px">${pipeList}</div>` : ""}</section>`;
   // 3. in service
   const insvc = boats.filter(b => b.jobId && b.jobStatus !== "Complete").map(b => { const m = String(b.steps || "").match(/(\d+)\s*\/\s*(\d+)/); return { b, done: m ? +m[1] : 0, total: m ? +m[2] : 0 }; })
     .sort((a, z) => (a.total ? a.done / a.total : 0) - (z.total ? z.done / z.total : 0));

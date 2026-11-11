@@ -200,7 +200,7 @@ async function fillFromHin(token, boatId) {
 
 // Overnight lows for Columbus, IN (Open-Meteo, no key needed).
 async function forecastLows() {
-  const u = 'https://api.open-meteo.com/v1/forecast?latitude=39.2014&longitude=-85.9214&daily=temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FIndiana%2FIndianapolis&forecast_days=4';
+  const u = 'https://api.open-meteo.com/v1/forecast?latitude=39.2014&longitude=-85.9214&daily=temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FIndiana%2FIndianapolis&forecast_days=7';
   const r = await fetch(u, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
   if (!r.ok) return [];
   const d = await r.json();
