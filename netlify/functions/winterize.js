@@ -590,7 +590,7 @@ const actions = {
       W.list(token, QT, { formula: `OR({Status}="Quote Accepted",{Status}="Invoiced",{Status}="Paid",{Status}="Booked")`, fields: Object.values(Q), max: 400 }).catch(() => []),
       forecastLows().catch(() => []),
     ]);
-    const boatIds = [...new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean))];
+    const boatIds = [...new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).concat(quotes.map((q) => (q.fields[Q.boat] || [])[0])).filter(Boolean))];
     const boats = boatIds.length ? await W.byIds(token, T.boats, boatIds, [BOAT.name, BOAT.type, BOAT.driveType, BOAT.mmc]) : [];
     const boatById = new Map(boats.map((b) => [b.id, b.fields || {}]));
     const jobById = new Map(jobs.map((j) => [j.id, j]));
@@ -598,6 +598,7 @@ const actions = {
     const CAT_BY_TYPE = { DD: 'ski', VD: 'ski', IO: 'io', PT: 'outboard', OB: 'outboard', PWC: 'pwc' };
     const CAT_BY_DRIVE = { 'Inboard, V-drive': 'ski', 'Inboard, direct drive': 'ski', 'Sterndrive (I/O)': 'io', 'Outboard': 'outboard', 'Jet (PWC)': 'pwc' };
     const CAT_BY_BOATTYPE = { 'Pontoon': 'outboard', 'Jet Ski / PWC': 'pwc', 'Ski / Inboard': 'ski' };
+    const catForBoat = (bf, fallbackType) => CAT_BY_DRIVE[sel(bf[BOAT.driveType])] || CAT_BY_BOATTYPE[sel(bf[BOAT.type])] || CAT_BY_BOATTYPE[fallbackType] || 'unknown';
     const FLUSH = { ski: 'cr_flush', io: 'io_flush', pwc: 'pw_flush' };
     const now = Date.now();
     const out = cks.map((c) => {
@@ -621,7 +622,8 @@ const actions = {
     const inBoats = new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean));
     const needsCheckin = quotes.filter((q) => { const b = (q.fields[Q.boat] || [])[0]; return !b || !inBoats.has(b); }).map((q) => {
       const f = q.fields || {};
-      return { quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
+      const qb = boatById.get((f[Q.boat] || [])[0]) || {};
+      return { cat: catForBoat(qb, sel(f[Q.type])), quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
     });
     return { season, today: new Date().toISOString().slice(0, 10), weather, boats: out, needsCheckin };
   },
