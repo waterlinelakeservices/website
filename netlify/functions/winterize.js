@@ -603,7 +603,7 @@ const actions = {
       const flushed = !!(flushId && st && st.checks && st.checks[flushId] && st.checks[flushId].s === 'done');
       const done = stage === 'Complete' || jobStatus === 'Complete';
       const at = f[CHK.at] ? Date.parse(f[CHK.at]) : null;
-      return { checkinId: c.id, jobId: j ? j.id : null, customer: part(f[CHK.title], 1), boat: bf[BOAT.mmc] || bf[BOAT.name] || part(f[CHK.title], 2),
+      return { checkinId: c.id, jobId: j ? j.id : null, boatId: (f[CHK.boat] || [])[0] || null, customer: part(f[CHK.title], 1), boat: bf[BOAT.mmc] || bf[BOAT.name] || part(f[CHK.title], 2),
         hin: f[CHK.hin] || '', stage, signed: ['Signed', 'Override'].includes(sel(f[CHK.status])), package: sel(f[CHK.package]), cat,
         protected: done || flushed, flushed, days: at ? Math.floor((now - at) / 86400000) : null,
         steps: j ? (j.fields[JOB.steps] || '') : '', tech: j ? (j.fields[JOB.tech] || '') : '', jobStatus };
@@ -611,7 +611,7 @@ const actions = {
     const inBoats = new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean));
     const needsCheckin = quotes.filter((q) => { const b = (q.fields[Q.boat] || [])[0]; return !b || !inBoats.has(b); }).map((q) => {
       const f = q.fields || {};
-      return { quoteId: q.id, customer: f[Q.name] || '', phone: f[Q.phone] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
+      return { quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
     });
     return { season, today: new Date().toISOString().slice(0, 10), weather, boats: out, needsCheckin };
   },

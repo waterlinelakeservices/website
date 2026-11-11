@@ -338,7 +338,7 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 .dpill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}.dpill.hi{background:#FBE4DF;color:#7A2414}.dpill.md{background:var(--sun-tint,#FBEEDB);color:var(--sun-ink,#8A5A12)}.dpill.lo{background:#E3EDE9;color:#2F5D50}
 .dlist{display:flex;flex-direction:column;gap:6px}
 .drow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--stone-2,#DCE4E5);background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.drow.static{cursor:default}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.drow.static{cursor:default}.drow.col{flex-direction:column;align-items:stretch;cursor:default}.drowtop{display:flex;justify-content:space-between;gap:10px}.dacts{display:flex;gap:8px;margin-top:8px}.btn.sm{min-height:40px;padding:6px 14px;font-size:14px}.dmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
 .dbar{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .dbar.on{background:var(--glacier-tint,#E6F2F5)}.dbl{font-size:14px}.dtrack{height:18px;border-radius:6px;background:#EEF2F2;overflow:hidden;display:block}.dtrack span{display:block;height:100%;border-radius:6px}.dbn{text-align:right;font-weight:700}
 .dprog{display:block;height:8px;border-radius:4px;background:#EEF2F2;overflow:hidden;margin:6px 0 3px}.dprog i{display:block;height:100%;background:var(--pine,#2F5D50)}
@@ -1902,12 +1902,16 @@ async function loadDash() {
   catch (e) { S.dash = { err: e.offline ? "You need signal to load the dashboard." : "Couldn't load the dashboard: " + e.message }; }
   if (S.view === "dash") render();
 }
+function dashActs(b, i) {
+  return `<div class="dacts"><button type="button" class="btn sm" data-dashboat="${i}">${b.jobId ? "Checklist" : "Check-in"}</button>${b.boatId ? `<button type="button" class="btn sec sm" data-bpopen="${esc(b.boatId)}">Boat Profile</button>` : ""}</div>`;
+}
 function dashBoatRows(list) {
   const all = S.dash.data.boats;
   if (!list.length) return `<p class="small muted" style="margin:8px 0 0">None right now.</p>`;
-  return `<div class="dlist">${list.map(b => `<button type="button" class="drow" data-dashboat="${all.indexOf(b)}">
-    <span><b>${esc(b.customer || "No customer")}</b><span class="small muted">${esc([b.boat, b.hin].filter(Boolean).join(" \u00b7 "))}</span></span>
-    <span class="dmeta">${stageChip(b.stage)}${b.days != null ? `<span class="small muted">${b.days} day${b.days === 1 ? "" : "s"} in</span>` : ""}${b.steps ? `<span class="small muted">${esc(b.steps)} steps</span>` : ""}</span></button>`).join("")}</div>`;
+  return `<div class="dlist">${list.map(b => `<div class="drow col">
+    <div class="drowtop"><span><b>${esc(b.customer || "No customer")}</b><span class="small muted">${esc([b.boat, b.hin].filter(Boolean).join(" \u00b7 "))}</span></span>
+    <span class="dmeta">${stageChip(b.stage)}${b.days != null ? `<span class="small muted">${b.days} day${b.days === 1 ? "" : "s"} in</span>` : ""}${b.steps ? `<span class="small muted">${esc(b.steps)} steps</span>` : ""}</span></div>
+    ${dashActs(b, all.indexOf(b))}</div>`).join("")}</div>`;
 }
 function renderDash() {
   const D = S.dash || {};
@@ -1945,7 +1949,7 @@ function renderDash() {
   if (open === "needs") {
     const byDate = [...nc].sort((a, z) => String(a.desired || "9999").localeCompare(String(z.desired || "9999")));
     pipeList = byDate.length ? `<div class="dlist">${byDate.map(q => `<div class="drow static"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.package, q.phone].filter(Boolean).join(" \u00b7 "))}</span></span>
-      <span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}</span></div>`).join("")}</div>` : `<p class="small muted">Everyone committed is checked in.</p>`;
+      <span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}${q.boatId ? `<button type="button" class="btn sec sm" data-bpopen="${esc(q.boatId)}" style="margin-top:4px">Boat Profile</button>` : ""}</span></div>`).join("")}</div>` : `<p class="small muted">Everyone committed is checked in.</p>`;
   }
   const pipeline = `<section class="card"><div class="dhead"><h2>Season pipeline</h2><span class="small muted">Tap a bar to see the boats</span></div>
     ${barRow("needs", "Needs check-in", nc.length, "var(--sun)")}
@@ -1958,8 +1962,8 @@ function renderDash() {
   const insvc = boats.filter(b => b.jobId && b.jobStatus !== "Complete").map(b => { const m = String(b.steps || "").match(/(\d+)\s*\/\s*(\d+)/); return { b, done: m ? +m[1] : 0, total: m ? +m[2] : 0 }; })
     .sort((a, z) => (a.total ? a.done / a.total : 0) - (z.total ? z.done / z.total : 0));
   const service = `<section class="card"><div class="dhead"><h2>In service</h2><span class="small muted">${insvc.length} winterization${insvc.length === 1 ? "" : "s"} open, least done first</span></div>
-    ${insvc.length ? `<div class="dlist">${insvc.map(({ b, done, total }) => `<button type="button" class="drow" data-dashboat="${boats.indexOf(b)}"><span style="flex:1;min-width:0"><b>${esc(b.customer)}</b><span class="small muted">${esc([b.boat, b.tech].filter(Boolean).join(" \u00b7 "))}</span>
-      <span class="dprog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></span><span class="small muted">${total ? `${done} of ${total} steps` : "Not started"}${b.protected ? "" : " \u00b7 not flushed yet"}</span></span></button>`).join("")}</div>` : `<p class="small muted">No winterizations open.</p>`}</section>`;
+    ${insvc.length ? `<div class="dlist">${insvc.map(({ b, done, total }) => `<div class="drow col"><span style="min-width:0"><b>${esc(b.customer)}</b><span class="small muted">${esc([b.boat, b.tech].filter(Boolean).join(" \u00b7 "))}</span>
+      <span class="dprog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></span><span class="small muted">${total ? `${done} of ${total} steps` : "Not started"}${b.protected ? "" : " \u00b7 not flushed yet"}</span></span>${dashActs(b, boats.indexOf(b))}</div>`).join("")}</div>` : `<p class="small muted">No winterizations open.</p>`}</section>`;
   $app.innerHTML = head + `<main class="wrap" style="padding-top:16px">${freeze}${pipeline}${service}</main>`;
 }
 
@@ -2102,16 +2106,17 @@ document.addEventListener("click", e => {
   const t = e.target.closest("button,summary,.sheet[data-a]"); if (!t) return; const d = t.dataset;
   if (t.tagName === "SUMMARY") { const box = t.parentElement; const sec = box.dataset.sec; if (sec) setTimeout(() => { box.open ? S.open.add(sec) : S.open.delete(sec); }); return; }
   if (d.a === "signout") { if (confirm("Sign out on this device?")) signOut(); return; }
-  if (d.a === "home") { if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); } S.view = "home"; S.job = null; S.ck = null; S.sheet = null; history.replaceState(null, "", "/winterize/"); render(); loadBoard(); window.scrollTo(0, 0); return; }
+  if (d.a === "home" && S.backToDash && S.view !== "dash") { if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); } S.job = null; S.ck = null; S.sheet = null; S.backToDash = false; loadDash(); return; }
+  if (d.a === "home") { S.backToDash = false; if (S.job && saveTimer) { clearTimeout(saveTimer); flush(); } if (S.ck && ckTimer) { clearTimeout(ckTimer); ckFlush(); } S.view = "home"; S.job = null; S.ck = null; S.sheet = null; history.replaceState(null, "", "/winterize/"); render(); loadBoard(); window.scrollTo(0, 0); return; }
   if (d.a === "reload") { S.board = null; render(); loadBoard(); return; }
   if (d.card !== undefined) { const it = S.board[+d.card]; openWorkspace({ jobId: it.jobId, checkinId: it.checkinId }, it.jobId ? undefined : "checkin"); return; }
   if (d.delcard !== undefined) { const it = S.board[+d.delcard]; const signedCk = it.checkin && ["Signed", "Override"].includes(it.checkin.status); S.del = { item: it, job: !!it.jobId, ck: !!(it.checkinId && it.checkin) && !(it.jobId && signedCk) }; render(); setTimeout(() => { const b = document.querySelector('[data-a="delcancel"]'); b && b.focus(); }, 30); return; }
   if (d.a === "delcancel" || (d.a === "delcancel-bg" && e.target === t)) { if (S.del && !S.del.busy) { S.del = null; render(); } return; }
   if (d.a === "delconfirm") { if (!S.del.busy) doRemove(); return; }
-  if (d.bpopen) { loadProfile(d.bpopen); return; }
+  if (d.bpopen) { S.backToDash = S.view === "dash"; loadProfile(d.bpopen); return; }
   if (d.a === "dash") { loadDash(); return; }
   if (d.dashopen !== undefined && S.dash) { S.dash.open = S.dash.open === d.dashopen ? null : d.dashopen; render(); return; }
-  if (d.dashboat !== undefined && S.dash) { const b = S.dash.data.boats[+d.dashboat]; S.view = "home"; openWorkspace({ checkinId: b.checkinId, jobId: b.jobId }, b.jobId ? "check" : "checkin"); return; }
+  if (d.dashboat !== undefined && S.dash) { const b = S.dash.data.boats[+d.dashboat]; S.backToDash = true; S.view = "home"; openWorkspace({ checkinId: b.checkinId, jobId: b.jobId }, b.jobId ? "check" : "checkin"); return; }
   if (d.a === "dashrefresh") { loadDash(); return; }
   if (d.bpboat && S.prof) { S.prof.cur = d.bpboat; history.replaceState(null, "", "/winterize/?boat=" + d.bpboat); render(); return; }
   if (d.a === "bpexport" && S.prof) { S.prof.exp = S.prof.exp ? null : { all: false, cust: true }; render(); return; }
