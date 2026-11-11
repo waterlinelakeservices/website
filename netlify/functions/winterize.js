@@ -200,11 +200,11 @@ async function fillFromHin(token, boatId) {
 
 // Overnight lows for Columbus, IN (Open-Meteo, no key needed).
 async function forecastLows() {
-  const u = 'https://api.open-meteo.com/v1/forecast?latitude=39.2014&longitude=-85.9214&daily=temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FIndiana%2FIndianapolis&forecast_days=7';
+  const u = 'https://api.open-meteo.com/v1/forecast?latitude=39.2014&longitude=-85.9214&daily=temperature_2m_min,temperature_2m_max&temperature_unit=fahrenheit&timezone=America%2FIndiana%2FIndianapolis&forecast_days=7';
   const r = await fetch(u, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
   if (!r.ok) return [];
   const d = await r.json();
-  return (d.daily && d.daily.time || []).map((t, i) => ({ date: t, low: Math.round(d.daily.temperature_2m_min[i]) }));
+  return (d.daily && d.daily.time || []).map((t, i) => ({ date: t, low: Math.round(d.daily.temperature_2m_min[i]), high: Math.round(d.daily.temperature_2m_max[i]) }));
 }
 
 function boatFields(b) {
@@ -573,7 +573,7 @@ const actions = {
   async dashboard(token) {
     const season = W.seasonFor();
     const QT = 'tblm3InsiBnTS1bqg';
-    const Q = { name: 'fld8v9zdSeO93a81d', phone: 'fldfSZkyJtdgHRDO6', status: 'fld5YYU6Sh9PvnxIK', desired: 'fldOI1Y7GHI5fG6LO', pkg: 'fldeBSzWondYxrmWG', boat: 'fldgPck8s39xsFFtx', type: 'fldt861BpC41uQlzj' };
+    const Q = { name: 'fld8v9zdSeO93a81d', phone: 'fldfSZkyJtdgHRDO6', address: 'fldKSV2EQMXZHls5l', notes: 'fldnnsP0gdbFklEc3', status: 'fld5YYU6Sh9PvnxIK', desired: 'fldOI1Y7GHI5fG6LO', pkg: 'fldeBSzWondYxrmWG', boat: 'fldgPck8s39xsFFtx', type: 'fldt861BpC41uQlzj' };
     const [cks, jobs, quotes, weather] = await Promise.all([
       W.list(token, T.checkins, { formula: `{Season}="${season}"`, fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.jobs, CHK.stage, CHK.package, CHK.boat], max: 400 }),
       W.list(token, T.jobs, { fields: [JOB.title, JOB.status, JOB.steps, JOB.state, JOB.checkin, JOB.tech, JOB.synced], max: 400 }),
@@ -611,7 +611,7 @@ const actions = {
     const inBoats = new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean));
     const needsCheckin = quotes.filter((q) => { const b = (q.fields[Q.boat] || [])[0]; return !b || !inBoats.has(b); }).map((q) => {
       const f = q.fields || {};
-      return { quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
+      return { quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
     });
     return { season, today: new Date().toISOString().slice(0, 10), weather, boats: out, needsCheckin };
   },

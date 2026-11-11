@@ -330,7 +330,14 @@ table.parts button.del { background: none; border: 0; color: var(--danger); font
 #wl-upd { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 60; background: var(--sun); color: var(--deep-dark); border: 0; border-radius: 14px; padding: 14px 16px; font: inherit; font-weight: 700; font-size: 15px; box-shadow: 0 8px 24px rgba(12,57,68,.25); cursor: pointer; }
 .dhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dhead h2{margin:0}
 .dweather{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--glacier-tint,#E6F2F5);font-size:14px}
-.dweather.cold{background:#FBE4DF;color:#7A2414}.dweather .frz{font-weight:700;color:#7A2414}.dweather small{font-size:12px}.dweather em{font-style:normal;font-weight:600;flex-basis:100%}
+.dweather.cold{background:#FBE4DF;color:#7A2414}.dweather small{font-size:12px;flex-basis:100%;line-height:1.5}.dweather em.ok{color:var(--pine,#2F5D50)}
+.dwdays{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%}.dwd{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:6px 8px;border-radius:10px;font-size:13px;background:#fff;border:1.5px solid transparent}
+.dwd b{font-size:12px}.dwd.green{border-color:#9CC5B3;color:#1F4A3E}.dwd.amber{border-color:#E7A24C;background:#FBEEDB;color:#7A4E10}.dwd.red{border-color:#C0472F;background:#C0472F;color:#fff}
+.kg{color:#2F5D50}.ka{color:#8A5A12}.kr{color:#C0472F}
+.dfilt{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}.dfilt button{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid var(--stone-2,#DCE4E5);background:#fff;color:var(--deep);cursor:pointer;min-height:34px}
+.dfilt button[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.dday{margin:14px 0 6px;font-weight:700;font-size:14px}.dday.late{color:#C0472F}
+a.dbtn{display:inline-flex;align-items:center;text-decoration:none}.dweather em{font-style:normal;font-weight:600;flex-basis:100%}
 .dcat{border:1px solid var(--stone-2,#DCE4E5);border-radius:12px;margin-top:8px;overflow:hidden}
 .dcathead{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:56px}
 .dcathead b,.drow b{display:block;font-size:15px}.dcat.open{background:var(--glacier-tint,#F1F7F8)}.dcat .dlist{padding:0 10px 10px}
@@ -1925,13 +1932,20 @@ function renderDash() {
   const d = D.data; const boats = d.boats; const open = D.open;
   const atRisk = boats.filter(b => !b.protected);
   const lows = (d.weather || []).slice(0, 7);
-  const minLow = lows.length ? Math.min(...lows.map(w => w.low)) : null;
-  const dayName = iso => iso === d.today ? "Tonight" : new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  // Freeze risk: the day stays at/below freezing, or a hard freeze (25°F or colder). A light overnight frost that thaws by day is low risk.
+  const dayRisk = w => (w.high != null && w.high <= 32) || w.low <= 25 ? "red" : w.low < 32 ? "amber" : "green";
+  const risks = lows.map(dayRisk);
+  const anyRed = risks.includes("red");
+  let streak = 0, maxStreak = 0; lows.forEach(w => { if (w.high != null && w.high <= 32) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
+  const firstRed = lows.find((w, i) => risks[i] === "red");
+  const dayName = iso => iso === d.today ? "Today" : new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
   // 1. freeze risk by boat type
   const cats = DASH_CATS.map(c => ({ ...c, list: atRisk.filter(b => b.cat === c.k).sort((a, z) => (z.days || 0) - (a.days || 0)) })).filter(c => c.k !== "unknown" || c.list.length);
   const freeze = `<section class="card">
     <div class="dhead"><h2>Freeze risk</h2><span class="small muted">${atRisk.length} boat${atRisk.length === 1 ? "" : "s"} not protected yet</span></div>
-    ${lows.length ? `<div class="dweather ${minLow <= 32 ? "cold" : ""}">${lows.map(w => `<span class="${w.low <= 32 ? "frz" : ""}"><b>${esc(dayName(w.date))}</b> ${w.low}\u00b0F</span>`).join("")}${minLow <= 32 ? `<em>Freezing temps in the 7-day forecast: flush high-risk boats first.</em>` : ""}<small class="muted" style="flex-basis:100%">Overnight lows for Columbus, IN (Open-Meteo forecast)</small></div>` : ""}
+    ${lows.length ? `<div class="dweather ${anyRed ? "cold" : ""}"><div class="dwdays">${lows.map((w, i) => `<span class="dwd ${risks[i]}"><b>${esc(dayName(w.date))}</b><span>${w.high != null ? w.high + "\u00b0 / " : ""}${w.low}\u00b0</span></span>`).join("")}</div>
+      ${anyRed ? `<em>${maxStreak >= 2 ? `Below freezing all day for ${maxStreak} days in a row` : `Freeze risk ${esc(dayName(firstRed.date))}${firstRed.high <= 32 ? " (stays below freezing all day)" : ` (hard freeze, ${firstRed.low}\u00b0F)`}`}: flush high-risk boats first.</em>` : risks.includes("amber") ? `<em class="ok">Light overnight frost only; days warm above freezing. Low risk.</em>` : `<em class="ok">No freezing temps in the 7-day forecast.</em>`}
+      <small class="muted">High / low for Columbus, IN (Open-Meteo). <b class="kg">Green</b> above freezing \u00b7 <b class="ka">Amber</b> light frost, thaws by day \u00b7 <b class="kr">Red</b> stays below 32\u00b0F or drops to 25\u00b0F or colder.</small></div>` : ""}
     <p class="small muted" style="margin:6px 0 10px">Boats checked in this season whose antifreeze flush isn't checked off yet (outboards and pontoons: until their winterization is finished). Tap a type to see the boats.</p>
     ${cats.map(c => `<div class="dcat${open === "cat:" + c.k ? " open" : ""}"><button type="button" class="dcathead" data-dashopen="cat:${c.k}" aria-expanded="${open === "cat:" + c.k}">
       <span><b>${esc(c.label)}</b><span class="small muted">${esc(c.sub)}</span></span>
@@ -1968,7 +1982,22 @@ function renderDash() {
   const service = `<section class="card"><div class="dhead"><h2>In service</h2><span class="small muted">${insvc.length} winterization${insvc.length === 1 ? "" : "s"} open, least done first</span></div>
     ${insvc.length ? `<div class="dlist">${insvc.map(({ b, done, total }) => `<div class="drow col"><span style="min-width:0"><b>${esc(b.customer)}</b><span class="small muted">${esc([b.boat, b.tech].filter(Boolean).join(" \u00b7 "))}</span>
       <span class="dprog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></span><span class="small muted">${total ? `${done} of ${total} steps` : "Not started"}${b.protected ? "" : " \u00b7 not flushed yet"}</span></span>${dashActs(b, boats.indexOf(b))}</div>`).join("")}</div>` : `<p class="small muted">No winterizations open.</p>`}</section>`;
-  $app.innerHTML = head + `<main class="wrap" style="padding-top:16px">${freeze}${pipeline}${service}</main>`;
+  // 4. schedule: committed boats with a scheduled date that aren't checked in yet
+  const sf = D.schedFilter || "all";
+  const sched = nc.filter(q => q.desired).filter(q => sf === "all" || (sf === "anchor" ? q.package === "Anchor" : q.package !== "Anchor"))
+    .sort((a, z) => a.desired.localeCompare(z.desired) || a.customer.localeCompare(z.customer));
+  const groups = []; sched.forEach(q => { const k = q.desired < d.today ? "overdue" : q.desired; let g = groups.find(x => x.k === k); if (!g) { g = { k, list: [] }; groups.push(g); } g.list.push(q); });
+  const fmtDay = iso => new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  const tel = p => String(p || "").replace(/[^0-9+]/g, "");
+  const nAnchor = nc.filter(q => q.desired && q.package === "Anchor").length, nPick = nc.filter(q => q.desired && q.package !== "Anchor").length;
+  const schedule = `<section class="card" id="dsched"><div class="dhead"><h2>Pickup and service schedule</h2><span class="small muted">Scheduled, not checked in yet</span></div>
+    <div class="dfilt">${[["all", `All (${nAnchor + nPick})`], ["anchor", `On-site, Anchor (${nAnchor})`], ["pickup", `Pickups (${nPick})`]].map(([k, l]) => `<button type="button" data-schedf="${k}" aria-pressed="${sf === k}">${l}</button>`).join("")}</div>
+    ${groups.length ? groups.map(g => `<p class="dday ${g.k === "overdue" ? "late" : ""}">${g.k === "overdue" ? "Past the scheduled date" : (g.k === d.today ? "Today \u00b7 " : "") + esc(fmtDay(g.k))} <span class="small muted">${g.list.length}</span></p>
+      <div class="dlist">${g.list.map(q => `<div class="drow col"><div class="drowtop"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.address].filter(Boolean).join(" \u00b7 ")) || "No address on file"}</span></span>
+        <span class="dmeta"><span class="dpill ${q.package === "Anchor" ? "lo" : "md"}">${q.package === "Anchor" ? "On-site" : "Pickup"}${q.package ? " \u00b7 " + esc(q.package) : ""}</span>${g.k === "overdue" ? `<span class="small muted">was ${esc(fmtDate(q.desired))}</span>` : ""}</span></div>
+        <div class="dacts">${q.phone ? `<a class="dbtn prof" href="tel:${esc(tel(q.phone))}">Call ${esc(q.phone)}</a>` : ""}${q.boatId ? `<button type="button" class="dbtn prof" data-bpopen="${esc(q.boatId)}">Boat Profile</button>` : ""}</div></div>`).join("")}</div>`).join("") : `<p class="small muted">Nothing scheduled${sf === "all" ? "" : " for this filter"}.</p>`}
+  </section>`;
+  $app.innerHTML = head + `<main class="wrap" style="padding-top:16px">${freeze}${schedule}${pipeline}${service}</main>`;
 }
 
 /* ============================================================
@@ -2122,6 +2151,7 @@ document.addEventListener("click", e => {
   if (d.dashopen !== undefined && S.dash) { S.dash.open = S.dash.open === d.dashopen ? null : d.dashopen; render(); return; }
   if (d.dashboat !== undefined && S.dash) { const b = S.dash.data.boats[+d.dashboat]; S.backToDash = true; S.view = "home"; openWorkspace({ checkinId: b.checkinId, jobId: b.jobId }, b.jobId ? "check" : "checkin"); return; }
   if (d.a === "dashrefresh") { loadDash(); return; }
+  if (d.schedf && S.dash) { S.dash.schedFilter = d.schedf; render(); return; }
   if (d.bpboat && S.prof) { S.prof.cur = d.bpboat; history.replaceState(null, "", "/winterize/?boat=" + d.bpboat); render(); return; }
   if (d.a === "bpexport" && S.prof) { S.prof.exp = S.prof.exp ? null : { all: false, cust: true }; render(); return; }
   if (d.a === "bpdl" && S.prof && S.prof.exp) { try { bpPdf(S.prof.exp.all, S.prof.exp.cust); } catch (e) { toast("Couldn't build the PDF: " + e.message, 5000); } return; }
