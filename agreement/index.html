@@ -235,7 +235,7 @@ function render() {
     <p class="label">Step 2</p><h2>Condition at check-in</h2>
     <p class="small muted" style="margin-top:-6px">We documented each boat when we received it. Please look this over.</p>
     ${d.checkins.map(ci => { const b = d.boats.find(x => x.id === ci.boatId);
-      return `<div class="ci"><b>${esc(b ? b.label : 'Your boat')}</b><div class="small muted">Checked in ${esc(fmt(ci.at))}${ci.by ? ' by ' + esc(ci.by) : ''}${ci.where ? ' · ' + esc(ci.where) : ''}</div>
+      return `<div class="ci"><b>${esc(b ? b.label : 'Your boat')}</b><div class="small muted">Checked in ${esc(fmt(ci.at))}${ci.where ? ' · ' + esc(ci.where) : ''}</div>
       <dl>${ci.hours ? `<dt>Engine hours</dt><dd>${esc(ci.hours)}</dd>` : ''}${ci.fuel ? `<dt>Fuel</dt><dd>${esc(ci.fuel)}</dd>` : ''}
         <dt>Existing damage</dt><dd>${esc(ci.damage || 'None noted')}</dd>${ci.items ? `<dt>Items aboard</dt><dd>${esc(ci.items)}</dd>` : ''}${ci.keys ? `<dt>Keys</dt><dd>${esc(ci.keys)}</dd>` : ''}</dl>
       ${ci.photos && ci.photos.length ? `<div class="pgrid">${ci.photos.map((p, i) => `<button data-photo="${ci.id}:${i}" aria-label="View photo: ${esc(p.cap)}"><img src="${esc(p.thumb)}" alt="${esc(p.cap)}" loading="lazy"></button>`).join('')}</div>`

@@ -2369,6 +2369,11 @@ async function buildPdf(j, mode) {
     ["Service type", TYPES[j.type] && TYPES[j.type].label + (j.cooling ? (j.cooling === "raw" ? ", raw-water cooled" : ", closed cooled") : "")], ["Engine", j.engine],
     ["Engine hours", j.engineHours], ["Checked in", j.checkin ? [fmtDate(Date.parse(j.checkin.at)), j.checkin.by].filter(Boolean).join(" by ") : ""], ["Technician", so.techName || j.technician], ["Date in / completed", [fmtDate(j.dateIn), fmtDate(j.dateCompleted)].filter(Boolean).join("  /  ")],
     ["Signed agreement", j.agreementRef ? j.agreementRef + (j.agreementAt ? ", " + fmtDate(Date.parse(j.agreementAt)) : "") : ""]];
+  // Customer copy: no staff names for now (who checked in, technician).
+  if (mode === "customer") {
+    for (let k = facts.length - 1; k >= 0; k--) if (facts[k][0] === "Technician") facts.splice(k, 1);
+    const ci = facts.find(f => f[0] === "Checked in"); if (ci && j.checkin) ci[1] = fmtDate(Date.parse(j.checkin.at));
+  }
   const colW = (W - 2 * M) / 2;
   facts.forEach((f, i) => { const x = M + (i % 2) * colW; if (i % 2 === 0 && i) y += 27; need(27);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...MUTED); doc.text(pdfTxt(f[0]), x, y);
@@ -2417,6 +2422,13 @@ async function buildPdf(j, mode) {
       rowH = Math.max(rowH, hgt + 30); if (col === 1) { y += rowH; rowH = 0; col = 0; } else col = 1;
     }
     if (col === 1) y += rowH;
+  }
+  if (mode === "customer") {
+    // No staff names or signatures on the customer copy for now.
+    h2("Service completed"); need(40);
+    para(`Winterization completed by Waterline Lake Services${j.dateCompleted ? " on " + fmtDate(j.dateCompleted) : ""}.`);
+    para("Questions about your boat? Call or text us at (317) 258-8269, or email service@waterlinelakeservices.com. Thanks for trusting us with your boat this winter.", { color: MUTED, size: 9.5 });
+    return doc.output("blob");
   }
   h2("Sign-off"); need(84); const sy = y;
   [["Technician", so.techName, so.techSigData, so.techAt], ["Reviewed by", so.revName, so.revSigData, so.revAt]].forEach(([lab, nm, data, at], k) => {

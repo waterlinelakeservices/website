@@ -176,7 +176,7 @@ async function buildPdf(p) {
   if (p.checkins.length) {
     heading('Condition documented at check-in');
     p.checkins.forEach((c) => {
-      rich([[`${c.boatLabel}: `, bold], [`checked in ${c.at ? 'on ' + eastern(new Date(c.at)) : ''}${c.by ? ' by ' + c.by : ''}${c.where ? ', ' + c.where : ''}.`, font]]);
+      rich([[`${c.boatLabel}: `, bold], [`checked in ${c.at ? 'on ' + eastern(new Date(c.at)) : ''}${c.where ? ', ' + c.where : ''}.`, font]]);
       const bits = [c.hours && `Engine hours: ${c.hours}`, c.fuel && `Fuel: ${c.fuel}`, c.keys && `Keys: ${c.keys}`].filter(Boolean).join('   ');
       if (bits) text(bits, { indent: 12 });
       text(`Existing damage noted: ${c.damage || 'None noted'}`, { indent: 12 });
@@ -212,7 +212,7 @@ async function buildPdf(p) {
   heading('Signing record');
   [
     `Signed at: ${eastern(p.signedAt)}  (${p.signedAtIso} UTC, recorded by Waterline's server)`,
-    `Signed via: ${p.via}${p.witness ? `, witnessed by ${p.witness}` : ''}`,
+    `Signed via: ${p.via}${p.witness ? ', witnessed by Waterline staff' : ''}`,
     `IP address: ${p.ip || 'not available'}`,
     `Device / browser: ${p.device || 'not available'}`,
     `Agreement version: ${VERSION}`,
@@ -265,7 +265,7 @@ const actions = {
     return {
       customer: { name: d.customer.name, email: d.customer.email, phone: d.customer.phone, address: d.customer.address },
       boats: d.boats.map((b) => ({ id: b.id, label: boatLabel(b), hin: b.hin, package: b.package, packageFixed: b.packageFixed })),
-      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, package: c.package, at: c.at, by: c.by, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photoCount: c.photoIds.length, photos: c.sharePhotos ? photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) : [] })),
+      checkins: d.checkins.map((c) => ({ id: c.id, boatId: c.boatId, package: c.package, at: c.at, where: c.where, hours: c.hours, fuel: c.fuel, damage: c.damage, items: c.items, keys: c.keys, photoCount: c.photoIds.length, photos: c.sharePhotos ? photos.filter((x) => x.checkin === c.id).map((x) => ({ thumb: x.thumb, url: x.url, cap: x.cap, at: x.at })) : [] })),
       covered, packageGuess: d.guess,
       packages: AT.PACKAGES.map((name) => ({ name, blurb: AT.PACKAGE_BLURB[name], storage: AT.STORAGE_PACKAGES.includes(name) })),
       battery: Object.entries(BATTERY).map(([id, label]) => ({ id, label, storageOnly: id === 'waterline', needsNote: id === 'property' || id === 'other' })),
