@@ -363,6 +363,11 @@ a.dbtn{display:inline-flex;align-items:center;text-decoration:none}.dweather em{
 .ftile[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
 .ftile.risk{border-color:#E9B8AE;color:#9A2F1C}.ftile.risk[aria-pressed="true"]{background:#C0472F;border-color:#C0472F;color:#fff}
 .ftile.warn{border-color:#E7A24C;color:#8A5A12}.ftile.warn[aria-pressed="true"]{background:#E7A24C;color:#0C3944}
+.dtabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:10px 12px;background:var(--bg,#E9EEEF);border-bottom:1px solid var(--stone-2,#DCE4E5)}
+.dtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;padding:6px 4px;border-radius:12px;border:1.5px solid var(--stone-2,#DCE4E5);background:#fff;color:var(--deep);font:inherit;cursor:pointer}
+.dtabs button span{font-size:12.5px;font-weight:600;line-height:1.2;text-align:center}.dtabs button b{font-size:17px;line-height:1}
+.dtabs button[aria-selected="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.dtabs button.hot:not([aria-selected="true"]){color:#9A2F1C;border-color:#E9B8AE}
 </style>
 </head>
 <body>
@@ -1922,9 +1927,9 @@ const TYPE_SHORT = { ski: "Ski boats", io: "I/O", pwc: "PWC", outboard: "Outboar
 const DASH_STAGES = ["Checking in", "Awaiting signature", "Check-in complete", "In winterization", "Needs review", "Complete"];
 const STAGE_LABEL = { "Checking in": "Checking in", "Awaiting signature": "Needs signature", "Check-in complete": "Ready to winterize", "In winterization": "In winterization", "Needs review": "Needs review", "Complete": "Complete" };
 async function loadDash() {
-  S.view = "dash"; S.dash = { loading: true, open: (S.dash && S.dash.open) || null };
+  S.view = "dash"; const keep = S.dash || {}; S.dash = { loading: true, open: keep.open || null, tab: keep.tab, ptypes: keep.ptypes, schedFilter: keep.schedFilter };
   history.replaceState(null, "", "/winterize/?view=dashboard"); render(); window.scrollTo(0, 0);
-  try { const r = await api("dashboard"); S.dash = { data: r, open: S.dash.open }; }
+  try { const r = await api("dashboard"); S.dash = { data: r, open: S.dash.open, tab: S.dash.tab, ptypes: S.dash.ptypes, schedFilter: S.dash.schedFilter }; }
   catch (e) { S.dash = { err: e.offline ? "You need signal to load the dashboard." : "Couldn't load the dashboard: " + e.message }; }
   if (S.view === "dash") render();
 }
@@ -2021,7 +2026,11 @@ function renderDash() {
         <span class="dmeta"><span class="dpill ${q.package === "Anchor" ? "lo" : "md"}">${q.package === "Anchor" ? "On-site" : "Pickup"}${q.package ? " \u00b7 " + esc(q.package) : ""}</span>${g.k === "overdue" ? `<span class="small muted">was ${esc(fmtDate(q.desired))}</span>` : ""}</span></div>
         <div class="dacts">${q.phone ? `<a class="dbtn prof" href="tel:${esc(tel(q.phone))}">Call ${esc(q.phone)}</a>` : ""}${q.boatId ? `<button type="button" class="dbtn prof" data-bpopen="${esc(q.boatId)}">Boat Profile</button>` : ""}</div></div>`).join("")}</div>`).join("") : `<p class="small muted">Nothing scheduled${sf === "all" ? "" : " for this filter"}.</p>`}
   </section>`;
-  $app.innerHTML = head + `<main class="wrap" style="padding-top:16px">${freeze}${schedule}${pipeline}${service}</main>`;
+  const tab = D.tab || "freeze";
+  const TABS = [["freeze", "Freeze risk", atRisk.length], ["sched", "Schedule", ncAll.filter(q => q.desired).length], ["pipe", "Pipeline", ncAll.length + boats.length], ["svc", "In service", insvc.length]];
+  const tabs = `<nav class="dtabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([k, l, n]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${tab === k}"${k === "freeze" && atRisk.length ? ' class="hot"' : ""}><span>${l}</span><b>${n}</b></button>`).join("")}</nav>`;
+  const body = { freeze, sched: schedule, pipe: pipeline, svc: service }[tab] || freeze;
+  $app.innerHTML = head + tabs + `<main class="wrap" style="padding-top:12px">${body}</main>`;
 }
 
 /* ============================================================
@@ -2175,6 +2184,7 @@ document.addEventListener("click", e => {
   if (d.dashopen !== undefined && S.dash) { S.dash.open = S.dash.open === d.dashopen ? null : d.dashopen; render(); return; }
   if (d.dashboat !== undefined && S.dash) { const b = S.dash.data.boats[+d.dashboat]; S.backToDash = true; S.view = "home"; openWorkspace({ checkinId: b.checkinId, jobId: b.jobId }, b.jobId ? "check" : "checkin"); return; }
   if (d.a === "dashrefresh") { loadDash(); return; }
+  if (d.dtab && S.dash) { S.dash.tab = d.dtab; S.dash.open = null; render(); window.scrollTo(0, 0); return; }
   if (d.schedf && S.dash) { S.dash.schedFilter = d.schedf; render(); return; }
   if (d.ptype !== undefined && S.dash) { const cur = S.dash.ptypes || []; S.dash.ptypes = !d.ptype ? [] : cur.includes(d.ptype) ? cur.filter(k => k !== d.ptype) : [...cur, d.ptype]; render(); return; }
   if (d.bpboat && S.prof) { S.prof.cur = d.bpboat; history.replaceState(null, "", "/winterize/?boat=" + d.bpboat); render(); return; }
