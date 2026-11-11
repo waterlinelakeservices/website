@@ -1952,8 +1952,8 @@ function renderDash() {
     <div class="dhead"><h2>Freeze risk</h2><span class="small muted">${atRisk.length} boat${atRisk.length === 1 ? "" : "s"} not protected yet</span></div>
     ${lows.length ? `<div class="dweather ${anyRed ? "cold" : ""}"><div class="dwdays">${lows.map((w, i) => `<span class="dwd ${risks[i]}"><b>${esc(dayName(w.date))}</b><span>${w.high != null ? w.high + "\u00b0 / " : ""}${w.low}\u00b0</span></span>`).join("")}</div>
       ${anyRed ? `<em>${maxStreak >= 2 ? `Below freezing all day for ${maxStreak} days in a row` : `Freeze risk ${esc(dayName(firstRed.date))}${firstRed.high <= 32 ? " (stays below freezing all day)" : ` (hard freeze, ${firstRed.low}\u00b0F)`}`}: flush high-risk boats first.</em>` : risks.includes("amber") ? `<em class="ok">Light overnight frost only; days warm above freezing. Low risk.</em>` : `<em class="ok">No freezing temps in the 7-day forecast.</em>`}
-      <small class="muted">High / low for Columbus, IN (Open-Meteo). <b class="kg">Green</b> above freezing \u00b7 <b class="ka">Amber</b> light frost, thaws by day \u00b7 <b class="kr">Red</b> stays below 32\u00b0F or drops to 25\u00b0F or colder.</small></div>` : ""}
-    <p class="small muted" style="margin:6px 0 10px">Boats checked in this season whose antifreeze flush isn't checked off yet (outboards and pontoons: until their winterization is finished). Tap a type to see the boats.</p>
+      <small class="muted">High / low for Columbus, IN (Open-Meteo forecast).</small></div>` : ""}
+    <p class="small muted" style="margin:6px 0 10px">Every boat checked in this season that isn\u2019t protected from freezing yet: ski boats, I/Os, and PWCs until the antifreeze flush is checked off; outboards and pontoons until their winterization is finished. Tap a type to see the boats.</p>
     ${cats.map(c => `<div class="dcat${open === "cat:" + c.k ? " open" : ""}"><button type="button" class="dcathead" data-dashopen="cat:${c.k}" aria-expanded="${open === "cat:" + c.k}">
       <span><b>${esc(c.label)}</b><span class="small muted">${esc(c.sub)}</span></span>
       <span class="dright"><span class="dpill ${c.tone}">${esc(c.risk)}</span><span class="dcount">${c.list.length}</span><span class="dchev">${open === "cat:" + c.k ? "\u25b4" : "\u25be"}</span></span></button>
@@ -1990,7 +1990,7 @@ function renderDash() {
       ? barRow("wint:risk", "In winterization: at risk", wRisk.length, "#C0472F") + barRow("wint:safe", "In winterization: protected", wSafe.length, "var(--deep)")
       : barRow("stage:" + c.st, STAGE_LABEL[c.st], c.n, color(c.st))).join("")}
     <div class="dtotal"><span>Total${ptypes.length ? ` \u00b7 ${esc(ptypes.map(k => TYPE_SHORT[k] || k).join(", "))}` : ""}</span><b>${nc.length + pBoats.length}</b></div>
-    <p class="small muted" style="margin:6px 0 0">At risk = antifreeze flush not checked off yet (outboards and pontoons: winterization not finished).</p>
+    <p class="small muted" style="margin:6px 0 0">At risk = not protected from freezing yet: ski boats, I/Os, and PWCs until the antifreeze flush is checked off; outboards and pontoons until winterization is finished.</p>
     ${(open === "needs" || (open && (open.startsWith("stage:") || open.startsWith("wint:")))) ? `<div style="margin-top:10px">${pipeList}</div>` : ""}</section>`;
   // 3. in service
   const insvc = boats.filter(b => b.jobId && b.jobStatus !== "Complete").map(b => { const m = String(b.steps || "").match(/(\d+)\s*\/\s*(\d+)/); return { b, done: m ? +m[1] : 0, total: m ? +m[2] : 0 }; })

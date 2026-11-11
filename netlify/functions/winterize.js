@@ -625,7 +625,9 @@ const actions = {
       const qb = boatById.get((f[Q.boat] || [])[0]) || {};
       return { cat: catForBoat(qb, sel(f[Q.type])), quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
     });
-    return { season, today: new Date().toISOString().slice(0, 10), weather, boats: out, needsCheckin };
+    // 'today' in Indiana time (UTC is already tomorrow by evening here).
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Indiana/Indianapolis' });
+    return { season, today, weather, boats: out, needsCheckin };
   },
   // Remove a winterization job and/or a check-in, with their photos.
   // Customers, boats, and signed agreements are never deleted here.
