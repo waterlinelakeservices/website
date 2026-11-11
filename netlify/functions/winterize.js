@@ -207,6 +207,16 @@ async function forecastLows() {
   return (d.daily && d.daily.time || []).map((t, i) => ({ date: t, low: Math.round(d.daily.temperature_2m_min[i]), high: Math.round(d.daily.temperature_2m_max[i]) }));
 }
 
+// Freeze protection: the antifreeze flush step is checked off (outboards and pontoons have no flush step:
+// they count as protected once the winterization is complete). Same rule as the dashboard.
+const FLUSH_STEP = { DD: 'cr_flush', VD: 'cr_flush', IO: 'io_flush', PWC: 'pw_flush' };
+function freezeProtected(stateJson, status) {
+  if (status === 'Complete') return true;
+  let st = null; try { st = JSON.parse(stateJson || 'null'); } catch (e) { st = null; }
+  const id = st && FLUSH_STEP[st.type];
+  return !!(id && st.checks && st.checks[id] && st.checks[id].s === 'done');
+}
+
 function boatFields(b) {
   b = b || {};
   const f = {};
@@ -534,7 +544,7 @@ const actions = {
         sort: [{ field: CHK.at, direction: 'desc' }], max: 300,
       }),
       W.list(token, T.jobs, {
-        fields: [JOB.title, JOB.hin, JOB.status, JOB.steps, JOB.dateIn, JOB.customerName, JOB.svc, JOB.synced, JOB.checkin, JOB.stage, JOB.photoCount],
+        fields: [JOB.title, JOB.hin, JOB.status, JOB.steps, JOB.dateIn, JOB.customerName, JOB.svc, JOB.synced, JOB.checkin, JOB.stage, JOB.photoCount, JOB.state],
         sort: [{ field: JOB.synced, direction: 'desc' }], max: 300,
       }),
     ]);
@@ -543,7 +553,7 @@ const actions = {
     const part = (t, i) => (String(t || '').split(' - ')[i] || '').trim();
     const jobOut = (j) => {
       const f = j.fields || {};
-      return { id: j.id, status: sel(f[JOB.status]) || 'In Progress', steps: f[JOB.steps] || '', svc: sel(f[JOB.svc]) || '', photos: f[JOB.photoCount] || 0, customer: (f[JOB.customerName] || [])[0] || part(f[JOB.title], 1), boat: part(f[JOB.title], 2), at: f[JOB.synced] || '', dateIn: f[JOB.dateIn] || '' };
+      return { id: j.id, protected: freezeProtected(f[JOB.state], sel(f[JOB.status])), status: sel(f[JOB.status]) || 'In Progress', steps: f[JOB.steps] || '', svc: sel(f[JOB.svc]) || '', photos: f[JOB.photoCount] || 0, customer: (f[JOB.customerName] || [])[0] || part(f[JOB.title], 1), boat: part(f[JOB.title], 2), at: f[JOB.synced] || '', dateIn: f[JOB.dateIn] || '' };
     };
     const items = [];
     for (const c of cks) {

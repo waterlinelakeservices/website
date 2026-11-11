@@ -353,6 +353,8 @@ a.dbtn{display:inline-flex;align-items:center;text-decoration:none}.dweather em{
 .dbar{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;width:100%;padding:7px 4px;background:none;border:0;border-radius:8px;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .dbar.on{background:var(--glacier-tint,#E6F2F5)}.dbl{font-size:14px}.dtrack{height:18px;border-radius:6px;background:#EEF2F2;overflow:hidden;display:block}.dtrack span{display:block;height:100%;border-radius:6px}.dbn{text-align:right;font-weight:700}
 .dprog{display:block;height:8px;border-radius:4px;background:#EEF2F2;overflow:hidden;margin:6px 0 3px}.dprog i{display:block;height:100%;background:var(--pine,#2F5D50)}
+.filters [data-filter="risk"]:not([aria-pressed="true"]){color:#9A2F1C;border-color:#E9B8AE}
+.frzwarn{display:inline-block;margin:3px 6px 0 0;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#FBE4DF;color:#9A2F1C}
 </style>
 </head>
 <body>
@@ -814,6 +816,8 @@ const FILTERS = [
   ["checkin", "Checking in", it => it.stage === "Checking in" || it.stage === "Awaiting signature"],
   ["ready", "Ready to winterize", it => it.stage === "Check-in complete" || (!it.job && it.stage === "Awaiting signature")],
   ["wint", "In winterization", it => it.stage === "In winterization"],
+  // In winterization but the antifreeze flush isn't checked off yet (outboards/pontoons: not finished).
+  ["risk", "Freeze risk", it => it.stage === "In winterization" && !!it.job && !it.job.protected],
   ["review", "Needs review", it => it.stage === "Needs review"],
   ["complete", "Complete", it => it.stage === "Complete"],
   ["all", "All", () => true]
@@ -830,7 +834,7 @@ function cardHtml(it, idx) {
   const sub = [boat, it.package, job && job.svc].filter(Boolean).join(", ");
   const when = it.updated ? fmtTime(Date.parse(it.updated)) : "";
   const icon = ringPct === null ? `<span class="ckicon" aria-hidden="true">${I.clip}</span>` : ring(ringPct);
-  return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div>${it.job && it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" ? SIG_WARN : ""}<div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
+  return `<div class="jobrow" data-stage="${esc(it.stage)}"><button class="jobmain" data-card="${idx}">${icon}<div class="meta"><b>${esc(it.customer || "No customer yet")}</b><div class="small muted">${esc(sub || "Boat not linked")}</div>${it.job && it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" ? SIG_WARN : ""}${it.stage === "In winterization" && it.job && !it.job.protected ? FREEZE_WARN : ""}<div class="hin">${esc(it.hin || "NO HIN")}</div>${when ? `<div class="when">${esc(when)}</div>` : ""}</div>${stageChip(it.stage)}</button>
     <button class="jobdel" data-delcard="${idx}" aria-label="Remove ${esc(it.customer || "this job")}" title="Remove">${I.trash}</button></div>`;
 }
 function renderHome() {
@@ -902,6 +906,7 @@ function renderJob() {
 // Winterization tabs before a job exists for this boat.
 // Unsigned check-in: the winterization can go ahead, but the boat is flagged until the customer signs.
 const unsignedCk = () => !!(S.ck && S.ck.completedAt && S.ckStatus !== "Signed" && S.ckStatus !== "Override");
+const FREEZE_WARN = `<span class="frzwarn" title="Antifreeze flush not checked off yet">\u2744 Not flushed</span>`;
 const SIG_WARN = `<span class="sigwarn" title="The customer hasn't signed the agreement yet">\u26a0 Signature needed</span>`;
 function sigBanner() {
   return unsignedCk() ? `<div class="banner sigbanner"><b>\u26a0 The customer hasn't signed yet.</b> Keep going with the winterization; send or resend the signing link from the Check-in tab.
