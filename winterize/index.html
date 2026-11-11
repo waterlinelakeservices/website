@@ -1946,7 +1946,7 @@ function dashBoatRows(list) {
 }
 function renderDash() {
   const D = S.dash || {};
-  const head = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>Season dashboard</h1><button class="btn ghost" data-a="dashrefresh" style="margin-left:auto;color:#fff">Refresh</button></div></header>`;
+  const head = `<header class="top"><div class="in"><button class="back" data-a="home" aria-label="Back to boats">\u2039</button><h1>Season dashboard</h1></div></header>`;
   if (D.loading) { $app.innerHTML = head + `<main class="wrap"><p class="empty">Loading the dashboard\u2026</p></main>`; return; }
   if (D.err) { $app.innerHTML = head + `<main class="wrap"><div class="banner">${esc(D.err)}</div></main>`; return; }
   const d = D.data; const boats = d.boats; const open = D.open;
