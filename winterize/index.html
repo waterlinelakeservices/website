@@ -356,6 +356,13 @@ a.dbtn{display:inline-flex;align-items:center;text-decoration:none}.dweather em{
 .filters [data-filter="risk"]:not([aria-pressed="true"]){color:#9A2F1C;border-color:#E9B8AE}
 .frzwarn{display:inline-block;margin:3px 6px 0 0;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#FBE4DF;color:#9A2F1C}
 .dtotal{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:10px 4px 2px;border-top:1.5px solid var(--stone-2,#DCE4E5);font-size:14px;font-weight:600}.dtotal b{font-size:18px}
+.fgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+@media (min-width:720px){.fgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.ftile{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:64px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--stone-2,#DCE4E5);background:#fff;color:var(--deep);font:inherit;text-align:left;cursor:pointer}
+.ftile b{font-size:22px;line-height:1;font-weight:700}.ftile span{font-size:13px;line-height:1.25;font-weight:600}
+.ftile[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.ftile.risk{border-color:#E9B8AE;color:#9A2F1C}.ftile.risk[aria-pressed="true"]{background:#C0472F;border-color:#C0472F;color:#fff}
+.ftile.warn{border-color:#E7A24C;color:#8A5A12}.ftile.warn[aria-pressed="true"]{background:#E7A24C;color:#0C3944}
 </style>
 </head>
 <body>
@@ -820,8 +827,7 @@ const FILTERS = [
   // In winterization but the antifreeze flush isn't checked off yet (outboards/pontoons: not finished).
   ["risk", "Freeze risk", it => it.stage === "In winterization" && !!it.job && !it.job.protected],
   ["review", "Needs review", it => it.stage === "Needs review"],
-  ["complete", "Complete", it => it.stage === "Complete"],
-  ["all", "All", () => true]
+  ["complete", "Complete", it => it.stage === "Complete"]
 ];
 function boardList() {
   const q = S.q.trim().toLowerCase(); const items = S.board || [];
@@ -847,7 +853,9 @@ function renderHome() {
       <button class="btn sec block" data-a="dash" style="margin-top:10px">Season dashboard: freeze risk and pipeline</button></section>
     ${pend ? `<div class="banner">${pend} photo${pend > 1 ? "s" : ""} waiting to upload. ${navigator.onLine === false ? "They'll send when you have signal." : `<button class="btn ghost" data-a="retryphotos">Try now</button>`}</div>` : ""}
     <label class="f" style="margin-top:20px"><span>Find a boat</span><input class="in-t" id="q" type="search" placeholder="HIN, customer, or boat" value="${esc(S.q)}"></label>
-    <div class="filters" role="group" aria-label="Filter by stage">${FILTERS.map(([key, label, fn]) => `<button data-filter="${key}" aria-pressed="${S.filter === key}">${label} (${items.filter(fn).length})</button>`).join("")}</div>
+    <div class="fgrid" role="group" aria-label="Filter by stage">${FILTERS.map(([key, label, fn]) => [key, label, items.filter(fn).length])
+      .filter(([key, , n]) => key !== "review" || n > 0 || S.filter === "review")
+      .map(([key, label, n]) => `<button type="button" class="ftile${key === "risk" ? " risk" : ""}${key === "review" ? " warn" : ""}" data-filter="${key}" aria-pressed="${S.filter === key}"><b>${n}</b><span>${label}</span></button>`).join("")}</div>
     ${S.boardErr ? `<div class="banner">${esc(S.boardErr)} <button class="btn ghost" data-a="reload">Try again</button></div>` : ""}
     <div id="boardlist">${S.board === null && !S.boardErr ? `<p class="empty">Loading boats\u2026</p>` : boardHtml(list, items)}</div>
   </main>${S.del ? delModal() : ""}`;
