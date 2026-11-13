@@ -363,11 +363,14 @@ a.dbtn{display:inline-flex;align-items:center;text-decoration:none}.dweather em{
 .ftile[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
 .ftile.risk{border-color:#E9B8AE;color:#9A2F1C}.ftile.risk[aria-pressed="true"]{background:#C0472F;border-color:#C0472F;color:#fff}
 .ftile.warn{border-color:#E7A24C;color:#8A5A12}.ftile.warn[aria-pressed="true"]{background:#E7A24C;color:#0C3944}
-.dtabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:10px 12px;background:var(--bg,#E9EEEF);border-bottom:1px solid var(--stone-2,#DCE4E5)}
+.dtabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:10px 12px;background:var(--bg,#E9EEEF);border-bottom:1px solid var(--stone-2,#DCE4E5)}
 .dtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;padding:6px 4px;border-radius:12px;border:1.5px solid var(--stone-2,#DCE4E5);background:#fff;color:var(--deep);font:inherit;cursor:pointer}
 .dtabs button span{font-size:12.5px;font-weight:600;line-height:1.2;text-align:center}.dtabs button b{font-size:17px;line-height:1}
 .dtabs button[aria-selected="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
 .dtabs button.hot:not([aria-selected="true"]){color:#9A2F1C;border-color:#E9B8AE}
+.bstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.bstats div{background:#F2F6F7;border-radius:12px;padding:10px}.bstats b{display:block;font-size:24px;line-height:1.1;color:var(--deep)}.bstats span{font-size:12.5px;color:var(--muted)}
+.dsub{font-size:15px;margin:16px 0 8px}.btypes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btypes div{border:1.5px solid var(--stone-2,#DCE4E5);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;align-items:center}.btypes span{font-weight:600;font-size:14px}.btypes b{font-size:20px;color:var(--deep)}.btypes small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.dtabs button span{font-size:11.5px}
 </style>
 </head>
 <body>
@@ -421,7 +424,7 @@ const SECTIONS = [
    {id:"cr_flush", t:"Antifreeze flush: warm the engine on the hose / fake-a-lake to a stable running temp (140\u2013180\u00b0F), then switch the intake to antifreeze and let the impeller pull it through until it comes out the exhaust", photo:"opt", inputs:[{k:"gal",label:"Antifreeze (gal)",type:"number",job:"antifreezeGal"}]}
  ]},
  { id:"fuel", title:"Fuel system", types:ALL, items:[
-   {id:"fu_stab", t:"Add marine fuel stabilizer", part:"stabilizer"}
+   {id:"fu_stab", t:"Add marine fuel stabilizer: 1 oz per 10 gallons of fuel", part:"stabilizer"}
  ]},
  /* ---------- Direct drive & V-drive ---------- */
  { id:"inb_oil", title:"Engine oil and transmission", types:INB, items:[
@@ -824,8 +827,6 @@ function renderLogin() {
 }
 const FILTERS = [
   ["active", "Active", it => it.stage !== "Complete"],
-  // Every boat in check-in or winterization whose agreement isn't signed yet (an owner override counts as cleared).
-  ["sig", "Needs signature", it => !!it.checkin && it.checkin.status !== "Signed" && it.checkin.status !== "Override" && it.stage !== "Complete"],
   ["checkin", "Checking in", it => it.stage === "Checking in" || it.stage === "Awaiting signature"],
   ["ready", "Ready to winterize", it => it.stage === "Check-in complete" || (!it.job && it.stage === "Awaiting signature")],
   ["wint", "In winterization", it => it.stage === "In winterization"],
@@ -1920,7 +1921,6 @@ const DASH_CATS = [
   { k: "ski", label: "Ski boats", sub: "Inboard, raw-water or closed-cooled (heat exchanger)", risk: "High", tone: "hi", how: "Antifreeze flush step not checked off" },
   { k: "io", label: "I/O (sterndrives)", sub: "Engine block and manifolds", risk: "High", tone: "hi", how: "Antifreeze flush step not checked off" },
   { k: "pwc", label: "PWC", sub: "Jet skis and WaveRunners", risk: "Medium", tone: "md", how: "Antifreeze flush step not checked off" },
-  { k: "outboard", label: "Outboard / pontoon", sub: "Self-draining when tilted down", risk: "Lower", tone: "lo", how: "Winterization not finished" },
   { k: "unknown", label: "Type not set", sub: "Set the drive type on the Boat Profile", risk: "Check", tone: "md", how: "Boat type unknown" },
 ];
 const TYPE_SHORT = { ski: "Ski boats", io: "I/O", pwc: "PWC", outboard: "Outboard / pontoon", unknown: "Type not set" };
@@ -1966,7 +1966,7 @@ function renderDash() {
     ${lows.length ? `<div class="dweather ${anyRed ? "cold" : ""}"><div class="dwdays">${lows.map((w, i) => `<span class="dwd ${risks[i]}"><b>${esc(dayName(w.date))}</b><span>${w.high != null ? w.high + "\u00b0 / " : ""}${w.low}\u00b0</span></span>`).join("")}</div>
       ${anyRed ? `<em>${maxStreak >= 2 ? `Below freezing all day for ${maxStreak} days in a row` : `Freeze risk ${esc(dayName(firstRed.date))}${firstRed.high <= 32 ? " (stays below freezing all day)" : ` (hard freeze, ${firstRed.low}\u00b0F)`}`}: flush high-risk boats first.</em>` : risks.includes("amber") ? `<em class="ok">Light overnight frost only; days warm above freezing. Low risk.</em>` : `<em class="ok">No freezing temps in the 7-day forecast.</em>`}
       <small class="muted">High / low for Columbus, IN (Open-Meteo forecast).</small></div>` : ""}
-    <p class="small muted" style="margin:6px 0 10px">Every boat checked in this season that isn\u2019t protected from freezing yet: ski boats, I/Os, and PWCs until the antifreeze flush is checked off; outboards and pontoons until their winterization is finished. Tap a type to see the boats.</p>
+    <p class="small muted" style="margin:6px 0 10px">Ski boats, I/Os, and PWCs checked in this season whose antifreeze flush isn\u2019t checked off yet. Outboards and pontoons drain themselves, so they\u2019re not listed. Tap a type to see the boats.</p>
     ${cats.map(c => `<div class="dcat${open === "cat:" + c.k ? " open" : ""}"><button type="button" class="dcathead" data-dashopen="cat:${c.k}" aria-expanded="${open === "cat:" + c.k}">
       <span><b>${esc(c.label)}</b><span class="small muted">${esc(c.sub)}</span></span>
       <span class="dright"><span class="dpill ${c.tone}">${esc(c.risk)}</span><span class="dcount">${c.list.length}</span><span class="dchev">${open === "cat:" + c.k ? "\u25b4" : "\u25be"}</span></span></button>
@@ -1980,7 +1980,7 @@ function renderDash() {
   const pBoats = boats.filter(typeOk);
   const nc = ncAll.filter(typeOk);
   const catCount = k => boats.filter(b => b.cat === k).length + ncAll.filter(q => (q.cat || "unknown") === k).length;
-  const typeChips = DASH_CATS.filter(c => c.k !== "unknown" || catCount("unknown")).map(c => `<button type="button" data-ptype="${c.k}" aria-pressed="${ptypes.includes(c.k)}">${esc(TYPE_SHORT[c.k] || c.label)} (${catCount(c.k)})</button>`).join("");
+  const typeChips = ["ski", "io", "pwc", "outboard", "unknown"].filter(k => k !== "unknown" || catCount("unknown")).map(k => `<button type="button" data-ptype="${k}" aria-pressed="${ptypes.includes(k)}">${esc(TYPE_SHORT[k])} (${catCount(k)})</button>`).join("");
   const wint = pBoats.filter(b => b.stage === "In winterization");
   const counts = DASH_STAGES.map(st => ({ st, n: pBoats.filter(b => b.stage === st).length }));
   const wRisk = wint.filter(b => !b.protected), wSafe = wint.filter(b => b.protected);
@@ -2003,7 +2003,7 @@ function renderDash() {
       ? barRow("wint:risk", "In winterization: at risk", wRisk.length, "#C0472F") + barRow("wint:safe", "In winterization: protected", wSafe.length, "var(--deep)")
       : barRow("stage:" + c.st, STAGE_LABEL[c.st], c.n, color(c.st))).join("")}
     <div class="dtotal"><span>Total${ptypes.length ? ` \u00b7 ${esc(ptypes.map(k => TYPE_SHORT[k] || k).join(", "))}` : ""}</span><b>${nc.length + pBoats.length}</b></div>
-    <p class="small muted" style="margin:6px 0 0">At risk = not protected from freezing yet: ski boats, I/Os, and PWCs until the antifreeze flush is checked off; outboards and pontoons until winterization is finished.</p>
+    <p class="small muted" style="margin:6px 0 0">At risk = ski boats, I/Os, and PWCs whose antifreeze flush isn\u2019t checked off yet. Outboards and pontoons are never at risk.</p>
     ${(open === "needs" || (open && (open.startsWith("stage:") || open.startsWith("wint:")))) ? `<div style="margin-top:10px">${pipeList}</div>` : ""}</section>`;
   // 3. in service
   const insvc = boats.filter(b => b.jobId && b.jobStatus !== "Complete").map(b => { const m = String(b.steps || "").match(/(\d+)\s*\/\s*(\d+)/); return { b, done: m ? +m[1] : 0, total: m ? +m[2] : 0 }; })
@@ -2026,10 +2026,40 @@ function renderDash() {
         <span class="dmeta"><span class="dpill ${q.package === "Anchor" ? "lo" : "md"}">${q.package === "Anchor" ? "On-site" : "Pickup"}${q.package ? " \u00b7 " + esc(q.package) : ""}</span>${g.k === "overdue" ? `<span class="small muted">was ${esc(fmtDate(q.desired))}</span>` : ""}</span></div>
         <div class="dacts">${q.phone ? `<a class="dbtn prof" href="tel:${esc(tel(q.phone))}">Call ${esc(q.phone)}</a>` : ""}${q.boatId ? `<button type="button" class="dbtn prof" data-bpopen="${esc(q.boatId)}">Boat Profile</button>` : ""}</div></div>`).join("")}</div>`).join("") : `<p class="small muted">Nothing scheduled${sf === "all" ? "" : " for this filter"}.</p>`}
   </section>`;
+  // 5. storage barn: every committed Harbor/Flagship boat (they end up in the barn)
+  const isStore = x => x.package === "Harbor" || x.package === "Flagship";
+  const bIn = boats.filter(isStore), bOut = ncAll.filter(isStore);
+  const bTotal = bIn.length + bOut.length;
+  const bStatus = [
+    ["out", "Not checked in yet", bOut.length, "var(--sun)"],
+    ["ckin", "Checking in", bIn.filter(b => b.stage === "Checking in" || (b.stage === "Awaiting signature" && !b.jobId)).length, "var(--glacier)"],
+    ["ready", "Ready to winterize", bIn.filter(b => b.stage === "Check-in complete").length, "var(--glacier)"],
+    ["risk", "In winterization: at risk", bIn.filter(b => b.stage === "In winterization" && !b.protected).length, "#C0472F"],
+    ["safe", "In winterization: protected", bIn.filter(b => b.stage === "In winterization" && b.protected).length, "var(--deep)"],
+    ["review", "Needs review", bIn.filter(b => b.stage === "Needs review").length, "var(--sun)"],
+    ["done", "Winterized (complete)", bIn.filter(b => b.stage === "Complete").length, "var(--pine)"],
+  ];
+  const bPick = { ckin: b => b.stage === "Checking in" || (b.stage === "Awaiting signature" && !b.jobId), ready: b => b.stage === "Check-in complete", risk: b => b.stage === "In winterization" && !b.protected, safe: b => b.stage === "In winterization" && b.protected, review: b => b.stage === "Needs review", done: b => b.stage === "Complete" };
+  const bMax = Math.max(1, ...bStatus.map(x => x[2]));
+  const bOpen = open && open.startsWith("barn:") ? open.slice(5) : null;
+  let bList = "";
+  if (bOpen === "out") bList = bOut.length ? `<div class="dlist">${[...bOut].sort((a, z) => String(a.desired || "9999").localeCompare(String(z.desired || "9999"))).map(q => `<div class="drow col"><div class="drowtop"><span><b>${esc(q.customer)}</b><span class="small muted">${esc([q.boat, q.package, q.phone].filter(Boolean).join(" \u00b7 "))}</span></span><span class="dmeta">${q.desired ? `<span class="chip ${q.desired < d.today ? "ckin" : "ready"}">${q.desired < d.today ? "Overdue \u00b7 " : ""}${esc(fmtDate(q.desired))}</span>` : `<span class="small muted">No pickup date</span>`}</span></div>${q.boatId ? `<div class="dacts"><button type="button" class="dbtn prof" data-bpopen="${esc(q.boatId)}">Boat Profile</button></div>` : ""}</div>`).join("")}</div>` : `<p class="small muted">None.</p>`;
+  else if (bOpen) bList = dashBoatRows(bIn.filter(bPick[bOpen]));
+  const typeRows = ["ski", "io", "pwc", "outboard", "unknown"].map(k => ({ k, inn: bIn.filter(b => b.cat === k).length, all: bIn.filter(b => b.cat === k).length + bOut.filter(q => (q.cat || "unknown") === k).length })).filter(r => r.all);
+  const barn = `<section class="card"><div class="dhead"><h2>Storage barn</h2><span class="small muted">Harbor and Flagship boats</span></div>
+    <div class="bstats"><div><b>${bTotal}</b><span>boats will be in the barn</span></div><div><b>${bIn.length}</b><span>checked in</span></div><div><b>${bOut.length}</b><span>still to bring in</span></div></div>
+    <div class="dprog" style="height:10px;margin:10px 0 4px"><i style="width:${bTotal ? Math.round(bIn.length / bTotal * 100) : 0}%"></i></div>
+    <p class="small muted" style="margin:0 0 12px">${bTotal ? Math.round(bIn.length / bTotal * 100) : 0}% checked in</p>
+    <h3 class="dsub">By boat type</h3>
+    <div class="btypes">${typeRows.map(r => `<div><span>${esc(TYPE_SHORT[r.k])}</span><b>${r.all}</b><small>${r.inn} in \u00b7 ${r.all - r.inn} to come</small></div>`).join("")}</div>
+    <h3 class="dsub">Status <span class="small muted" style="font-weight:400">tap to see the boats</span></h3>
+    ${bStatus.map(([k, l, n, c]) => `<button type="button" class="dbar${bOpen === k ? " on" : ""}" data-dashopen="barn:${k}"><span class="dbl">${esc(l)}</span><span class="dtrack"><span style="width:${Math.max(3, Math.round(n / bMax * 100))}%;background:${c}"></span></span><span class="dbn">${n}</span></button>`).join("")}
+    ${bOpen ? `<div style="margin-top:10px">${bList}</div>` : ""}
+  </section>`;
   const tab = D.tab || "freeze";
-  const TABS = [["freeze", "Freeze risk", atRisk.length], ["sched", "Schedule", ncAll.filter(q => q.desired).length], ["pipe", "Pipeline", ncAll.length + boats.length], ["svc", "In service", insvc.length]];
+  const TABS = [["freeze", "Freeze risk", atRisk.length], ["sched", "Schedule", ncAll.filter(q => q.desired).length], ["pipe", "Pipeline", ncAll.length + boats.length], ["svc", "In service", insvc.length], ["barn", "Barn", bTotal]];
   const tabs = `<nav class="dtabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([k, l, n]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${tab === k}"${k === "freeze" && atRisk.length ? ' class="hot"' : ""}><span>${l}</span><b>${n}</b></button>`).join("")}</nav>`;
-  const body = { freeze, sched: schedule, pipe: pipeline, svc: service }[tab] || freeze;
+  const body = { freeze, sched: schedule, pipe: pipeline, svc: service, barn }[tab] || freeze;
   $app.innerHTML = head + tabs + `<main class="wrap" style="padding-top:12px">${body}</main>`;
 }
 

@@ -213,6 +213,7 @@ const FLUSH_STEP = { DD: 'cr_flush', VD: 'cr_flush', IO: 'io_flush', PWC: 'pw_fl
 function freezeProtected(stateJson, status) {
   if (status === 'Complete') return true;
   let st = null; try { st = JSON.parse(stateJson || 'null'); } catch (e) { st = null; }
+  if (st && (st.type === 'PT' || st.type === 'OB')) return true; // outboards and pontoons drain themselves
   const id = st && FLUSH_STEP[st.type];
   return !!(id && st.checks && st.checks[id] && st.checks[id].s === 'done');
 }
@@ -616,7 +617,7 @@ const actions = {
       const at = f[CHK.at] ? Date.parse(f[CHK.at]) : null;
       return { checkinId: c.id, jobId: j ? j.id : null, boatId: (f[CHK.boat] || [])[0] || null, customer: part(f[CHK.title], 1), boat: bf[BOAT.mmc] || bf[BOAT.name] || part(f[CHK.title], 2),
         hin: f[CHK.hin] || '', stage, signed: ['Signed', 'Override'].includes(sel(f[CHK.status])), package: sel(f[CHK.package]), cat,
-        protected: done || flushed, flushed, days: at ? Math.floor((now - at) / 86400000) : null,
+        protected: done || flushed || cat === 'outboard', flushed, days: at ? Math.floor((now - at) / 86400000) : null,
         steps: j ? (j.fields[JOB.steps] || '') : '', tech: j ? (j.fields[JOB.tech] || '') : '', jobStatus };
     });
     const inBoats = new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).filter(Boolean));
