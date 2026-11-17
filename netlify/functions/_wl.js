@@ -36,7 +36,7 @@ const BOAT = {
   hin: 'fldcjbkM38im7lKwT', year: 'fldNIe307QPlhVB1D', engine: 'fldvkIqN4yFHplU3P',
   svc: 'fldVI9EEpyZyaALb8', cooling: 'fldQvstrpI7S45U9S', profile: 'fldmZgmaIsNXWB2wj',
   hours: 'fldvB5aNhOKKi1XD7', lastWint: 'fldMzSQ3j552j0w7b', impDate: 'fldB0nT11QmiQBlpl',
-  checkins: 'fldtkaf2mkplF4908', agreements: 'fld6Oui8hnVlz4bDx',
+  checkins: 'fldtkaf2mkplF4908', agreements: 'fld6Oui8hnVlz4bDx', quotes: 'fld17Nqk6ax7vwEYe',
   engineMake: 'fldpzJHCJDuj3i0nn', driveType: 'fldlKIim0erxx0zfO', engineModel: 'flduQ30S2BV3GzCuG', hp: 'fldZoUzYfTi6ptBRF', oilFilter: 'fldVJpdXfkVt5GLFl',
   engine: 'fldA45P9Xgq1O5aOu',
   hinMaker: 'fld2ST392NLLP3m1h', hinBuilt: 'fldMsT5dPZ8bIgw3P', hinCheck: 'fld4kRBQ7l0d4JD9T',

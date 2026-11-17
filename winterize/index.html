@@ -2022,12 +2022,12 @@ function renderDash() {
       <span class="dprog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></span><span class="small muted">${total ? `${done} of ${total} steps` : "Not started"}${b.protected ? "" : " \u00b7 not flushed yet"}</span></span>${dashActs(b, boats.indexOf(b))}</div>`).join("")}</div>` : `<p class="small muted">No winterizations open.</p>`}</section>`;
   // 4. schedule: committed boats with a scheduled date that aren't checked in yet
   const sf = D.schedFilter || "all";
-  const sched = ncAll.filter(q => q.desired).filter(q => sf === "all" || (sf === "anchor" ? q.package === "Anchor" : q.package !== "Anchor"))
+  const sched = ncAll.filter(q => q.desired && q.status !== "Picked Up").filter(q => sf === "all" || (sf === "anchor" ? q.package === "Anchor" : q.package !== "Anchor"))
     .sort((a, z) => a.desired.localeCompare(z.desired) || a.customer.localeCompare(z.customer));
   const groups = []; sched.forEach(q => { const k = q.desired < d.today ? "overdue" : q.desired; let g = groups.find(x => x.k === k); if (!g) { g = { k, list: [] }; groups.push(g); } g.list.push(q); });
   const fmtDay = iso => new Date(iso + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
   const tel = p => String(p || "").replace(/[^0-9+]/g, "");
-  const nAnchor = ncAll.filter(q => q.desired && q.package === "Anchor").length, nPick = ncAll.filter(q => q.desired && q.package !== "Anchor").length;
+  const nAnchor = ncAll.filter(q => q.desired && q.status !== "Picked Up" && q.package === "Anchor").length, nPick = ncAll.filter(q => q.desired && q.status !== "Picked Up" && q.package !== "Anchor").length;
   const schedule = `<section class="card" id="dsched"><div class="dhead"><h2>Pickup and service schedule</h2><span class="small muted">Scheduled, not checked in yet</span></div>
     <div class="dfilt">${[["all", `All (${nAnchor + nPick})`], ["anchor", `On-site, Anchor (${nAnchor})`], ["pickup", `Pickups (${nPick})`]].map(([k, l]) => `<button type="button" data-schedf="${k}" aria-pressed="${sf === k}">${l}</button>`).join("")}</div>
     ${groups.length ? groups.map(g => `<p class="dday ${g.k === "overdue" ? "late" : ""}">${g.k === "overdue" ? "Past the scheduled date" : (g.k === d.today ? "Today \u00b7 " : "") + esc(fmtDay(g.k))} <span class="small muted">${g.list.length}</span></p>
@@ -2066,7 +2066,7 @@ function renderDash() {
     ${bOpen ? `<div style="margin-top:10px">${bList}</div>` : ""}
   </section>`;
   const tab = D.tab || "freeze";
-  const TABS = [["freeze", "Freeze risk", riskTotal], ["sched", "Schedule", ncAll.filter(q => q.desired).length], ["pipe", "Pipeline", ncAll.length + boats.length], ["svc", "In service", insvc.length], ["barn", "Barn", bTotal]];
+  const TABS = [["freeze", "Freeze risk", riskTotal], ["sched", "Schedule", ncAll.filter(q => q.desired && q.status !== "Picked Up").length], ["pipe", "Pipeline", ncAll.length + boats.length], ["svc", "In service", insvc.length], ["barn", "Barn", bTotal]];
   const tabs = `<nav class="dtabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([k, l, n]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${tab === k}"${k === "freeze" && riskTotal ? ' class="hot"' : ""}><span>${l}</span><b>${n}</b></button>`).join("")}</nav>`;
   const body = { freeze, sched: schedule, pipe: pipeline, svc: service, barn }[tab] || freeze;
   $app.innerHTML = head + tabs + `<main class="wrap" style="padding-top:12px">${body}</main>`;

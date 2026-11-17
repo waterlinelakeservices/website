@@ -218,6 +218,21 @@ function freezeProtected(stateJson, status) {
   return !!(id && st.checks && st.checks[id] && st.checks[id].s === 'done');
 }
 
+// When a boat is checked in, its quote moves from Booked / Quote Accepted to Picked Up
+// (we have it; the work isn't billed yet). Invoiced and Paid are left alone.
+const QUOTES_T = 'tblm3InsiBnTS1bqg', QUOTE_STATUS = 'fld5YYU6Sh9PvnxIK';
+async function markPickedUp(token, boatId) {
+  if (!boatId) return;
+  const b = await W.getRec(token, T.boats, boatId);
+  const ids = ((b.fields || {})[BOAT.quotes] || []).slice(0, 10);
+  if (!ids.length) return;
+  const qs = await W.byIds(token, QUOTES_T, ids, [QUOTE_STATUS]);
+  for (const q of qs) {
+    const st = sel((q.fields || {})[QUOTE_STATUS]);
+    if (st === 'Booked' || st === 'Quote Accepted') await W.patch(token, QUOTES_T, q.id, { [QUOTE_STATUS]: 'Picked Up' });
+  }
+}
+
 function boatFields(b) {
   b = b || {};
   const f = {};
@@ -471,7 +486,7 @@ const actions = {
       [CHK.agreement]: agrIds, [CHK.status]: status, [CHK.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); await markPickedUp(token, boatId).catch((e) => console.error('markPickedUp', e.message)); }
     // Re-point photos when the boat changes, and once more when the check-in is completed
     // (catches a photo that uploaded in the moment before the boat was linked).
     const prevBoat = (cur.fields[CHK.boat] || [])[0] || null;
@@ -588,7 +603,7 @@ const actions = {
     const [cks, jobs, quotes, weather] = await Promise.all([
       W.list(token, T.checkins, { formula: `{Season}="${season}"`, fields: [CHK.title, CHK.hin, CHK.status, CHK.at, CHK.jobs, CHK.stage, CHK.package, CHK.boat], max: 400 }),
       W.list(token, T.jobs, { fields: [JOB.title, JOB.status, JOB.steps, JOB.state, JOB.checkin, JOB.tech, JOB.synced], max: 400 }),
-      W.list(token, QT, { formula: `OR({Status}="Quote Accepted",{Status}="Invoiced",{Status}="Paid",{Status}="Booked")`, fields: Object.values(Q), max: 400 }).catch(() => []),
+      W.list(token, QT, { formula: `OR({Status}="Quote Accepted",{Status}="Invoiced",{Status}="Paid",{Status}="Booked",{Status}="Picked Up")`, fields: Object.values(Q), max: 400 }).catch(() => []),
       forecastLows().catch(() => []),
     ]);
     const boatIds = [...new Set(cks.map((c) => (c.fields[CHK.boat] || [])[0]).concat(quotes.map((q) => (q.fields[Q.boat] || [])[0])).filter(Boolean))];
@@ -624,7 +639,7 @@ const actions = {
     const needsCheckin = quotes.filter((q) => { const b = (q.fields[Q.boat] || [])[0]; return !b || !inBoats.has(b); }).map((q) => {
       const f = q.fields || {};
       const qb = boatById.get((f[Q.boat] || [])[0]) || {};
-      return { cat: catForBoat(qb, sel(f[Q.type])), quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
+      return { cat: catForBoat(qb, sel(f[Q.type])), status: sel(f[Q.status]), quoteId: q.id, boatId: (f[Q.boat] || [])[0] || null, customer: f[Q.name] || '', phone: f[Q.phone] || '', address: f[Q.address] || '', desired: f[Q.desired] || '', package: sel(f[Q.pkg]), boat: ((f[Q.boat] || [])[0] && '') || sel(f[Q.type]) || '', linked: !!(f[Q.boat] || []).length };
     });
     // 'today' in Indiana time (UTC is already tomorrow by evening here).
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Indiana/Indianapolis' });
@@ -725,7 +740,7 @@ const actions = {
       [JOB.checkin]: recId(st.checkinId) ? [st.checkinId] : [], [JOB.state]: str(JSON.stringify(st)),
     });
     const boatId = st.boat && recId(st.boat.id);
-    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); }
+    if (boatId) { const bf = boatFields(p.boat); if (Object.keys(bf).length) await W.patch(token, T.boats, boatId, bf); await syncEngine(token, boatId, p.boat).catch((e) => console.error('syncEngine', e.message)); await fillFromHin(token, boatId).catch((e) => console.error('fillFromHin', e.message)); await markPickedUp(token, boatId).catch((e) => console.error('markPickedUp', e.message)); }
     return { savedAt: Date.now() };
   },
 
